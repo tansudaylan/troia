@@ -1,27 +1,18 @@
-import numpy
-import batman
 import matplotlib.pyplot as plt
-import os
+
 from transitleastsquares import transitleastsquares
 import emcee
-
-#from lion import main as lionmain
 
 from tdpy.util import summgene
 import tdpy.util
 import tdpy.mcmc
+import tesstarg.util
 
 import numpy as np
 
 import h5py
 
-
-import tesstarg.util
-#import tcat.main
-
 import time as timemodu
-
-#import pickle
 
 import scipy.signal
 from scipy import interpolate
@@ -45,31 +36,6 @@ import multiprocessing
 #from astropy.io import fits
 #import astropy.time
 
-# Create test data
-#timeinit = 3.14
-#timedura = 100
-#numbtimedayy = 48
-#numbtime = int(timedura * numbtimedayy)
-#time = numpy.linspace(timeinit, timeinit + timedura, numbtime)
-#
-## Use batman to create transits
-#objtbatmpara = batman.TransitParams()
-#objtbatmpara.t0 = timeinit  # time of inferior conjunction; first transit is X days after start
-#objtbatmpara.per = 10.123  # orbital period
-#objtbatmpara.rp = 6371. / 696342.  # 6371 planet radius (in units of stellar radii)
-#objtbatmpara.a = 19.  # semi-major axis (in units of stellar radii)
-#objtbatmpara.inc = 90.  # orbital inclination (in degrees)
-#objtbatmpara.ecc = 0.  # eccentricity
-#objtbatmpara.w = 90.  # longitude of periastron (in degrees)
-#objtbatmpara.u = [0.4, 0.4]  # limb darkening coefficients
-#objtbatmpara.limb_dark = "quadratic"  # limb darkening model
-#objtbatmtran = batman.TransitModel(objtbatmpara, time)  # initializes model
-#lcurmodl = objtbatmtran.light_curve(objtbatmpara)  # calculates light curve
-
-## Create noise and merge with flux
-#ppm = 50  # Noise level in parts per million
-#noise = numpy.random.normal(0, 10**-6 * ppm, int(numbtime))
-#flux = lcurmodl + noise
 
 def retr_lpos(para, gdat):
     
@@ -335,9 +301,9 @@ def init( \
     print('BHOL initialized at %s...' % gdat.strgtimestmp)
 
     if indxruns is None:
-        numpy.random.seed(0)
+        np.random.seed(0)
     else:
-        numpy.random.seed(indxruns)
+        np.random.seed(indxruns)
 
     # preliminary setup
     # construct the global object 
@@ -384,7 +350,7 @@ def init( \
     gdat.scalpara[1] = 'self'
     gdat.scalpara[2] = 'self'
     
-    gdat.limtpara = tesstarg.util.retr_limtpara(gdat.scalpara, gdat.minmpara, gdat.maxmpara, gdat.meanpara, gdat.stdvpara)
+    gdat.limtpara = tdpy.mcmc.retr_limtpara(gdat.scalpara, gdat.minmpara, gdat.maxmpara, gdat.meanpara, gdat.stdvpara)
     gdat.indxparahard = np.where(gdat.scalpara == 'self')[0]
 
     if gdat.datatype == 'obsd':
@@ -804,7 +770,6 @@ def init( \
                 print('Writing to %s...' % path)
                 plt.savefig(path)
                 plt.close()
-
     
 
 def cnfg_obsd():
@@ -831,5 +796,3 @@ def cnfg_mock():
 
 
 globals().get(sys.argv[1])()
-
-
