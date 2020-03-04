@@ -640,6 +640,7 @@ def init( \
                     dictllik = [gdat]
                     gdat.objtsamp = emcee.EnsembleSampler(gdat.numbwalk, gdat.numbpara, retr_lpos, args=dictllik, threads=10)
                     gdat.parainitburn, prob, state = gdat.objtsamp.run_mcmc(gdat.parainit, gdat.numbsampwalk)
+                    
                     gdat.medipara = np.median(gdat.objtsamp.flatchain[gdat.numbsamp/2:, :], 0)
                     gdat.fittmasscomp.append(gdat.medipara[4])
 
@@ -647,8 +648,6 @@ def init( \
             else:
                 print('Plots have been made already at %s. Skipping...' % gdat.pathplottotl)
         
-        gdat.numbdata = gdat.numbtime
-
         exec_srch(gdat)
         if gdat.boolmcmc:
             gdat.parapost = tesstarg.util.samp(gdat, gdat.pathimag, gdat.numbsampwalk, gdat.numbsampburnwalk, retr_modl, retr_lpos, \
@@ -663,7 +662,7 @@ def init( \
             for ii, i in enumerate(gdat.indxsampplot):
                 gdat.postlcurmodl[ii, :], temp, temp, temp = retr_modl(gdat, gdat.parapost[i, :])
         plot_datamodl(gdat)
-        print
+        print('')
         
 
 
@@ -709,7 +708,7 @@ def init( \
                 meanvarb = (bins[1:] + bins[:-1]) / 2.
                 metr = np.zeros(numbbins) - 1.
                 for a in indxbins:
-                    indxfilebins = np.where((bins[a] < varbfrst) & (valu < bins[a+1]))[0]
+                    indxfilebins = np.where((bins[a] < varbfrst) & (varbfrst < bins[a+1]))[0]
                     numbfilebins = indxfilebins.size
                     if numbfilebins > 0:
                         # completeness
@@ -724,6 +723,8 @@ def init( \
                             summgene(gdat.booltrueposi)
                             print('indxfilebins')
                             summgene(indxfilebins)
+                            print('gdat.booltrueposi[indxfilebins]')
+                            print(gdat.booltrueposi[indxfilebins])
                             print
                             metr[a] = float(np.sum(gdat.booltrueposi[indxfilebins])) / numbfilebins
                 
