@@ -547,8 +547,12 @@ def init( \
     pathlogg = gdat.pathdata + 'logg/'
     pathloggsave = pathlogg + 'save/'
     
+    # Boolean array of whether the mock light curves with signal have been labeled positively
     gdat.boolpositrue = np.zeros(gdat.numbfile)
+    
+    # Boolean array of whether the positives have signal in them
     gdat.booltrueposi = []
+    
     gdat.fittmasscomp = []
     gdat.fittperimaxm = []
     gdat.listsdee = np.empty(gdat.numbfile)
@@ -664,46 +668,38 @@ def init( \
         plot_datamodl(gdat)
         print('')
         
-
-
     gdat.indxfileposi = np.array(gdat.indxfileposi)
     gdat.fittperimaxm = np.array(gdat.fittperimaxm)
     gdat.fittmasscomp = np.array(gdat.fittmasscomp)
     gdat.booltrueposi = np.array(gdat.booltrueposi)
-    # plot distributions
     
+    # plot distributions
     numbbins = 10
     indxbins = np.arange(numbbins)
-    if gdat.datatype == 'mock':
-        indx = np.arange(2)
-    else:
-        indx = np.arange(1)
-    for c in indx:
+    if datatype == 'mock':
+        listvarbtrue = [gdat.trueperi, gdat.truemasscomp, gdat.truetmag[gdat.indxtruesign]]
+        listlablvarbtrue = ['P', 'M_c', 'Tmag']
+        liststrgvarbtrue = ['trueperi', 'truemasscomp', 'truetmag']
+    listvarb = [gdat.listsdee]
+    listlablvarb = ['SNR']
+    liststrgvarb = ['sdee']
         
-        if c == 1:
-            listvarb = [gdat.trueperi, gdat.truemasscomp, gdat.truetmag[gdat.indxtruesign]]
-            listlablvarb = ['P', 'M_c', 'Tmag']
-            liststrgvarb = ['trueperi', 'truemasscomp', 'truetmag']
-        else:
-            listvarb = [gdat.listsdee]
-            listlablvarb = ['SNR']
-            liststrgvarb = ['sdee']
-            
-        for k, varbfrst in enumerate(listvarb):
-            
-            # histogram
-            figr, axis = plt.subplots(figsize=(6, 4))
-            axis.hist(varbfrst)
-            if liststrgvarb[k] == 'sdee':
-                axis.axvline(gdat.thrssdee, ls='--', color='black')
-            axis.set_xlabel(listlablvarb[k])
-            axis.set_ylabel('N')
-            path = gdat.pathimag + 'hist%s.%s' % (liststrgvarb[k], gdat.strgplotextn) 
-            print('Writing to %s...' % path)
-            plt.savefig(path)
-            plt.close()
-            
-            if gdat.datatype == 'mock':
+    for k, varbfrst in enumerate(listvarb):
+        
+        # histogram
+        figr, axis = plt.subplots(figsize=(6, 4))
+        axis.hist(varbfrst)
+        if liststrgvarb[k] == 'sdee':
+            axis.axvline(gdat.thrssdee, ls='--', color='black')
+        axis.set_xlabel(listlablvarb[k])
+        axis.set_ylabel('N')
+        path = gdat.pathimag + 'hist%s.%s' % (liststrgvarb[k], gdat.strgplotextn) 
+        print('Writing to %s...' % path)
+        plt.savefig(path)
+        plt.close()
+        
+        if gdat.datatype == 'mock':
+            for c in range(2):
                 bins = np.linspace(np.amin(varbfrst), np.amax(varbfrst), numbbins + 1)
                 meanvarb = (bins[1:] + bins[:-1]) / 2.
                 metr = np.zeros(numbbins) - 1.
@@ -714,7 +710,8 @@ def init( \
                         # completeness
                         if c == 1:
                             metr[a] = float(np.sum(gdat.boolpositrue[indxfilebins])) / numbfilebins
-                        else:
+                        # false discovery rate
+                        if c == 0:
                             print('a')
                             print(a)
                             print('metr')
@@ -725,7 +722,7 @@ def init( \
                             summgene(indxfilebins)
                             print('gdat.booltrueposi[indxfilebins]')
                             print(gdat.booltrueposi[indxfilebins])
-                            print
+                            print('')
                             metr[a] = float(np.sum(gdat.booltrueposi[indxfilebins])) / numbfilebins
                 
                 if c == 1:
@@ -744,33 +741,33 @@ def init( \
                 plt.savefig(path)
                 plt.close()
 
-            for l, varbseco in enumerate(listvarb):
-                
-                if k == l:
-                    continue
+        for l, varbseco in enumerate(listvarb):
+            
+            if k == l:
+                continue
 
-                # plot distributions
-                figr, axis = plt.subplots(figsize=(6, 4))
-                print('liststrgvarb[k]')
-                print(liststrgvarb[k])
-                print('liststrgvarb[l]')
-                print(liststrgvarb[l])
-                print('varbfrst')
-                summgene(varbfrst)
-                print('varbseco')
-                summgene(varbseco)
-                print
-                axis.scatter(varbfrst, varbseco)
-                axis.set_xlabel(listlablvarb[k])
-                axis.set_ylabel(listlablvarb[l])
-                if liststrgvarb[k] == 'sdee':
-                    axis.axvline(gdat.thrssdee, ls='--', color='black')
-                if liststrgvarb[l] == 'sdee':
-                    axis.axhline(gdat.thrssdee, ls='--', color='black')
-                path = gdat.pathimag + 'scat%s%s.%s' % (liststrgvarb[k], liststrgvarb[l], gdat.strgplotextn)
-                print('Writing to %s...' % path)
-                plt.savefig(path)
-                plt.close()
+            # plot distributions
+            figr, axis = plt.subplots(figsize=(6, 4))
+            print('liststrgvarb[k]')
+            print(liststrgvarb[k])
+            print('liststrgvarb[l]')
+            print(liststrgvarb[l])
+            print('varbfrst')
+            summgene(varbfrst)
+            print('varbseco')
+            summgene(varbseco)
+            print
+            axis.scatter(varbfrst, varbseco)
+            axis.set_xlabel(listlablvarb[k])
+            axis.set_ylabel(listlablvarb[l])
+            if liststrgvarb[k] == 'sdee':
+                axis.axvline(gdat.thrssdee, ls='--', color='black')
+            if liststrgvarb[l] == 'sdee':
+                axis.axhline(gdat.thrssdee, ls='--', color='black')
+            path = gdat.pathimag + 'scat%s%s.%s' % (liststrgvarb[k], liststrgvarb[l], gdat.strgplotextn)
+            print('Writing to %s...' % path)
+            plt.savefig(path)
+            plt.close()
     
 
 def cnfg_obsd():
