@@ -2,7 +2,7 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 
-def generate_light_curve(P, i, M_BH, M_S=1, R_S=1, rho_S=1.41, snr=7.1):
+def generate_light_curve(P, i, M_BH, M_S=1, R_S=1, rho_S=1.41, plot=False):
     '''
     Takes in various input parameters and generates a 1000 dimensional light curve
     based on EV, SL and beam signals.
@@ -23,15 +23,146 @@ def generate_light_curve(P, i, M_BH, M_S=1, R_S=1, rho_S=1.41, snr=7.1):
     tau_sl = .075 * math.pi/4 * P**(1/3) * (M_BH + M_S)**(-1/3) * R_S           # days
 
     # signal will represent 27 days
-    bin_size = 27/1000
-    signal = np.zeros(1000)
-    for j in range(1000):
-        t = j * bin_size
+    num_bins = 19440    # 2 minute sampling period
+    num_days = 27
+    bin_size = num_days/num_bins
+    signal = np.zeros(num_bins)
+    EV = np.zeros(num_bins)
+    Beam = np.zeros(num_bins)
+    SL = np.zeros(num_bins)
+    t = 0
+    for j in range(num_bins):
         ev =  -s_ev * math.cos(4*math.pi*t/P)
         beam = s_beam * math.sin(2*math.pi*t/P)
         sl = s_sl if (t%P) < tau_sl else 0
-        signal[j] += ev + beam + sl + 1 + np.random.normal(0,.0005)
+        signal[j] += ev + beam + sl + 1 + np.random.normal(0,.00006) #noise floor of 60ppm
+        EV[j] = ev + 1
+        Beam[j] = beam + 1
+        SL[j] = sl + 1
+        t = t + bin_size
     
-    plt.plot(signal)
+    # supersample with a 30 min cadence 
+    total = 0
+    for k in range(15):
+        total += signal[k]
+        
+    for l in range(num_bins-8):
+        if  l > 6:
+            signal[l] = total/15
+            total += signal[l+8] - signal[l-7]
+    
+    if plot:
+        plt.plot(signal)
+        plt.setxlabel('Time (days)')
+        plt.setylabel('Relative Flux Variation')
+        #plt.plot(EV)
+        #plt.plot(Beam)
+        #plt.plot(SL)
     
     return signal
+
+
+def upsample(signal, up):
+    '''
+    Takes in a signal and upsamples it by an upsampling factor up
+    
+    signal: numpy array or list, signal to be upsampled
+    up: int (>1), upsampling factor
+    
+    returns: np array, upsampled signal
+    '''
+    if up < 1 or type(up) != int:
+        raise TypeError("upsampling factor not an integer greater than 1")
+        
+    new_signal = []
+        
+    for i in range(len(signal)-1):
+        new_signal.append(signal[i])
+        dy = (signal[i+1] - signal[i])/up
+        for j in range(1, up):
+            new_signal.append(signal[i] + j*dy)
+    
+    last_dy = (signal[-1] - signal[-2])/up
+    new_signal.append(signal[-1])
+    
+    for j in range(1, up):
+        new_signal.append(signal[-1] + j*last_dy)
+    
+    return np.array(new_signal)
+
+
+def downsample(signal, down):
+    '''
+    Takes in a signal and downsamples it by a downsampling factor down
+    
+    signal: numpy array or list, signal to be upsampled
+    down: int (>1), downsampling factor
+    
+    returns: np array, downsampled signal
+    '''
+    if down<1 or type(down) != int:
+        raise TypeError("upsampling factor not an integer greater than 1")
+    
+    new_signal = []
+    
+    for i in range(len(signal)):
+        if i%down == 0:
+            new_signal.append(signal[i])
+            
+    return new_signal
+
+def resample(signal, desired_length):
+    '''
+    Takes in a signal and resamples it to the desired length by upsampling and downsampling
+    
+    signal: numpy array or list, signal to be resampled
+    desired_length: int, length of the resampled signal
+    
+    returns: np array, resampled signal
+    '''
+    signal_length = len(signal)
+    LCM = signal_length * desired_length/ math.gcd(signal_length, desired_length)
+    up_factor = int(LCM/signal_length)
+    down_factor = int(LCM/desired_length)
+    up_signal = upsample(signal, up_factor)
+    result = downsample(up_signal, down_factor)
+    return result
+
+
+def offset_and_normalize(signal):
+    '''
+    Takes a signal and normalizes it by subtracting the mean and dividing by the magnitude
+    
+    signal: numpy array or list, signal to be resampled
+    
+    returns: np array, normalized signal
+    '''
+    avg = np.mean(signal)
+    total = 0
+    
+    for num in signal:
+        total += (num - avg)**2
+        
+    mag = total**(.5)
+    
+    return (signal - avg) / mag
+
+
+def correlation(signal_1, signal_2):
+    '''
+    Takes two signals and finds the correlation between them 
+    
+    signal_1, signal_2: np arrays, signals to be correlated
+    
+    returns: int (0 to 1), correlation between the two signals
+    '''
+    norm_signal_1 = offset_and_normalize(signal_1)
+    norm_signal_2 = offset_and_normalize(signal_2)
+    
+    return np.sum(norm_signal_1 * norm_signal_2)
+    
+
+def match_filter(signal, template, period):
+    pass
+    
+    
