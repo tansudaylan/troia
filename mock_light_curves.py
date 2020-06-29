@@ -9,7 +9,7 @@ def get_amplitudes(P, i, M_BH, M_S=1, R_S=1, rho_S=1.41):
     tau_sl = .075 * math.pi/4 * P**(1/3) * (M_BH + M_S)**(-1/3) * R_S           # days
     return s_ev, s_beam, s_sl, tau_sl
 
-def generate_light_curve(P, i, M_BH, M_S=1, R_S=1, rho_S=1.41, plot=False):
+def generate_light_curve(P, i, M_BH, M_S=1, R_S=1, rho_S=1.41, plot=False, pos=True, std=.00006):
     '''
     Takes in various input parameters and generates a 1000 dimensional light curve
     based on EV, SL and beam signals.
@@ -23,8 +23,6 @@ def generate_light_curve(P, i, M_BH, M_S=1, R_S=1, rho_S=1.41, plot=False):
 
     returns: size 1000 array containing the light curve
     '''
-    
-    std  = .00010 # noise floor 60ppm
     
     s_ev, s_beam, s_sl, tau_sl = get_amplitudes(P, i, M_BH, M_S=1, R_S=1, rho_S=1.41)
 
@@ -41,7 +39,9 @@ def generate_light_curve(P, i, M_BH, M_S=1, R_S=1, rho_S=1.41, plot=False):
         ev =  -s_ev * math.cos(4*math.pi*t/P)
         beam = s_beam * math.sin(2*math.pi*t/P)
         sl = s_sl if (t%P) < tau_sl else 0
-        signal[j] += ev + beam + sl + np.random.normal(0, std) #+ 1 
+        signal[j] += ev + beam + np.random.normal(0, std) 
+        if pos:
+            signal[j] += sl
         EV[j] = ev + 1
         Beam[j] = beam + 1
         SL[j] = sl + 1
@@ -195,10 +195,13 @@ def correlation(signal_1, signal_2):
     returns: int (0 to 1), correlation between the two signals
     '''
     
-    norm_signal_1 = offset_and_normalize(signal_1)
-    norm_signal_2 = offset_and_normalize(signal_2)
-    
-    return np.sum(norm_signal_1 * norm_signal_2)
+# =============================================================================
+#     norm_signal_1 = offset_and_normalize(signal_1)
+#     norm_signal_2 = offset_and_normalize(signal_2)
+#     
+#     return np.sum(norm_signal_1 * norm_signal_2)
+# =============================================================================
+    return np.sum(signal_1 * signal_2)
     
 
 def flatten(lc, P, i, M_BH, M_S=1, R_S=1, rho_S=1.41, plot=False, num_days=27):
@@ -238,7 +241,7 @@ def flatten(lc, P, i, M_BH, M_S=1, R_S=1, rho_S=1.41, plot=False, num_days=27):
     
     return flattened_lc
     
-def match_filter(lc, template, P, i, M_BH, M_S=1, R_S=1, rho_S=1.41, num_days=27, threshold=.9, mock=False):
+def match_filter(lc, template, P, i, M_BH, M_S=1, R_S=1, rho_S=1.41, num_days=27, threshold=.5, mock=False, plot=False):
     '''
     Runs a template through a signal and correlates the two to find if the two signals have a correlation 
     that exceeds a given threshold.
@@ -264,17 +267,29 @@ def match_filter(lc, template, P, i, M_BH, M_S=1, R_S=1, rho_S=1.41, num_days=27
         bin_size = num_days/num_bins
         sl_bins = int(tau_sl // bin_size)
         template = generate_template(s_sl, sl_bins)
+        threshold = s_sl**2
         
     window = len(template)
     highest_corr = 0
+    correlations = np.zeros(num_bins - window)
     for j in range(num_bins-window):
         corr = correlation(lc_flat[j:j+window], template)
+        correlations[j] = corr
         if corr > highest_corr:
             highest_corr = corr
-            if highest_corr > threshold:
-                break
+            
+    if plot:
+        plt.figure()
+        plt.xlabel('Time (days)')
+        plt.ylabel('Correlation')
+        title = 'P = ' + str(P) + ' (days), M_BH = ' + str(M_BH) + ' (solar masses), i = ' + str(round(i,2)) + ' radians'
+        plt.title(title)
+        plt.plot([x*num_days/num_bins for x in range(num_bins-window)], correlations, 'k')
+        #plt.plot([x*num_days/num_bins for x in range(num_bins-window)], [threshold for x in range(num_bins-window)])
+        filename = 'CORR_P' + str(P) + '.pdf'
+        plt.savefig(filename)
         
-    return highest_corr > threshold, highest_corr
+    return highest_corr > threshold, correlations
 
 def generate_template(s_sl, sl_bins):
     '''
@@ -284,6 +299,10 @@ def generate_template(s_sl, sl_bins):
     s_sl: float, s_sl amplitude
     sl_bins: int, length of 
     '''
-    
-    return np.array([0 for _ in range(sl_bins)] + [s_sl for _ in range(sl_bins)] + [0 for _ in range(sl_bins)])
+    def gaussian(x, b):
+        w = sl_bins
+        a = s_sl
+        return a * math.e**(-(x-b)**2 / (w**2))
+        
+    return np.array([gaussian(3*x, 4.5*sl_bins) for x in range(3*sl_bins)])
     
