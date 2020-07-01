@@ -9,7 +9,7 @@ def get_amplitudes(P, i, M_BH, M_S=1, R_S=1, rho_S=1.41):
     tau_sl = .075 * math.pi/4 * P**(1/3) * (M_BH + M_S)**(-1/3) * R_S           # days
     return s_ev, s_beam, s_sl, tau_sl
 
-def generate_light_curve(P, i, M_BH, M_S=1, R_S=1, rho_S=1.41, plot=False, pos=True, std=.00006):
+def generate_light_curve(P, i, M_BH, M_S=1, R_S=1, rho_S=1.41, pos=True, std=.00006):
     '''
     Takes in various input parameters and generates a 1000 dimensional light curve
     based on EV, SL and beam signals.
@@ -42,27 +42,35 @@ def generate_light_curve(P, i, M_BH, M_S=1, R_S=1, rho_S=1.41, plot=False, pos=T
         signal[j] += ev + beam + np.random.normal(0, std) 
         if pos:
             signal[j] += sl
-        EV[j] = ev + 1
-        Beam[j] = beam + 1
-        SL[j] = sl + 1
+        EV[j] = ev 
+        Beam[j] = beam 
+        SL[j] = sl 
         t = t + bin_size
-        
-    if plot:
-        plt.figure()
-        plt.xlabel('Time (days)')
-        plt.ylabel('Relative Flux Variation')
-        title = 'P = ' + str(P) + ' (days), M_BH = ' + str(M_BH) + ' (solar masses), i = ' + str(round(i,2)) + ' radians'
-        plt.title(title)
-        plt.plot([i*bin_size for i in range(num_bins)], signal, 'k')
-        filename = 'MLC_P' + str(P) + '.pdf'
+    
+    return signal, EV, Beam, SL
+
+def plot_lc(lc, P, M_BH, i, filename=None, num_days=27, num_bins=19440, EV=None, Beam=None, SL=None):
+    bin_size = num_days/num_bins
+    plt.figure()
+    plt.xlabel('Time (days)')
+    plt.ylabel('Relative Flux Variation')
+    title = 'P = ' + str(round(P,2)) + ' (days), M_BH = ' + str(round(M_BH,2)) + ' (solar masses), i = ' + str(round(i,2)) + ' radians'
+    plt.title(title)
+    plt.plot([i*bin_size for i in range(num_bins)], lc, 'k')
+    
+    if EV is not None:
+        plt.plot([i*bin_size for i in range(num_bins)], EV, 'b--')
+    if Beam is not None:
+        plt.plot([i*bin_size for i in range(num_bins)], Beam, 'g--')
+    if SL is not None:
+        plt.plot([i*bin_size for i in range(num_bins)], SL, 'r--')
+    
+    if filename is not None:
         plt.savefig(filename)
-        #plt.plot(EV)
-        #plt.plot(Beam)
-        #plt.plot(SL)
+        
+    plt.close()
     
-    return signal
-    
-def supersample(signal, P, i, M_BH, plot=False, num_days=27):
+def supersample(signal, P, i, M_BH, num_days=27):
     '''
     Supersample the signal by averaging out each data point with surrounding data points. 
     Uses a 15 sample window to eliminate noise.
@@ -74,7 +82,6 @@ def supersample(signal, P, i, M_BH, plot=False, num_days=27):
     
     # supersample with a 30 min cadence 
     num_bins = len(signal)
-    bin_size = num_days/num_bins
     total = 0
     for k in range(15):
         total += signal[k]
@@ -84,15 +91,6 @@ def supersample(signal, P, i, M_BH, plot=False, num_days=27):
             signal[l] = total/15
             total += signal[l+8] - signal[l-7]
             
-    if plot:
-        plt.figure()
-        plt.xlabel('Time (days)')
-        plt.ylabel('Relative Flux Variation')
-        title = 'P = ' + str(P) + ' (days), M_BH = ' + str(M_BH) + ' (solar masses), i = ' + str(round(i,2)) + ' radians'
-        plt.title(title)
-        plt.plot([i*bin_size for i in range(num_bins)], signal, 'k')
-        filename = 'MLCS_P' + str(P) + '.pdf'
-        plt.savefig(filename)
     return signal
 
 
@@ -204,7 +202,7 @@ def correlation(signal_1, signal_2):
     return np.sum(signal_1 * signal_2)
     
 
-def flatten(lc, P, i, M_BH, M_S=1, R_S=1, rho_S=1.41, plot=False, num_days=27):
+def flatten(lc, P, i, M_BH, M_S=1, R_S=1, rho_S=1.41, num_days=27):
     '''
     Takes a light curve and flattens it out by subtracting out the ellipsoidal variation and
     beaming signals. Flattened curve contains self lensing aplicfication only
@@ -223,25 +221,16 @@ def flatten(lc, P, i, M_BH, M_S=1, R_S=1, rho_S=1.41, plot=False, num_days=27):
     num_bins = len(lc)    # 2 minute sampling period
     bin_size = num_days/num_bins
     t = 0
+    
     for j in range(num_bins):
         ev =  -s_ev * math.cos(4*math.pi*t/P)
         beam = s_beam * math.sin(2*math.pi*t/P)
         flattened_lc[j] -= ev + beam
         t += bin_size
         
-    if plot:
-        plt.figure()
-        plt.xlabel('Time (days)')
-        plt.ylabel('Relative Flux Variation (SL)')
-        title = 'P = ' + str(P) + ' (days), M_BH = ' + str(M_BH) + ' (solar masses), i = ' + str(round(i,2)) + ' radians'
-        plt.title(title)
-        plt.plot([i*bin_size for i in range(num_bins)], flattened_lc, 'k')
-        filename = 'MLCF_P' + str(P) + '.pdf'
-        plt.savefig(filename)
-    
     return flattened_lc
     
-def match_filter(lc, template, P, i, M_BH, M_S=1, R_S=1, rho_S=1.41, num_days=27, threshold=.5, mock=False, plot=False):
+def match_filter(lc, template, P, i, M_BH, M_S=1, R_S=1, rho_S=1.41, num_days=27, threshold=.5, mock=False):
     '''
     Runs a template through a signal and correlates the two to find if the two signals have a correlation 
     that exceeds a given threshold.
@@ -260,8 +249,6 @@ def match_filter(lc, template, P, i, M_BH, M_S=1, R_S=1, rho_S=1.41, num_days=27
 
     s_ev, s_beam, s_sl, tau_sl = get_amplitudes(P, i, M_BH, M_S=1, R_S=1, rho_S=1.41)
     num_bins = len(lc)
-    new_lc = supersample(lc, P, i, M_BH, num_days=num_days)
-    lc_flat = flatten(new_lc, P, i, M_BH, num_days=num_days)
     
     if mock:
         bin_size = num_days/num_bins
@@ -272,24 +259,34 @@ def match_filter(lc, template, P, i, M_BH, M_S=1, R_S=1, rho_S=1.41, num_days=27
     window = len(template)
     highest_corr = 0
     correlations = np.zeros(num_bins - window)
+    num_sl_events = 0
+    last_corr = False
     for j in range(num_bins-window):
-        corr = correlation(lc_flat[j:j+window], template)
+        corr = correlation(lc[j:j+window], template)
         correlations[j] = corr
+        
+        if corr > threshold:
+            if not last_corr:
+                num_sl_events += 1
+            
+        last_corr = corr > threshold
+        
         if corr > highest_corr:
             highest_corr = corr
-            
-    if plot:
-        plt.figure()
-        plt.xlabel('Time (days)')
-        plt.ylabel('Correlation')
-        title = 'P = ' + str(P) + ' (days), M_BH = ' + str(M_BH) + ' (solar masses), i = ' + str(round(i,2)) + ' radians'
-        plt.title(title)
-        plt.plot([x*num_days/num_bins for x in range(num_bins-window)], correlations, 'k')
-        #plt.plot([x*num_days/num_bins for x in range(num_bins-window)], [threshold for x in range(num_bins-window)])
-        filename = 'CORR_P' + str(P) + '.pdf'
-        plt.savefig(filename)
         
-    return highest_corr > threshold, correlations
+    return highest_corr > threshold, correlations, template, threshold
+
+def plot_corr(correlations, P, M_BH, i, window, threshold, num_days=27, num_bins=19440):
+    plt.figure()
+    plt.xlabel('Time (days)')
+    plt.ylabel('Correlation')
+    title = 'P = ' + str(round(P, 2)) + ' (days), M_BH = ' + str(round(M_BH, 2)) + ' (solar masses), i = ' + str(round(i,2)) + ' radians'
+    plt.title(title)
+    plt.plot([x*num_days/num_bins for x in range(num_bins-window)], correlations, 'k')
+    plt.plot([x*num_days/num_bins for x in range(num_bins-window)], [threshold for _ in range(num_bins-window)], 'b--')
+    filename = 'P' + str(round(P,2)) + 'CORR.pdf'
+    plt.savefig(filename)
+    plt.close()
 
 def generate_template(s_sl, sl_bins):
     '''
