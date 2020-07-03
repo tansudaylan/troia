@@ -127,7 +127,7 @@ for element in mstar_vals:
 
 plt.figure(3)
 plt.plot(mstar_vals, mumax_vals)
-plt.xlabel("Mass of Source [$M_{\odot}$]")
+plt.xlabel("Mass of Star [$M_{\odot}$]")
 plt.ylabel("Maximum Magnification")
 plt.title("M = 1 [$M_{\odot}$], a = 1 [AU]")
 plt.legend()
