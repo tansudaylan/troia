@@ -28,9 +28,8 @@ def mag_max(M, m_star, a):
     return mu_max
 
 M_vals = np.linspace(1.0, 100000.0, 100000)
-mstar_vals = np.logspace(1.0, 2.0, 100000)
-print(mstar_vals)
-orbradius_vals = np.linspace(1.0, 100000.0, 100000)
+mstar_vals = np.logspace(-1.0, 2.0, 100000)
+orbradius_vals = np.linspace(1.0, 100.0, 100000)
 
 mumax_vals = np.zeros(100000)
 
@@ -46,13 +45,14 @@ def poleski_main(t, t_0, u_0, t_E):
 
     return Aofu
 
-t_01 = 20.0
-u_01 = 3.325
-t_E1 = 0.008
+t_01 = 0.0
+u_01 = 3.325 # 9.002393432251264
+t_E1 = 0.008018544581274847
 
-t_vals1 = np.linspace(3.0, 37.0, 35)
+t_vals1 = np.linspace(-60.0, 60.0, 121)
 
-amp_vals1 = np.zeros(35)
+amp_vals1 = np.zeros(121)
+amp_vals2 = np.zeros(121)
 
 def rahvar_main(t, t_0, φ, M, m_star, a):
 
@@ -72,7 +72,7 @@ def rahvar_main(t, t_0, φ, M, m_star, a):
 
     return Amplitude
 
-t_02 = 20.0
+t_02 = 0.0
 φ = 1.59989 * (10.0 ** (-6)) # radians
 M = 8.5
 m_star = 0.35
@@ -91,17 +91,26 @@ plt.plot(t_vals1, amp_vals1, label="Rahvar")
 plt.xlabel("Time [Hours]")
 plt.ylabel("Magnfication")
 
+
 additive = 0
 
 for element in t_vals1:
-    amp_vals1[additive] = (poleski_main(element, t_01, u_01, t_E1))
+    amp_vals2[additive] = (poleski_main(element, t_01, u_01, t_E1))
     additive += 1
 
-plt.plot(t_vals1, amp_vals1, label="Poleski")
+plt.plot(t_vals1, amp_vals2, label="Poleski")
 plt.xlabel("Time [Hours]")
 plt.ylabel("Magnification")
-plt.legend()
+plt.yscale("linear")
 
+#residual = (amp_vals1 - amp_vals2) + 1
+#print(residual)
+#print(amp_vals2)
+
+#print(amp_vals1)
+
+#plt.plot(t_vals1, residual, label = "Residual")
+plt.legend()
 # second set
 
 additive = 0
@@ -114,7 +123,7 @@ plt.figure(2)
 plt.plot(M_vals, mumax_vals)
 plt.xlabel("Mass of Lens [$M_{\odot}$]")
 plt.ylabel("Maximum Magnification")
-plt.title("m_star = 1 [$M_{\odot}$], a = 1 [AU]")
+plt.title("$m_{*}$ = 1 $M_{\odot}$, a = 1 AU")
 plt.legend()
 
 mumax_vals = np.zeros(100000)
@@ -128,8 +137,9 @@ for element in mstar_vals:
 plt.figure(3)
 plt.plot(mstar_vals, mumax_vals)
 plt.xlabel("Mass of Star [$M_{\odot}$]")
+plt.xscale("log")
 plt.ylabel("Maximum Magnification")
-plt.title("M = 1 [$M_{\odot}$], a = 1 [AU]")
+plt.title("M = 1 $M_{\odot}$, a = 1 AU")
 plt.legend()
 
 mumax_vals = np.zeros(100000)
@@ -143,8 +153,20 @@ for element in orbradius_vals:
 plt.figure(4)
 plt.plot(orbradius_vals, mumax_vals)
 plt.xlabel("Orbital Radius [AU]")
+#plt.xscale("log")
 plt.ylabel("Maximum Magnification")
-plt.title("M = 1 [$M_{\odot}$], m_star = 1 [$M_{\odot}$]")
+plt.title("M = 1 $M_{\odot}$, $m_{*}$ = 1 $M_{\odot}$")
 plt.legend()
+
+#rahvar equation 22
+orbperiodvals = ((2 * np.pi) * np.sqrt((orbradius_vals ** 3) / (2 * 0.000295913010)))
+
+plt.figure(5)
+plt.plot(orbperiodvals, mumax_vals)
+plt.xlabel("Orbital Period [Days]")
+#plt.xscale("log")
+plt.ylabel("Maximum Magnification")
+plt.title("M = 1 $M_{\odot}$, $m_{*}$ = 1 $M_{\odot}$")
+
 
 plt.show()
