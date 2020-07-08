@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import math
 #from astropy import constants
 
 '''
@@ -27,11 +28,19 @@ def mag_max(M, m_star, a):
 
     return mu_max
 
-M_vals = np.linspace(1.0, 100000.0, 100000)
-mstar_vals = np.logspace(-1.0, 2.0, 100000)
-orbradius_vals = np.linspace(1.0, 100.0, 100000)
+M_vals = np.linspace(0.1, 1000.0, 100000)
+mstar_vals = np.logspace(-1.0, 3.0, 100000)
+orbradius_vals = np.linspace(0.1, 100.0, 100000)
 
 mumax_vals = np.zeros(100000)
+
+def chabrier(m_star):
+    if m_star < 1:
+        distribution = 0.093 * math.exp( (- ((math.log(m_star) - math.log(0.2)) ** 2)) / (2 * (0.55 ** 2) ))
+    elif m_star >= 1:
+        distribution = 0.041 * (m_star ** -1.35)
+
+    return distribution
 
 def poleski_main(t, t_0, u_0, t_E):
     # eq5
@@ -49,10 +58,10 @@ t_01 = 0.0
 u_01 = 3.325 # 9.002393432251264
 t_E1 = 0.008018544581274847
 
-t_vals1 = np.linspace(-60.0, 60.0, 121)
+t_vals1 = np.linspace(-2.5, 2.5, 100000)
 
-amp_vals1 = np.zeros(121)
-amp_vals2 = np.zeros(121)
+amp_vals1 = np.zeros(100000)
+amp_vals2 = np.zeros(100000)
 
 def rahvar_main(t, t_0, φ, M, m_star, a):
 
@@ -102,14 +111,18 @@ plt.plot(t_vals1, amp_vals2, label="Poleski")
 plt.xlabel("Time [Hours]")
 plt.ylabel("Magnification")
 plt.yscale("linear")
+plt.legend()
 
-#residual = (amp_vals1 - amp_vals2) + 1
+plt.figure(2)
+residual = (amp_vals1 - amp_vals2) + 1
 #print(residual)
 #print(amp_vals2)
 
 #print(amp_vals1)
 
-#plt.plot(t_vals1, residual, label = "Residual")
+plt.plot(t_vals1, residual, color = "green", label = "Residual")
+plt.xlabel("Time [Hours]")
+plt.ylabel("Magnification")
 plt.legend()
 # second set
 
@@ -119,11 +132,11 @@ for element in M_vals:
     mumax_vals[additive] = (mag_max(element, 1, 1))
     additive += 1
 
-plt.figure(2)
+plt.figure(3)
 plt.plot(M_vals, mumax_vals)
 plt.xlabel("Mass of Lens [$M_{\odot}$]")
 plt.ylabel("Maximum Magnification")
-plt.title("$m_{*}$ = 1 $M_{\odot}$, a = 1 AU")
+plt.title("$M_{*}$ = 1 $M_{\odot}$, a = 1 AU")
 plt.legend()
 
 mumax_vals = np.zeros(100000)
@@ -134,12 +147,12 @@ for element in mstar_vals:
     mumax_vals[additive] = (mag_max(1, element, 1))
     additive += 1
 
-plt.figure(3)
+plt.figure(4)
 plt.plot(mstar_vals, mumax_vals)
 plt.xlabel("Mass of Star [$M_{\odot}$]")
 plt.xscale("log")
 plt.ylabel("Maximum Magnification")
-plt.title("M = 1 $M_{\odot}$, a = 1 AU")
+plt.title("$M$ = 1 $M_{\odot}$, a = 1 AU")
 plt.legend()
 
 mumax_vals = np.zeros(100000)
@@ -150,23 +163,53 @@ for element in orbradius_vals:
     mumax_vals[additive] = (mag_max(1, 1, element))
     additive += 1
 
-plt.figure(4)
+plt.figure(5)
 plt.plot(orbradius_vals, mumax_vals)
 plt.xlabel("Orbital Radius [AU]")
 #plt.xscale("log")
 plt.ylabel("Maximum Magnification")
-plt.title("M = 1 $M_{\odot}$, $m_{*}$ = 1 $M_{\odot}$")
+plt.title("$M$ = 1 $M_{\odot}$, $M_{*}$ = 1 $M_{\odot}$")
 plt.legend()
 
-#rahvar equation 22
-orbperiodvals = ((2 * np.pi) * np.sqrt((orbradius_vals ** 3) / (2 * 0.000295913010)))
 
-plt.figure(5)
-plt.plot(orbperiodvals, mumax_vals)
+orbradius_vals = np.linspace(0.0001, 0.55, 100000)
+
+additive = 0
+
+for element in orbradius_vals:
+    mumax_vals[additive] = (mag_max(1, 1, element))
+    additive += 1
+
+#rahvar equation 22
+# Mstar = 1, M = 1
+orbperiod_vals = ((2 * np.pi) * np.sqrt((orbradius_vals ** 3) / (2 * 0.000295913010)))
+
+# orbperiod_vals = np.linspace(0.1, 100.0, 100000)
+plt.figure(6)
+plt.plot(orbperiod_vals, mumax_vals)
 plt.xlabel("Orbital Period [Days]")
 #plt.xscale("log")
 plt.ylabel("Maximum Magnification")
-plt.title("M = 1 $M_{\odot}$, $m_{*}$ = 1 $M_{\odot}$")
+plt.title("$M$ = 1 $M_{\odot}$, $M_{*}$ = 1 $M_{\odot}$")
 
+# chabrier initial mass function, rahvar eq 20
+
+mstar_vals = np.logspace(-2.0, 3.0, 100000)
+
+chabrier_distribution = np.zeros(100000)
+
+additive = 0
+
+for element in mstar_vals:
+    chabrier_distribution[additive] = (chabrier(element))
+    additive += 1
+
+plt.figure(7)
+plt.plot(mstar_vals, chabrier_distribution)
+plt.xlabel("Mass of Star [$M_{\odot}$]")
+plt.ylabel("Mass Function")
+plt.xscale("log")
+plt.yscale("log")
+plt.title("Chabrier Distribution")
 
 plt.show()
