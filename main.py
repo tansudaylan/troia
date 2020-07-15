@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 
 from transitleastsquares import transitleastsquares
 import emcee
+from scipy import signal
 
 from tdpy.util import summgene
 import tdpy.util
@@ -144,7 +145,9 @@ def exec_srch(gdat):
     gdat.lcurflat = 1. + gdat.lcurthis - scipy.signal.medfilt(gdat.lcurthis, gdat.numbtimefilt)
     
     # mask out the edges
-    timeedge = tesstarg.util.retr_timeedge(gdat.time)
+    durabrek = 0.5
+    booladdddiscbdtr = False
+    timeedge = tesstarg.util.retr_timeedge(gdat.time, gdat.lcurflat, durabrek, booladdddiscbdtr)
     listindxtimemask = []
     for k in range(timeedge.size):
         if k != 0:
@@ -173,27 +176,32 @@ def exec_srch(gdat):
     
     if gdat.boolblss:
         print('Performing TLS on %s...' % gdat.strgtici)
-        model = transitleastsquares(gdat.time, 2. - gdat.lcurflat)
+        #model = transitleastsquares(gdat.time, 2. - gdat.lcurflat)
+        arry = np.zeros((gdat.numbtime, 3))
+        arry[:, 0] = gdat.time
+        arry[:, 1] = 2. - gdat.lcurflat
+        dicttlss = exec_tlss(arry, pathimag, thrs=7., tictarg=ticitarg)
+
         # temp check how to do BLS instead of TLS
-        gdat.results = model.power()
-        gdat.listsdee[gdat.indxfilethis] = gdat.results.SDE
-        gdat.fittperimaxmthis = gdat.results.period
-        gdat.fittperimaxm.append(gdat.fittperimaxmthis)
-        gdat.peri = gdat.results.periods
-        gdat.dept = gdat.results.depth
-        gdat.blssamplslen = 1 -  gdat.dept
-        print('gdat.blssamplslen')
-        print(gdat.blssamplslen)
-        gdat.blssmasscomp = retr_masscomp(gdat, gdat.blssamplslen, 8.964)
-        print('gdat.blssmasscomp')
-        print(gdat.blssmasscomp)
-        gdat.dura = gdat.results.duration
-        gdat.powr = gdat.results.power
-        gdat.timetran = gdat.results.transit_times
-        gdat.phasmodl = gdat.results.model_folded_phase
-        gdat.pcurmodl = 2. - gdat.results.model_folded_model
-        gdat.phasdata = gdat.results.folded_phase
-        gdat.pcurdata = 2. - gdat.results.folded_y
+        #gdat.results = model.power()
+        #gdat.listsdee[gdat.indxfilethis] = gdat.results.SDE
+        #gdat.fittperimaxmthis = gdat.results.period
+        #gdat.fittperimaxm.append(gdat.fittperimaxmthis)
+        #gdat.peri = gdat.results.periods
+        #gdat.dept = gdat.results.depth
+        #gdat.blssamplslen = 1 -  gdat.dept
+        #print('gdat.blssamplslen')
+        #print(gdat.blssamplslen)
+        #gdat.blssmasscomp = retr_masscomp(gdat, gdat.blssamplslen, 8.964)
+        #print('gdat.blssmasscomp')
+        #print(gdat.blssmasscomp)
+        #gdat.dura = gdat.results.duration
+        #gdat.powr = gdat.results.power
+        #gdat.timetran = gdat.results.transit_times
+        #gdat.phasmodl = gdat.results.model_folded_phase
+        #gdat.pcurmodl = 2. - gdat.results.model_folded_model
+        #gdat.phasdata = gdat.results.folded_phase
+        #gdat.pcurdata = 2. - gdat.results.folded_y
     
 
 def retr_amplslen(gdat, peri, masscomp):
@@ -373,7 +381,7 @@ def init( \
         print(gdat.numbtime)
         
     if gdat.datatype == 'obsd':
-        arrylcur, arrylcursapp, arrylcurpdcc, listarrylcur, listarrylcursapp, listarrylcurpdcc = \
+        datatype, arrylcur, arrylcursapp, arrylcurpdcc, listarrylcur, listarrylcursapp, listarrylcurpdcc, listisec, listicam, listiccd = \
                                             tesstarg.util.retr_data(gdat.strgdata, gdat.strgmast, gdat.pathdata, gdat.boolsapp)
         gdat.time = arrylcur[:, 0]
         gdat.cade = gdat.time[1] - gdat.time[0]
@@ -769,6 +777,14 @@ def init( \
             plt.savefig(path)
             plt.close()
     
+
+def cnfg_HR6819():
+   
+    init( \
+         None, \
+         strgmast='cnfg_HR6819', \
+        )
+
 
 def cnfg_obsd():
    
