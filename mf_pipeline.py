@@ -3,10 +3,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 import mock_light_curves as mlc
+import confusion_matrix as cf
 import os
 import scipy.signal
+import time
 
-def mf_pipeline(directory, result_foldername, mock=False, mock_params=None):
+def mf_pipeline(directory, result_foldername, mock=False, num_simulations=None):
     '''
     Pipeline runs a match filter on light curves and finds if the light curve 
     matches a predetermined template.
@@ -42,17 +44,19 @@ def mf_pipeline(directory, result_foldername, mock=False, mock_params=None):
         masses = [[] for _ in range(num_bins)]
         
         # generate bins
-        alpha_bins = [j*.75/(num_bins) for j in range(num_bins)]
+        alpha_bins = [j*2/(num_bins) + 2 for j in range(num_bins)]
         cosi_bins = [2*j/num_bins - 1 for j in range(num_bins)]
         P_bins = [np.e**(j*(np.log(27)-np.log(1))/num_bins) for j in range(num_bins)]
         mass_bins = [5.6*j/num_bins + 5 for j in range(num_bins)]
-        for _ in mock_params['num_simulations']:
+        
+        start = time.time()
+        for z in range(num_simulations):
             pos_signal = np.random.choice([True, False])
             P = mlc.P_rng()
             M_BH = mlc.mbh_rng()
             i = mlc.i_rng()
             cosi = math.cos(i)
-            alpha = 2
+            alpha = np.random.random() * 2 + 2
             if pos_signal:
                 lcur, EV, Beam, SL = mlc.generate_light_curve(P, i, M_BH, std=noise)
             else:
@@ -82,33 +86,45 @@ def mf_pipeline(directory, result_foldername, mock=False, mock_params=None):
                 lc_folder = "./{}/lc{}".format(result_foldername, counter)
                 if not os.path.exists(lc_folder):
                     os.mkdir(lc_folder)
-                mlc.plot_lc(lcur, P, M_BH, i, filename="{}/MLC{}.pdf".format(lc_folder, counter), EV=EV, Beam=Beam, SL=SL if pos_signal else None)
+                mlc.plot_lc(lcur, P, M_BH, i, filename="{}/lcur{}.pdf".format(lc_folder, counter), EV=EV if pos_signal else None, Beam=Beam if pos_signal else None, SL=SL if pos_signal else None)
                 #mlc.plot_lc(ss_lc, P, M_BH, i, filename="{}/MLCS{}.pdf".format(lc_folder, counter), EV=EV, Beam=Beam, SL=SL if lc_pos else None)
                 mlc.plot_lc(flat_lcur, P, M_BH, i, filename="{}/MLCF{}.pdf".format(lc_folder, counter))
-                mlc.plot_corr(best_results["correlations"], P, M_BH, i, alpha, len(template), threshold, "{}/CORR{}.pdf".format(lc_folder, counter))
+                mlc.plot_corr(best_results["correlations"], P, M_BH, i, alpha, len(best_results["template"]), threshold, "{}/CORR{}.pdf".format(lc_folder, counter))
                 counter += 1
             
             alpha_binned, i_binned, P_binned, mass_binned = False, False, False, False
             
-        for k in range(num_bins-1,-1,-1):
-            if not alpha_binned and alpha >= alpha_bins[k]:
-                alphas[k].append(i)
-                alpha_actual[k].append(pos_signal)
-                alpha_predicted[k].append(result)
-            if not i_binned and cosi >= cosi_bins[k]:
-                inclinations[k].append(i)
-                i_actual[k].append(pos_signal)
-                i_predicted[k].append(result)
-            if not P_binned and P >= P_bins[k]:
-                periods[k].append(i)
-                P_actual[k].append(pos_signal)
-                P_predicted[k].append(result)
-            if not mass_binned and M_BH >= mass_bins[k]:
-                masses[k].append(i)
-                mass_actual[k].append(pos_signal)
-                mass_predicted[k].append(result)
-            if all([alpha_binned, i_binned, P_binned, mass_binned]):
-                break
+            for k in range(num_bins-1,-1,-1):
+                if not alpha_binned and alpha >= alpha_bins[k]:
+                    alphas[k].append(i)
+                    alpha_actual[k].append(pos_signal)
+                    alpha_predicted[k].append(result)
+                if not i_binned and cosi >= cosi_bins[k]:
+                    inclinations[k].append(i)
+                    i_actual[k].append(pos_signal)
+                    i_predicted[k].append(result)
+                if not P_binned and P >= P_bins[k]:
+                    periods[k].append(i)
+                    P_actual[k].append(pos_signal)
+                    P_predicted[k].append(result)
+                if not mass_binned and M_BH >= mass_bins[k]:
+                    masses[k].append(i)
+                    mass_actual[k].append(pos_signal)
+                    mass_predicted[k].append(result)
+                if all([alpha_binned, i_binned, P_binned, mass_binned]):
+                    break
+            
+            if z%1000 == 0 and z != 0:
+                print('{} simulations complete'.format(z))
+                prefix = "./{}/".format(result_foldername)
+                plot_completeness(r'$\alpha$', alpha_bins, alpha_actual, alpha_predicted, num_bins, prefix + 'alpha')
+                plot_completeness('cosi', cosi_bins, i_actual, i_predicted, num_bins, prefix + 'cosi')
+                plot_completeness('Period [days]', P_bins, P_actual, P_predicted, num_bins, prefix + 'period')
+                plot_completeness(r'$M_{BH} [M_{\odot}]$', mass_bins, mass_actual, mass_predicted, num_bins, prefix + 'mbh')
+            
+        end = time.time()
+        
+        return "{} minutes".format(round((end - start)/60, 2))
             
     else:
         alpha = 2
@@ -121,12 +137,13 @@ def mf_pipeline(directory, result_foldername, mock=False, mock_params=None):
                 
                 with fits.open(fits_file, mode="readonly") as hdulist:
                     tess_bjds = hdulist[1].data['TIME']
-                    sap_fluxes = hdulist[1].data['SAP_FLUX']
+                    #sap_fluxes = hdulist[1].data['SAP_FLUX']
                     pdcsap_fluxes = hdulist[1].data['PDCSAP_FLUX']
-                    var = hdulist[1].data['PSF_CENTR1']
+                    #var = hdulist[1].data['PSF_CENTR1']
+                    hdulist.close()
                 
-                num_days = len(tess_bjds)
-                bin_size = (tess_bjds[-1] - tess_bjds[0]) / num_days
+                #num_days = len(tess_bjds)
+                #bin_size = (tess_bjds[-1] - tess_bjds[0]) / num_days
                 # Find average flux and rms from valid data points
                 total = 0
                 total_square = 0
@@ -209,4 +226,56 @@ def mf_pipeline(directory, result_foldername, mock=False, mock_params=None):
                     plt.close()
                 
         return file_results
+    
+def plot_completeness(variable, bins, actual, predicted, num_bins, path_prefix):
+    accs = []
+    pres = []
+    recs = []
+    F1s = []
+    for l in range(num_bins):
+        cm, acc, pre, rec, F1 = cf.confusion_matrix(actual[l], predicted[l])
+        accs.append(acc)
+        pres.append(pre)
+        recs.append(rec)
+        F1s.append(F1)
+           
+    # plot accuracy
+    plt.figure()
+    plt.xlabel(variable)
+    plt.ylabel('Accuracy')
+    plt.plot([str(round(b, 2)) for b in bins], accs, 'k')
+    filename = '{}_accuracy.pdf'.format(path_prefix, variable)
+    plt.tight_layout()
+    plt.savefig(filename)
+    plt.close()
+    
+    #plot precision
+    plt.figure()
+    plt.xlabel(variable)
+    plt.ylabel('Precision')
+    plt.plot([str(round(b, 2)) for b in bins], pres, 'k')
+    filename = '{}_precision.pdf'.format(path_prefix, variable)
+    plt.tight_layout()
+    plt.savefig(filename)
+    plt.close()
+    
+    # plot recall
+    plt.figure()
+    plt.xlabel(variable)
+    plt.ylabel('Recall')
+    plt.plot([str(round(b, 2)) for b in bins], recs, 'k')
+    filename = '{}_recall.pdf'.format(path_prefix, variable)
+    plt.tight_layout()
+    plt.savefig(filename)
+    plt.close()
+    
+    # plot F1
+    plt.figure()
+    plt.xlabel(variable)
+    plt.ylabel('F1')
+    plt.plot([str(round(b, 2)) for b in bins], F1s, 'k')
+    filename = '{}_F1.pdf'.format(path_prefix, variable)
+    plt.tight_layout()
+    plt.savefig(filename)
+    plt.close()
 

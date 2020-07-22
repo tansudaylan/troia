@@ -2,7 +2,7 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal 
-import util 
+import rahvar
 
 def P_rng(low=1, high=27):
     logP = np.random.uniform(np.log(low),np.log(high))
@@ -56,31 +56,27 @@ def generate_light_curve(P, i, M_BH, M_S=1, R_S=1, rho_S=1.41, std=.00006):
     Beam = np.zeros(num_bins)
     SL = np.zeros(num_bins)
     t = 0
-# =============================================================================
-#     t0 = 0
-#     t0s = []
-#     while t0 < num_days:
-#         t0s.append(t0)
-#         t0 += P
-# =============================================================================
+    t0 = 0
+    t0s = []
+    while t0 < num_days:
+        t0s.append(t0)
+        t0 += P
         
     for j in range(num_bins):
         ev =  -s_ev * math.cos(4*math.pi*t/P)
         beam = s_beam * math.sin(2*math.pi*t/P)
-# =============================================================================
-#         closest_t0 = 0
-#         difference = t 
-#         for t0 in t0s:
-#             new_difference = abs(t-t0)
-#             if new_difference <= difference:
-#                 closest_t0 = t0
-#                 difference = new_difference
-#             else:
-#                 break
-#         sl = util.rahvar_main(t, closest_t0, i, M_BH, M_S, a)
-# =============================================================================
-        sl = s_sl if t%P <= tau_sl else 0
-        signal[j] += (ev + beam + sl) + np.random.normal(0, std) 
+        closest_t0 = 0
+        difference = t 
+        for t0 in t0s:
+            new_difference = abs(t-t0)
+            if new_difference <= difference:
+                closest_t0 = t0
+                difference = new_difference
+            else:
+                break
+        sl = rahvar.rahvar_main(t*24, closest_t0*24, i, M_BH, M_S, a)
+        #sl = s_sl if t%P <= tau_sl else 0
+        signal[j] += (ev + beam)*sl + np.random.normal(0, std) 
         EV[j] = ev 
         Beam[j] = beam 
         SL[j] = sl  
@@ -89,7 +85,8 @@ def generate_light_curve(P, i, M_BH, M_S=1, R_S=1, rho_S=1.41, std=.00006):
     return signal, EV, Beam, SL
 
 def generate_flat_signal(std):
-    return np.array([np.random.normal(0, std) for _ in range(19440)])
+    num_bins = 19440
+    return np.array([np.random.normal(0, std) for _ in range(num_bins)])
 
 def plot_lc(lc, P, M_BH, i, filename=None, num_days=27, num_bins=19440, EV=None, Beam=None, SL=None):
     bin_size = num_days/num_bins
