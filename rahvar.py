@@ -17,6 +17,9 @@ Rahvar, S., Mehrabi, A., & Dominik, M. 2011, MNRAS, 410, 912
 # the universal gravitational constant, G (au^3  *  day^-2  *  solar mass^-1)
 # the Schwarzchild Radius, the radius of the even horizon of a black hole, R_S (au)
 
+
+# required inputs: set of time values (t_vals, 100000 values), t_0 (set to 0), φ, M, m_star, a
+
 def rahvar_main(t, t_0, φ, M, m_star, a):
 
     # constants
@@ -49,8 +52,11 @@ def rahvar_init(t_vals, t_0, φ, M, m_star, a): # call to run rahvar_main
     for element in t_vals:
         amp_vals[additive] = rahvar_main(element, t_0, φ, M, m_star, a)
         additive += 1
-        
+
     return amp_vals # list of amplitude values for each given time
+
+
+# example inputs below
 
 '''
 t_0 = 0.0 # hours
