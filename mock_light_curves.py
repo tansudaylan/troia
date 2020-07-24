@@ -17,8 +17,8 @@ def mbh_rng():
     return mbh
 
 def i_rng():
-    cosi  = np.random.random()*2 - 1
-    i = math.acos(cosi) + np.random.choice([0,np.pi])
+    cosi  = np.random.random()
+    i = math.acos(cosi) * np.random.choice([1,-1])
     return i
 
 def get_amplitudes(P, i, M_BH, M_S=1, R_S=1, rho_S=1.41):
@@ -76,13 +76,13 @@ def generate_light_curve(P, i, M_BH, M_S=1, R_S=1, rho_S=1.41, std=.00006):
                 break
         sl = rahvar.rahvar_main(t*24, closest_t0*24, i, M_BH, M_S, a)
         #sl = s_sl if t%P <= tau_sl else 0
-        signal[j] += (ev + beam)*sl + np.random.normal(0, std) 
+        signal[j] += ev + beam + sl + np.random.normal(0, std) 
         EV[j] = ev 
         Beam[j] = beam 
         SL[j] = sl  
         t = t + bin_size
     
-    return signal, EV, Beam, SL
+    return signal, EV+1, Beam+1, SL
 
 def generate_flat_signal(std):
     num_bins = 19440
@@ -95,16 +95,16 @@ def plot_lc(lc, P, M_BH, i, filename=None, num_days=27, num_bins=19440, EV=None,
     plt.ylabel('Relative Flux')
     title = 'P = ' + str(round(P,2)) + ' days, ' r'$M_{BH} = $' + str(round(M_BH,2)) + r' $ M_{\odot}, cosi = $' + str(round(math.cos(i),2))
     plt.title(title)
-    lc_plot = plt.plot([i*bin_size for i in range(num_bins)], lc, 'k', label='Signal')
+    lc_plot = plt.plot([i*bin_size for i in range(num_bins)], lc, 'kor', label='Signal', rasterized=True)
     handles = lc_plot
     if EV is not None:
-        EV_plot = plt.plot([i*bin_size for i in range(num_bins)], EV, 'b--', label='EV')
+        EV_plot = plt.plot([i*bin_size for i in range(num_bins)], EV, 'b--', label='EV', rasterized=True)
         handles += EV_plot
     if Beam is not None:
-        Beam_plot = plt.plot([i*bin_size for i in range(num_bins)], Beam, 'g--', label='Beam')
+        Beam_plot = plt.plot([i*bin_size for i in range(num_bins)], Beam, 'g--', label='Beam', rasterized=True)
         handles += Beam_plot
     if SL is not None:
-        SL_plot = plt.plot([i*bin_size for i in range(num_bins)], SL, 'r--', label='SL')
+        SL_plot = plt.plot([i*bin_size for i in range(num_bins)], SL, 'r--', label='SL', rasterized=True)
         handles += SL_plot
 
     plt.legend(handles=handles, loc="upper right")
@@ -357,8 +357,8 @@ def plot_corr(correlations, P, M_BH, i, alpha, window, threshold, filename, num_
     plt.ylabel('Correlation')
     title = 'P = ' + str(round(P,2)) + ' [days], ' r'$M_{BH} = $' + str(round(M_BH,2)) + r' $ [M_{\odot}], cosi = $' + str(round(math.cos(i),2)) + r', $ \alpha = $' + str(round(alpha, 2))
     plt.title(title)
-    plt.plot([x*num_days/num_bins for x in range(num_bins-window)], correlations, 'k')
-    plt.plot([x*num_days/num_bins for x in range(num_bins-window)], [threshold for _ in range(num_bins-window)], 'b--')
+    plt.plot([x*num_days/num_bins for x in range(num_bins-window)], correlations, 'k', rasterized=True)
+    plt.plot([x*num_days/num_bins for x in range(num_bins-window)], [threshold for _ in range(num_bins-window)], 'b--', rasterized=True)
     plt.tight_layout()
     plt.savefig(filename)
     plt.close()

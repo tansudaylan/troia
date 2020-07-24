@@ -30,21 +30,17 @@ def mf_pipeline(directory, result_foldername, mock=False, num_simulations=None):
         if not os.path.exists(result_foldername):
             os.mkdir(result_foldername)
         
-        alpha_actual = [[] for _ in range(num_bins)]
-        alpha_predicted = [[] for _ in range(num_bins)]
         i_actual = [[] for _ in range(num_bins)]
         i_predicted = [[] for _ in range(num_bins)]
         P_actual = [[] for _ in range(num_bins)]
         P_predicted = [[] for _ in range(num_bins)]
         mass_actual = [[] for _ in range(num_bins)]
         mass_predicted = [[] for _ in range(num_bins)]
-        alphas = [[] for _ in range(num_bins)]
         inclinations = [[] for _ in range(num_bins)]
         periods = [[] for _ in range(num_bins)]
         masses = [[] for _ in range(num_bins)]
         
         # generate bins
-        alpha_bins = [j*2/(num_bins) + 2 for j in range(num_bins)]
         cosi_bins = [2*j/num_bins - 1 for j in range(num_bins)]
         P_bins = [np.e**(j*(np.log(27)-np.log(1))/num_bins) for j in range(num_bins)]
         mass_bins = [5.6*j/num_bins + 5 for j in range(num_bins)]
@@ -56,7 +52,7 @@ def mf_pipeline(directory, result_foldername, mock=False, num_simulations=None):
             M_BH = mlc.mbh_rng()
             i = mlc.i_rng()
             cosi = math.cos(i)
-            alpha = np.random.random() * 2 + 2
+            alpha = 3
             if pos_signal:
                 lcur, EV, Beam, SL = mlc.generate_light_curve(P, i, M_BH, std=noise)
             else:
@@ -69,7 +65,7 @@ def mf_pipeline(directory, result_foldername, mock=False, num_simulations=None):
             best_ratio = 0
             best_results = None
             
-            for width in [5 + 5*j for j in range(12)]:  # try widths from 10 mins to 2hrs (5 bins to 60 bins)
+            for width in [30 + 5*j for j in range(13)]:  # try widths from 1hr to 3hrs (30 bins to 90 bins)
                 template = mlc.generate_template(amp, width)
                 threshold = amp**2 * width / alpha
                 mf_results = mlc.match_filter(flat_lcur, template, threshold=threshold)
@@ -88,17 +84,13 @@ def mf_pipeline(directory, result_foldername, mock=False, num_simulations=None):
                     os.mkdir(lc_folder)
                 mlc.plot_lc(lcur, P, M_BH, i, filename="{}/lcur{}.pdf".format(lc_folder, counter), EV=EV if pos_signal else None, Beam=Beam if pos_signal else None, SL=SL if pos_signal else None)
                 #mlc.plot_lc(ss_lc, P, M_BH, i, filename="{}/MLCS{}.pdf".format(lc_folder, counter), EV=EV, Beam=Beam, SL=SL if lc_pos else None)
-                mlc.plot_lc(flat_lcur, P, M_BH, i, filename="{}/MLCF{}.pdf".format(lc_folder, counter))
-                mlc.plot_corr(best_results["correlations"], P, M_BH, i, alpha, len(best_results["template"]), threshold, "{}/CORR{}.pdf".format(lc_folder, counter))
+                mlc.plot_lc(flat_lcur, P, M_BH, i, filename="{}/flat_lcur{}.pdf".format(lc_folder, counter))
+                mlc.plot_corr(best_results["correlations"], P, M_BH, i, alpha, len(best_results["template"]), threshold, "{}/corr{}.pdf".format(lc_folder, counter))
                 counter += 1
             
-            alpha_binned, i_binned, P_binned, mass_binned = False, False, False, False
+            i_binned, P_binned, mass_binned = False, False, False
             
             for k in range(num_bins-1,-1,-1):
-                if not alpha_binned and alpha >= alpha_bins[k]:
-                    alphas[k].append(i)
-                    alpha_actual[k].append(pos_signal)
-                    alpha_predicted[k].append(result)
                 if not i_binned and cosi >= cosi_bins[k]:
                     inclinations[k].append(i)
                     i_actual[k].append(pos_signal)
@@ -111,13 +103,13 @@ def mf_pipeline(directory, result_foldername, mock=False, num_simulations=None):
                     masses[k].append(i)
                     mass_actual[k].append(pos_signal)
                     mass_predicted[k].append(result)
-                if all([alpha_binned, i_binned, P_binned, mass_binned]):
+                if all([i_binned, P_binned, mass_binned]):
                     break
             
             if z%1000 == 0 and z != 0:
                 print('{} simulations complete'.format(z))
                 prefix = "./{}/".format(result_foldername)
-                plot_completeness(r'$\alpha$', alpha_bins, alpha_actual, alpha_predicted, num_bins, prefix + 'alpha')
+                #plot_completeness(r'$\alpha$', alpha_bins, alpha_actual, alpha_predicted, num_bins, prefix + 'alpha')
                 plot_completeness('cosi', cosi_bins, i_actual, i_predicted, num_bins, prefix + 'cosi')
                 plot_completeness('Period [days]', P_bins, P_actual, P_predicted, num_bins, prefix + 'period')
                 plot_completeness(r'$M_{BH} [M_{\odot}]$', mass_bins, mass_actual, mass_predicted, num_bins, prefix + 'mbh')
@@ -135,12 +127,14 @@ def mf_pipeline(directory, result_foldername, mock=False, num_simulations=None):
             if filename.endswith(".fits"):
                 fits_file = directory + filename
                 
-                with fits.open(fits_file, mode="readonly") as hdulist:
-                    tess_bjds = hdulist[1].data['TIME']
-                    #sap_fluxes = hdulist[1].data['SAP_FLUX']
-                    pdcsap_fluxes = hdulist[1].data['PDCSAP_FLUX']
-                    #var = hdulist[1].data['PSF_CENTR1']
-                    hdulist.close()
+                try:
+                    with fits.open(fits_file, mode="readonly", memmap=False) as hdulist:
+                        tess_bjds = hdulist[1].data['TIME']
+                        #sap_fluxes = hdulist[1].data['SAP_FLUX']
+                        pdcsap_fluxes = hdulist[1].data['PDCSAP_FLUX']
+                        #var = hdulist[1].data['PSF_CENTR1']
+                except:
+                    continue
                 
                 #num_days = len(tess_bjds)
                 #bin_size = (tess_bjds[-1] - tess_bjds[0]) / num_days
@@ -176,7 +170,7 @@ def mf_pipeline(directory, result_foldername, mock=False, num_simulations=None):
                 best_ratio = 0
                 best_results = None
                 
-                for width in [5 + 5*j for j in range(12)]:  # try widths from 10 mins to 2hrs (5 bins to 60 bins)
+                for width in [30 + 5*j for j in range(13)]:  # try widths from 10 mins to 2hrs (5 bins to 60 bins)
                     template = mlc.generate_template(amp, width)
                     threshold = amp**2 * width / alpha
                     mf_results = mlc.match_filter(flat, template, threshold=threshold)
@@ -197,7 +191,7 @@ def mf_pipeline(directory, result_foldername, mock=False, num_simulations=None):
                     plt.figure()
                     plt.xlabel('Time [days]')
                     plt.ylabel('PDCSAP Flux')
-                    plt.plot(valid_times, valid_fluxes, 'ko')
+                    plt.plot(valid_times, valid_fluxes, 'ko', rasterized=True)
                     plt.tight_layout()
                     graph_filename = '{}/light_curve.pdf'.format(folder)
                     plt.savefig(graph_filename)
@@ -207,7 +201,7 @@ def mf_pipeline(directory, result_foldername, mock=False, num_simulations=None):
                     plt.figure()
                     plt.xlabel('Time [days]')
                     plt.ylabel('Relative Flux')
-                    plt.plot(valid_times, flat, 'ko')
+                    plt.plot(valid_times, flat, 'ko', rasterized=True)
                     plt.tight_layout()
                     graph_filename = '{}/flat_lcur.pdf'.format(folder)
                     plt.savefig(graph_filename)
@@ -218,8 +212,8 @@ def mf_pipeline(directory, result_foldername, mock=False, num_simulations=None):
                     plt.figure()
                     plt.xlabel('Time [days]')
                     plt.ylabel('Correlation')
-                    plt.plot(valid_times[:-window], best_results["correlations"], 'k')
-                    plt.plot(valid_times[:-window], [best_results["threshold"] for _ in range(len(best_results["correlations"]))], '--', color='orange')
+                    plt.plot(valid_times[:-window], best_results["correlations"], 'k', rasterized=True)
+                    plt.plot(valid_times[:-window], [best_results["threshold"] for _ in range(len(best_results["correlations"]))], '--', color='orange', rasterized=True)
                     plt.tight_layout()
                     graph_filename = '{}/correlations.pdf'.format(folder)
                     plt.savefig(graph_filename)
@@ -243,7 +237,7 @@ def plot_completeness(variable, bins, actual, predicted, num_bins, path_prefix):
     plt.figure()
     plt.xlabel(variable)
     plt.ylabel('Accuracy')
-    plt.plot([str(round(b, 2)) for b in bins], accs, 'k')
+    plt.plot([str(round(b, 2)) for b in bins], accs, 'k', rasterized=True)
     filename = '{}_accuracy.pdf'.format(path_prefix, variable)
     plt.tight_layout()
     plt.savefig(filename)
@@ -253,7 +247,7 @@ def plot_completeness(variable, bins, actual, predicted, num_bins, path_prefix):
     plt.figure()
     plt.xlabel(variable)
     plt.ylabel('Precision')
-    plt.plot([str(round(b, 2)) for b in bins], pres, 'k')
+    plt.plot([str(round(b, 2)) for b in bins], pres, 'k', rasterized=True)
     filename = '{}_precision.pdf'.format(path_prefix, variable)
     plt.tight_layout()
     plt.savefig(filename)
@@ -263,7 +257,7 @@ def plot_completeness(variable, bins, actual, predicted, num_bins, path_prefix):
     plt.figure()
     plt.xlabel(variable)
     plt.ylabel('Recall')
-    plt.plot([str(round(b, 2)) for b in bins], recs, 'k')
+    plt.plot([str(round(b, 2)) for b in bins], recs, 'k', rasterized=True)
     filename = '{}_recall.pdf'.format(path_prefix, variable)
     plt.tight_layout()
     plt.savefig(filename)
@@ -273,7 +267,7 @@ def plot_completeness(variable, bins, actual, predicted, num_bins, path_prefix):
     plt.figure()
     plt.xlabel(variable)
     plt.ylabel('F1')
-    plt.plot([str(round(b, 2)) for b in bins], F1s, 'k')
+    plt.plot([str(round(b, 2)) for b in bins], F1s, 'k', rasterized=True)
     filename = '{}_F1.pdf'.format(path_prefix, variable)
     plt.tight_layout()
     plt.savefig(filename)
