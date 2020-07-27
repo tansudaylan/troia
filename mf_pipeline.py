@@ -27,69 +27,90 @@ def mf_pipeline(directory, result_foldername, mock=False, num_simulations=None):
         kernel = 99
         num_bins = 10
         counter = 0
+        
+        # create folder for resulting plots
         if not os.path.exists(result_foldername):
             os.mkdir(result_foldername)
         
+        # results array for completeness analysis of each variable
         i_actual = [[] for _ in range(num_bins)]
         i_predicted = [[] for _ in range(num_bins)]
+        inclinations = [[] for _ in range(num_bins)]
+        
         P_actual = [[] for _ in range(num_bins)]
         P_predicted = [[] for _ in range(num_bins)]
+        periods = [[] for _ in range(num_bins)]
+        
         mass_actual = [[] for _ in range(num_bins)]
         mass_predicted = [[] for _ in range(num_bins)]
-        inclinations = [[] for _ in range(num_bins)]
-        periods = [[] for _ in range(num_bins)]
         masses = [[] for _ in range(num_bins)]
         
         # generate bins
-        cosi_bins = [2*j/num_bins - 1 for j in range(num_bins)]
+        cosi_bins = [j/num_bins  for j in range(num_bins)]
         P_bins = [np.e**(j*(np.log(27)-np.log(1))/num_bins) for j in range(num_bins)]
         mass_bins = [5.6*j/num_bins + 5 for j in range(num_bins)]
         
+        # generate templates varying width from 1hr to 3hrs (30 bins to 90 bins)
+        templates = []
+        for width in [30 + 5*j for j in range(13)]: 
+            templates.append(mlc.offset_and_normalize(mlc.generate_template(1, width)))
+        threshold = .05
+        
         start = time.time()
         for z in range(num_simulations):
-            pos_signal = np.random.choice([True, False])
+            
+            # randomly generate relevant parameters from known priors
             P = mlc.P_rng()
             M_BH = mlc.mbh_rng()
             i = mlc.i_rng()
             cosi = math.cos(i)
-            alpha = 3
+            
+            # generate positive/negative signal at random
+            pos_signal = np.random.choice([True, False])
             if pos_signal:
                 lcur, EV, Beam, SL = mlc.generate_light_curve(P, i, M_BH, std=noise)
             else:
                 lcur = mlc.generate_flat_signal(noise)
-            flat_lcur = lcur - scipy.signal.medfilt(lcur, kernel)
-            
-            std = np.std(flat_lcur)
-            amp = 4*std
-            initial = True
-            best_ratio = 0
-            best_results = None
-            
-            for width in [30 + 5*j for j in range(13)]:  # try widths from 1hr to 3hrs (30 bins to 90 bins)
-                template = mlc.generate_template(amp, width)
-                threshold = amp**2 * width / alpha
-                mf_results = mlc.match_filter(flat_lcur, template, threshold=threshold)
-                if initial or mf_results["highest_corr"]/mf_results["threshold"] > best_ratio:
-                    best_ratio = mf_results["highest_corr"]/mf_results["threshold"]
-                    best_results = mf_results
-                    initial = False
-                if mf_results["result"]:
-                    break
                 
-            result = best_results["result"]
+            # subtract median filter from signal and normalize for correlation analysis
+            flat_lcur = lcur - scipy.signal.medfilt(lcur, kernel)
+            flat_lcur = mlc.offset_and_normalize(flat_lcur)
             
-            if (result != pos_signal and np.random.random() > .95) or (result == pos_signal and np.random.random() > .995):    # plot all light curves that were labeled incorrectly
+            initial = True
+            best_result = None
+            best_corr = 0
+            best_correlations = None
+            best_template = None
+            
+            # perform cross-correlation for all template widths
+            for template in templates:  
+                correlations = scipy.signal.correlate(flat_lcur, template)
+                highest_corr = max(correlations)
+                result  = highest_corr > threshold
+                    
+                # choose best correlation result so far (break on positive signal detection)
+                if initial or highest_corr > best_corr:
+                    best_corr = highest_corr
+                    best_result = result
+                    best_correlations = correlations
+                    best_template = template
+                    initial = False
+                    
+                if result:
+                    break
+            
+            # plot some light curves and their correlations at random based on prediction
+            if (best_result != pos_signal and np.random.random() > .9) or (best_result == pos_signal and np.random.random() > .99):
                 lc_folder = "./{}/lc{}".format(result_foldername, counter)
                 if not os.path.exists(lc_folder):
                     os.mkdir(lc_folder)
                 mlc.plot_lc(lcur, P, M_BH, i, filename="{}/lcur{}.pdf".format(lc_folder, counter), EV=EV if pos_signal else None, Beam=Beam if pos_signal else None, SL=SL if pos_signal else None)
-                #mlc.plot_lc(ss_lc, P, M_BH, i, filename="{}/MLCS{}.pdf".format(lc_folder, counter), EV=EV, Beam=Beam, SL=SL if lc_pos else None)
                 mlc.plot_lc(flat_lcur, P, M_BH, i, filename="{}/flat_lcur{}.pdf".format(lc_folder, counter))
-                mlc.plot_corr(best_results["correlations"], P, M_BH, i, alpha, len(best_results["template"]), threshold, "{}/corr{}.pdf".format(lc_folder, counter))
+                mlc.plot_corr(best_correlations, P, M_BH, i, threshold, "{}/corr{}.pdf".format(lc_folder, counter))
                 counter += 1
             
+            # bin result depending on parameter values
             i_binned, P_binned, mass_binned = False, False, False
-            
             for k in range(num_bins-1,-1,-1):
                 if not i_binned and cosi >= cosi_bins[k]:
                     inclinations[k].append(i)
@@ -106,6 +127,7 @@ def mf_pipeline(directory, result_foldername, mock=False, num_simulations=None):
                 if all([i_binned, P_binned, mass_binned]):
                     break
             
+            # perform completeness analysis
             if z%1000 == 0 and z != 0:
                 print('{} simulations complete'.format(z))
                 prefix = "./{}/".format(result_foldername)
