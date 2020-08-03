@@ -7,8 +7,9 @@ import confusion_matrix as cf
 import os
 import scipy.signal
 import time
+import sqlite3
 
-def mf_pipeline(directory, result_foldername, mock=False, num_simulations=None):
+def mf_pipeline(directory, result_foldername, noise=.00005, mock=False, num_simulations=None, threshold=.05):
     '''
     Pipeline runs a match filter on light curves and finds if the light curve 
     matches a predetermined template.
@@ -23,7 +24,11 @@ def mf_pipeline(directory, result_foldername, mock=False, num_simulations=None):
     returns: dict, results for each light curve (file)
     '''
     if mock:
-        noise = .0005
+# =============================================================================
+#         conn = sqlite3.connect('{}.db'.format(result_foldername))  # You can create a new database by changing the name within the quotes
+#         c = conn.cursor()
+#         c.execute('''CREATE TABLE IF NOT EXISTS Data ([generated_id] INTEGER PRIMARY KEY,[Period] REAL, [M_BH] REAL, [M_S] REAL, [cosi] REAL, [Actual] INTEGER, [Predicted] INTEGER)''')
+# =============================================================================
         kernel = 99
         num_bins = 10
         counter = 0
@@ -41,20 +46,27 @@ def mf_pipeline(directory, result_foldername, mock=False, num_simulations=None):
         P_predicted = [[] for _ in range(num_bins)]
         periods = [[] for _ in range(num_bins)]
         
-        mass_actual = [[] for _ in range(num_bins)]
-        mass_predicted = [[] for _ in range(num_bins)]
-        masses = [[] for _ in range(num_bins)]
+        mbh_actual = [[] for _ in range(num_bins)]
+        mbh_predicted = [[] for _ in range(num_bins)]
+        mbhs = [[] for _ in range(num_bins)]
+        
+        ms_actual = [[] for _ in range(num_bins)]
+        ms_predicted = [[] for _ in range(num_bins)]
+        mss = [[] for _ in range(num_bins)]
+        
+        total_actual = []
+        total_predicted = []
         
         # generate bins
-        cosi_bins = [j/num_bins  for j in range(num_bins)]
+        cosi_bins = [j/num_bins * .01  for j in range(num_bins)]
         P_bins = [np.e**(j*(np.log(27)-np.log(1))/num_bins) for j in range(num_bins)]
-        mass_bins = [5.6*j/num_bins + 5 for j in range(num_bins)]
+        mbh_bins = [15*j/num_bins + 5 for j in range(num_bins)]
+        ms_bins = [j/num_bins + 0.5 for j in range(num_bins)]
         
-        # generate templates varying width from 1hr to 3hrs (30 bins to 90 bins)
+        # generate templates varying width from 10mins to 2hrs (5 bins to 60 bins)
         templates = []
-        for width in [30 + 5*j for j in range(13)]: 
+        for width in [5*j + 5 for j in range(12)]: 
             templates.append(mlc.offset_and_normalize(mlc.generate_template(1, width)))
-        threshold = .05
         
         start = time.time()
         for z in range(num_simulations):
@@ -62,13 +74,14 @@ def mf_pipeline(directory, result_foldername, mock=False, num_simulations=None):
             # randomly generate relevant parameters from known priors
             P = mlc.P_rng()
             M_BH = mlc.mbh_rng()
+            M_S = mlc.ms_rng()
             i = mlc.i_rng()
             cosi = math.cos(i)
             
             # generate positive/negative signal at random
             pos_signal = np.random.choice([True, False])
             if pos_signal:
-                lcur, EV, Beam, SL = mlc.generate_light_curve(P, i, M_BH, std=noise)
+                lcur, EV, Beam, SL = mlc.generate_light_curve(P, i, M_BH, M_S=M_S, std=noise)
             else:
                 lcur = mlc.generate_flat_signal(noise)
                 
@@ -100,45 +113,61 @@ def mf_pipeline(directory, result_foldername, mock=False, num_simulations=None):
                     break
             
             # plot some light curves and their correlations at random based on prediction
-            if (best_result != pos_signal and np.random.random() > .9) or (best_result == pos_signal and np.random.random() > .99):
+            if (best_result != pos_signal and np.random.random() > .95) or (pos_signal and np.random.random() > .99):
                 lc_folder = "./{}/lc{}".format(result_foldername, counter)
                 if not os.path.exists(lc_folder):
                     os.mkdir(lc_folder)
-                mlc.plot_lc(lcur, P, M_BH, i, filename="{}/lcur{}.pdf".format(lc_folder, counter), EV=EV if pos_signal else None, Beam=Beam if pos_signal else None, SL=SL if pos_signal else None)
-                mlc.plot_lc(flat_lcur, P, M_BH, i, filename="{}/flat_lcur{}.pdf".format(lc_folder, counter))
-                mlc.plot_corr(best_correlations, P, M_BH, i, threshold, "{}/corr{}.pdf".format(lc_folder, counter))
+                mlc.plot_lc(lcur, P, M_BH, i, M_S, filename="{}/lcur{}.pdf".format(lc_folder, counter), EV=EV if pos_signal else None, Beam=Beam if pos_signal else None, SL=SL if pos_signal else None)
+                mlc.plot_lc(flat_lcur, P, M_BH, i, M_S, filename="{}/flat_lcur{}.pdf".format(lc_folder, counter))
+                mlc.plot_corr(best_correlations, P, M_BH, i, M_S, threshold, "{}/corr{}.pdf".format(lc_folder, counter))
                 counter += 1
             
             # bin result depending on parameter values
-            i_binned, P_binned, mass_binned = False, False, False
-            for k in range(num_bins-1,-1,-1):
-                if not i_binned and cosi >= cosi_bins[k]:
-                    inclinations[k].append(i)
-                    i_actual[k].append(pos_signal)
-                    i_predicted[k].append(result)
-                if not P_binned and P >= P_bins[k]:
-                    periods[k].append(i)
-                    P_actual[k].append(pos_signal)
-                    P_predicted[k].append(result)
-                if not mass_binned and M_BH >= mass_bins[k]:
-                    masses[k].append(i)
-                    mass_actual[k].append(pos_signal)
-                    mass_predicted[k].append(result)
-                if all([i_binned, P_binned, mass_binned]):
-                    break
+            if pos_signal or best_result:
+                i_binned, P_binned, mbh_binned, ms_binned = False, False, False, False
+                for k in range(num_bins-1,-1,-1):
+                    if not i_binned and cosi >= cosi_bins[k]:
+                        inclinations[k].append(i)
+                        i_actual[k].append(pos_signal)
+                        i_predicted[k].append(result)
+                    if not P_binned and P >= P_bins[k]:
+                        periods[k].append(i)
+                        P_actual[k].append(pos_signal)
+                        P_predicted[k].append(result)
+                    if not mbh_binned and M_BH >= mbh_bins[k]:
+                        mbhs[k].append(i)
+                        mbh_actual[k].append(pos_signal)
+                        mbh_predicted[k].append(result)
+                    if not ms_binned and M_S >= ms_bins[k]:
+                        mss[k].append(i)
+                        ms_actual[k].append(pos_signal)
+                        ms_predicted[k].append(result)
+                    if all([i_binned, P_binned, mbh_binned, ms_binned]):
+                        break
+                    
+            total_actual.append(pos_signal)
+            total_predicted.append(best_result) 
             
+# =============================================================================
+#             c.execute(''' INSERT INTO Data(Period, M_BH, M_S, cosi, Actual, Predicted)
+#               VALUES(?,?,?,?,?,?) ''', (P, M_BH, M_S, cosi, int(pos_signal), int(best_result)))      
+# =============================================================================
             # perform completeness analysis
             if z%1000 == 0 and z != 0:
+                #conn.commit()
                 print('{} simulations complete'.format(z))
                 prefix = "./{}/".format(result_foldername)
                 #plot_completeness(r'$\alpha$', alpha_bins, alpha_actual, alpha_predicted, num_bins, prefix + 'alpha')
                 plot_completeness('cosi', cosi_bins, i_actual, i_predicted, num_bins, prefix + 'cosi')
                 plot_completeness('Period [days]', P_bins, P_actual, P_predicted, num_bins, prefix + 'period')
-                plot_completeness(r'$M_{BH} [M_{\odot}]$', mass_bins, mass_actual, mass_predicted, num_bins, prefix + 'mbh')
+                plot_completeness(r'$M_{BH} [M_{\odot}]$', mbh_bins, mbh_actual, mbh_predicted, num_bins, prefix + 'mbh')
+                plot_completeness(r'$M_{\star} [M_{\odot}]$', ms_bins, ms_actual, ms_predicted, num_bins, prefix + 'ms')
             
+        #conn.close()
         end = time.time()
+        print("{} minutes".format(round((end - start)/60, 2)))
         
-        return "{} minutes".format(round((end - start)/60, 2))
+        return total_actual, total_predicted
             
     else:
         alpha = 2
@@ -243,7 +272,7 @@ def mf_pipeline(directory, result_foldername, mock=False, num_simulations=None):
                 
         return file_results
     
-def plot_completeness(variable, bins, actual, predicted, num_bins, path_prefix):
+def plot_completeness(variable, bins, actual, predicted, num_bins, path_prefix, scale=False):
     accs = []
     pres = []
     recs = []
@@ -259,7 +288,10 @@ def plot_completeness(variable, bins, actual, predicted, num_bins, path_prefix):
     plt.figure()
     plt.xlabel(variable)
     plt.ylabel('Accuracy')
-    plt.plot([str(round(b, 2)) for b in bins], accs, 'k', rasterized=True)
+    if scale:
+        plt.plot([b for b in bins], accs, 'k', rasterized=True)
+    else:
+        plt.plot([str(round(b, 2)) for b in bins], accs, 'k', rasterized=True)
     filename = '{}_accuracy.pdf'.format(path_prefix, variable)
     plt.tight_layout()
     plt.savefig(filename)
@@ -269,7 +301,10 @@ def plot_completeness(variable, bins, actual, predicted, num_bins, path_prefix):
     plt.figure()
     plt.xlabel(variable)
     plt.ylabel('Precision')
-    plt.plot([str(round(b, 2)) for b in bins], pres, 'k', rasterized=True)
+    if scale:
+        plt.plot([b for b in bins], pres, 'k', rasterized=True)
+    else:
+        plt.plot([str(round(b, 2)) for b in bins], pres, 'k', rasterized=True)
     filename = '{}_precision.pdf'.format(path_prefix, variable)
     plt.tight_layout()
     plt.savefig(filename)
@@ -279,7 +314,10 @@ def plot_completeness(variable, bins, actual, predicted, num_bins, path_prefix):
     plt.figure()
     plt.xlabel(variable)
     plt.ylabel('Recall')
-    plt.plot([str(round(b, 2)) for b in bins], recs, 'k', rasterized=True)
+    if scale:
+        plt.plot([b for b in bins], recs, 'k', rasterized=True)
+    else:
+        plt.plot([str(round(b, 2)) for b in bins], recs, 'k', rasterized=True)
     filename = '{}_recall.pdf'.format(path_prefix, variable)
     plt.tight_layout()
     plt.savefig(filename)
@@ -289,9 +327,41 @@ def plot_completeness(variable, bins, actual, predicted, num_bins, path_prefix):
     plt.figure()
     plt.xlabel(variable)
     plt.ylabel('F1')
-    plt.plot([str(round(b, 2)) for b in bins], F1s, 'k', rasterized=True)
+    if scale:
+        plt.plot([b for b in bins], F1s, 'k', rasterized=True)
+    else:
+        plt.plot([str(round(b, 2)) for b in bins], F1s, 'k', rasterized=True)
     filename = '{}_F1.pdf'.format(path_prefix, variable)
     plt.tight_layout()
     plt.savefig(filename)
     plt.close()
 
+def noise_test(result_foldername):
+    if not os.path.exists(result_foldername):
+        os.mkdir(result_foldername)
+    noise_values = np.array([0,50,100,150,200,300,400,500,750,1000]) 
+    altered_noise = noise_values * 10**(-6) + 10**(-9)
+    actuals = []
+    predicteds = []
+    for noise in altered_noise:
+        actual, predicted = mf_pipeline(None, result_foldername, noise=noise, mock=True, num_simulations=1000)
+        actuals.append(actual)
+        predicteds.append(predicted)
+    
+    plot_completeness('Noise [ppm]', noise_values, actuals, predicteds, 10, "./{}/noise".format(result_foldername), scale=True)
+    return actuals, predicteds
+
+def alpha_test(result_foldername):
+    if not os.path.exists(result_foldername):
+        os.mkdir(result_foldername)
+    alpha_values = np.array([.005*i for i in range(1, 11)]) 
+    actuals = []
+    predicteds = []
+    for alpha in alpha_values:
+        actual, predicted = mf_pipeline(None, result_foldername, mock=True, num_simulations=1000, threshold=alpha)
+        actuals.append(actual)
+        predicteds.append(predicted)
+    
+    plot_completeness('Noise [ppm]', alpha_values, actuals, predicteds, 10, "./{}/alpha".format(result_foldername), scale=True)
+    return actuals, predicteds
+    
