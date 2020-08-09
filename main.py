@@ -1,8 +1,6 @@
 import matplotlib.pyplot as plt
 
 from transitleastsquares import transitleastsquares
-import emcee
-from scipy import signal
 
 from tdpy.util import summgene
 import tdpy.util
@@ -13,14 +11,19 @@ import numpy as np
 
 import h5py
 
-import time as timemodu
-
+import scipy
+from scipy import fftpack
+from scipy import signal
+from scipy import optimize
 import scipy.signal
 from scipy import interpolate
+
+import time as timemodu
 
 import os, sys, datetime, fnmatch
 
 import matplotlib.pyplot as plt
+
 import multiprocessing
 
 #from astroquery.mast import Catalogs
@@ -38,30 +41,112 @@ import multiprocessing
 #import astropy.time
 
 
-def retr_lpos(para, gdat):
+def retr_amplslen(gdat, peri, masscomp):
     
-    if (para[gdat.indxparahard] > gdat.limtpara[1, gdat.indxparahard]).any() or (para[gdat.indxparahard] < gdat.limtpara[0, gdat.indxparahard]).any():
-        lpos = -np.inf
-    else:
-        lcurmodl, deptelli, deptbeam, deptslen = retr_modl(gdat, para)
-        lpos = np.sum(-0.5 * (gdat.lcurflat - lcurmodl)**2 / gdat.varilcurflatthis)
+    amplslen = 7.15e-5 * peri**(2. / 3.) / gdat.radistar**2. * masscomp * (masscomp + gdat.massstar)**(1. / 3.)
 
-        #print('para')
-        #print(para)
-        #print('lcurmodl')
-        #summgene(lcurmodl)
-        #print('deptelli')
-        #summgene(deptelli)
-        #print('deptbeam')
-        #summgene(deptbeam)
-        #print('deptslen')
-        #summgene(deptslen)
-        #print('lpos')
-        #print(lpos)
-        #print
+    return amplslen
+
+
+def retr_masscomp(gdat, amplslen, peri):
     
+    # temp
+    masscomp = amplslen / 7.15e-5 / peri**(2. / 3.) * gdat.radistar**2. / (gdat.massstar)**(1. / 3.)
+    
+    return masscomp
+
+
+def retr_modl(gdat, para):
+    
+    epoc = para[0]
+    peri = para[1]
+    masscomp = para[2]
+    
+    if gdat.boolmodlflat:
+        time = gdat.timeflat
+    else:
+        time = gdat.time
+    phas = ((time - epoc) / peri) % 1.
+    
+    dura = 1.8 / 24. * np.pi / 4. * peri**(1. / 3.) * (masscomp + gdat.massstar)**(-1. / 3.) * gdat.radistar
+    indxphasslen = np.where(abs(phas - 0.5) < dura / 2. / peri)[0]
+    deptslen = np.zeros_like(time)
+    deptslen[indxphasslen] += retr_amplslen(gdat, peri, masscomp)
+    
+    lcurmodl = 1. + deptslen
+    amplelli = 1.89e-2* peri**(-2.) / gdat.densstar * (1. / (1. + gdat.massstar / masscomp))
+    amplbeam = 2.8e-3 * peri**(-1. / 3.) * (gdat.massstar + masscomp)**(-2. / 3.) * masscomp
+    deptelli = -amplelli * np.cos(4. * np.pi * phas) 
+    deptbeam = -amplbeam * np.sin(2. * np.pi * phas)
+    if not gdat.boolmodlflat:
+        lcurmodl += deptelli + deptbeam
+    
+    return lcurmodl, deptelli + 1., deptbeam + 1., deptslen + 1.
+
+
+def retr_lcur(peri, amplellp, ampldopp, ampllens, phaslens, stdvlens, boolfull):
+    
+    peri = para[0]
+    amplellp = para[1]
+    ampldopp = para[2]
+    ampllens = para[3]
+    phaslens = para[4]
+    stdvlens = para[5]
+    
+    lcurellp = amplellp * np.sin(2. * np.pi * gdat.time / peri)
+    lcurdopp = -ampldopp * np.sin(2. * np.pi * gdat.time / peri)
+    lcurlens = np.zeros_like(lcurdopp) 
+    for k in range(10):
+        lcurlens += ampllens / np.sqrt(2. * np.pi) / stdvlens * np.exp(-0.5 * ((k + phaslens) * peri - gdat.time)**2 / stdvlens**2)
+    
+    lcur = lcurellp + lcurdopp + lcurlens
+    lcur += stdvnois * np.random.randn(gdat.numbtime)
+    
+    return lcurellp, lcurdopp, lcurlens, lcur
+    
+
+def retr_llik(para, gdat):
+    
+    lcurmodl, deptelli, deptbeam, deptslen = retr_modl(gdat, para)
+    lpos = np.sum(-0.5 * (gdat.lcurflat - lcurmodl)**2 / gdat.varilcurflatthis)
+
     return lpos
 
+
+def plot_lcur(path, lcur, lcurellp=None, lcurdopp=None, lcurlens=None, titl=None):
+    
+    figr, axis = plt.subplots(figsize=(6, 3))
+    axis.plot(gdat.time, lcur, ls='', marker='o', markersize=1, label='Tot', color='black')
+    if lcurellp is not None:
+        axis.plot(gdat.time, lcurellp, ls='', marker='o', markersize=1, label='EV')
+        axis.plot(gdat.time, lcurdopp, ls='', marker='o', markersize=1, label='DP')
+        axis.plot(gdat.time, lcurlens, ls='', marker='o', markersize=1, label='SL')
+        axis.legend()
+    axis.set_xlabel('T [BJD]')
+    if titl != None:
+        axis.set_title(titl)
+    plt.tight_layout()
+    plt.savefig(path)
+    plt.close()
+
+
+def plot_psdn(path, psdn, psdnellp=None, psdndopp=None, psdnlens=None, titl=None):
+    
+    figr, axis = plt.subplots(figsize=(6, 3))
+    axis.plot(perisamp, psdn**2, ls='', marker='o', markersize=1, label='Tot', color='black')
+    if psdnellp is not None:
+        axis.plot(perisamp, psdnellp**2, ls='', marker='o', markersize=1, label='EV')
+        axis.plot(perisamp, psdndopp**2, ls='', marker='o', markersize=1, label='DP')
+        axis.plot(perisamp, psdnlens**2, ls='', marker='o', markersize=1, label='SL')
+        axis.legend()
+    axis.axvline(peri, ls='--', alpha=0.3, color='black')
+    axis.set_xlabel('P [day]')
+    axis.set_xscale('log')
+    axis.set_yscale('log')
+    plt.tight_layout()
+    plt.savefig(path)
+    plt.close()
+    
 
 def plot_datamodl(gdat):
     
@@ -204,47 +289,9 @@ def exec_srch(gdat):
         #gdat.pcurdata = 2. - gdat.results.folded_y
     
 
-def retr_amplslen(gdat, peri, masscomp):
+def proc_samp(gdat):
     
-    amplslen = 7.15e-5 * peri**(2. / 3.) / gdat.radistar**2. * masscomp * (masscomp + gdat.massstar)**(1. / 3.)
-
-    return amplslen
-
-
-def retr_masscomp(gdat, amplslen, peri):
-    
-    # temp
-    masscomp = amplslen / 7.15e-5 / peri**(2. / 3.) * gdat.radistar**2. / (gdat.massstar)**(1. / 3.)
-    
-    return masscomp
-
-
-def retr_modl(gdat, para):
-    
-    epoc = para[0]
-    peri = para[1]
-    masscomp = para[2]
-    
-    if gdat.boolmodlflat:
-        time = gdat.timeflat
-    else:
-        time = gdat.time
-    phas = ((time - epoc) / peri) % 1.
-    
-    dura = 1.8 / 24. * np.pi / 4. * peri**(1. / 3.) * (masscomp + gdat.massstar)**(-1. / 3.) * gdat.radistar
-    indxphasslen = np.where(abs(phas - 0.5) < dura / 2. / peri)[0]
-    deptslen = np.zeros_like(time)
-    deptslen[indxphasslen] += retr_amplslen(gdat, peri, masscomp)
-    
-    lcurmodl = 1. + deptslen
-    amplelli = 1.89e-2* peri**(-2.) / gdat.densstar * (1. / (1. + gdat.massstar / masscomp))
-    amplbeam = 2.8e-3 * peri**(-1. / 3.) * (gdat.massstar + masscomp)**(-2. / 3.) * masscomp
-    deptelli = -amplelli * np.cos(4. * np.pi * phas) 
-    deptbeam = -amplbeam * np.sin(2. * np.pi * phas)
-    if not gdat.boolmodlflat:
-        lcurmodl += deptelli + deptbeam
-    
-    return lcurmodl, deptelli + 1., deptbeam + 1., deptslen + 1.
+    freq, gdat.psdn = scipy.signal.periodogram(gdat.lcurdata, fs=fs, window=None, nfft=None, detrend='constant', return_onesided=True, scaling='density', axis=-1)
 
 
 def init_wrap( \
@@ -379,6 +426,7 @@ def init( \
             gdat.numbtime += 1
         print('gdat.numbtime') 
         print(gdat.numbtime)
+        gdat.indxtimelink = np.where(abs(gdat.time - 13.7) < 2.)[0]
         
     if gdat.datatype == 'obsd':
         datatype, arrylcur, arrylcursapp, arrylcurpdcc, listarrylcur, listarrylcursapp, listarrylcurpdcc, listisec, listicam, listiccd = \
@@ -497,6 +545,71 @@ def init( \
             time = time[listindxtimegood]
             gdat.lcur = gdat.lcur[listindxtimegood]
     else:
+        
+
+        # mock data setup 
+    
+        peri = 3. # [days]
+        stdvnois = 1e-2
+        amplellp = 10.
+        ampldopp = 1.
+        ampllens = 1.
+        phaslens = 0.5
+        stdvlens = 0.1
+        
+        gdat.numbpara = 7
+        
+        argsdict = {'gdat':gdat}
+        args = (argsdict)
+        paratrue = np.empty(gdat.numbpara)
+        paratrue[0] = peri
+        paratrue[1] = amplellp
+        paratrue[2] = ampldopp
+        paratrue[3] = ampllens
+        paratrue[4] = phaslens
+        paratrue[5] = stdvlens
+        paratrue[6] = stdvnois
+    
+        gdat.boolfull = True
+        lcurellp, lcurdopp, lcurlens, lcur = retr_lcur(peri, amplellp, ampldopp, ampllens, phaslens, stdvlens, True)
+    
+        delttime = 1. / 24. / 2.
+        fs = 1. / delttime
+        freq, psdn = scipy.signal.periodogram(lcur, fs=fs, window=None, nfft=None, detrend='constant', return_onesided=True, scaling='density', axis=-1)
+        perisamp = 1. / freq
+        
+        pathplot = gdat.pathdata + 'lcur.pdf'
+        if not os.path.exists(pathplot):
+            plot_lcur(pathplot, lcur, lcurellp, lcurdopp, lcurlens)
+        
+        parainit = paratrue
+    	
+        gdat.boolfull = False
+        numbsamp = 10
+        indxsamp = np.arange(numbsamp)
+        boolsigntrue = np.ones(numbsamp, dtype=bool)
+        boolsigntrue[0] = False
+        boolsignpred = np.empty_like(boolsigntrue)
+    
+        if boolsigntrue[k]:
+            truepara = np.empty(gdat.numbpara)
+            truepara[0] = np.random.uniform() * 9. + 1.
+            truepara[1] = (1. + 1e-1 * np.random.randn()) * 10.
+            truepara[2] = (1. + 1e-1 * np.random.randn()) * 1.
+            truepara[3] = (1. + 1e-1 * np.random.randn()) * 1.
+            truepara[4] = (1. + 1e-1 * np.random.randn()) * 0.5
+            truepara[5] = (1. + 1e-1 * np.random.randn()) * 0.1
+            truepara[6] = (1. + 1e-1 * np.random.randn()) * 1e-2
+            gdat.lcur = retr_lcur(paratrue[0], paratrue[1], paratrue[2], paratrue[3], paratrue[4], paratrue[5], False)
+            lcurdata = (1. + 1e-1 * np.random.randn(gdat.numbtime)) * gdat.lcur
+            lcurdata[gdat.indxtimelink] = 0.
+            #lcurdata[gdat.indxtimelink] = np.nan
+            gdat.lcurdata = retr_lcurdata(gdat.lcur)
+        else:
+            gdat.lcurdata = np.random.randn(gdat.numbtime)
+
+
+
         # generate mock data
         gdat.boolmodlflat = False
         gdat.indxtruenull = np.setdiff1d(gdat.indxfile, gdat.indxtruesign)
@@ -646,6 +759,7 @@ def init( \
             gdat.indxfileposi.append(n)
             if not boolpathplotdone:
                 exec_srch(gdat)
+                proc_samp(gdat)
     
                 if gdat.boolmcmc:
                     print('Performing sampling on %s...' % gdat.strgtici)
@@ -674,6 +788,29 @@ def init( \
             for ii, i in enumerate(gdat.indxsampplot):
                 gdat.postlcurmodl[ii, :], temp, temp, temp = retr_modl(gdat, gdat.parapost[i, :])
         plot_datamodl(gdat)
+        
+        if np.amax(gdat.psdn) > 10.:
+            boolsignpred[k] = True
+        
+            #np.correlate(gdat.psdn, psdnmodl)
+             
+            boolbholpred = np.amax(gdat.psdn) > 1.
+    
+        else:
+            boolsignpred[k] = False
+        
+        titl = 'Classified as '
+        if boolsignpred[k]:
+            titl += 'BHC candidate'
+        else:
+            titl += 'background'
+        
+        path = gdat.pathdata + 'lcur%04d.pdf' % k
+        plot_lcur(path, gdat.lcurdata, titl=titl)
+        
+        path = gdat.pathdata + 'psdn%04d.pdf' % k
+        plot_psdn(path, gdat.psdn, titl=titl)
+        
         print('')
         
     gdat.indxfileposi = np.array(gdat.indxfileposi)
@@ -691,92 +828,9 @@ def init( \
     listvarb = [gdat.listsdee]
     listlablvarb = ['SNR']
     liststrgvarb = ['sdee']
-        
-    for k, varbfrst in enumerate(listvarb):
-        
-        # histogram
-        figr, axis = plt.subplots(figsize=(6, 4))
-        axis.hist(varbfrst)
-        if liststrgvarb[k] == 'sdee':
-            axis.axvline(gdat.thrssdee, ls='--', color='black')
-        axis.set_xlabel(listlablvarb[k])
-        axis.set_ylabel('N')
-        path = gdat.pathimag + 'hist%s.%s' % (liststrgvarb[k], gdat.strgplotextn) 
-        print('Writing to %s...' % path)
-        plt.savefig(path)
-        plt.close()
-        
-        if gdat.datatype == 'mock':
-            for c in range(2):
-                bins = np.linspace(np.amin(varbfrst), np.amax(varbfrst), numbbins + 1)
-                meanvarb = (bins[1:] + bins[:-1]) / 2.
-                metr = np.zeros(numbbins) - 1.
-                for a in indxbins:
-                    indxfilebins = np.where((bins[a] < varbfrst) & (varbfrst < bins[a+1]))[0]
-                    numbfilebins = indxfilebins.size
-                    if numbfilebins > 0:
-                        # completeness
-                        if c == 1:
-                            metr[a] = float(np.sum(gdat.boolpositrue[indxfilebins])) / numbfilebins
-                        # false discovery rate
-                        if c == 0:
-                            print('a')
-                            print(a)
-                            print('metr')
-                            summgene(metr)
-                            print('gdat.booltrueposi')
-                            summgene(gdat.booltrueposi)
-                            print('indxfilebins')
-                            summgene(indxfilebins)
-                            print('gdat.booltrueposi[indxfilebins]')
-                            print(gdat.booltrueposi[indxfilebins])
-                            print('')
-                            metr[a] = float(np.sum(gdat.booltrueposi[indxfilebins])) / numbfilebins
-                
-                if c == 1:
-                    strgmetr = 'cmpl'
-                    strgyaxi = 'Completeness'
-                else:
-                    strgmetr = 'fdis'
-                    strgyaxi = 'False Discovery Rate'
-                
-                figr, axis = plt.subplots(figsize=(6, 4))
-                axis.plot(meanvarb, metr)
-                axis.set_xlabel(listlablvarb[k])
-                axis.set_ylabel(strgyaxi)
-                path = gdat.pathimag + '%s%s.%s' % (strgmetr, liststrgvarb[k], gdat.strgplotextn) 
-                print('Writing to %s...' % path)
-                plt.savefig(path)
-                plt.close()
-
-        for l, varbseco in enumerate(listvarb):
-            
-            if k == l:
-                continue
-
-            # plot distributions
-            figr, axis = plt.subplots(figsize=(6, 4))
-            print('liststrgvarb[k]')
-            print(liststrgvarb[k])
-            print('liststrgvarb[l]')
-            print(liststrgvarb[l])
-            print('varbfrst')
-            summgene(varbfrst)
-            print('varbseco')
-            summgene(varbseco)
-            print
-            axis.scatter(varbfrst, varbseco)
-            axis.set_xlabel(listlablvarb[k])
-            axis.set_ylabel(listlablvarb[l])
-            if liststrgvarb[k] == 'sdee':
-                axis.axvline(gdat.thrssdee, ls='--', color='black')
-            if liststrgvarb[l] == 'sdee':
-                axis.axhline(gdat.thrssdee, ls='--', color='black')
-            path = gdat.pathimag + 'scat%s%s.%s' % (liststrgvarb[k], liststrgvarb[l], gdat.strgplotextn)
-            print('Writing to %s...' % path)
-            plt.savefig(path)
-            plt.close()
     
+    plot_recaprec(gdat.pathimag, gdat.datatype, gdat.thrssdee, gdat.boolpositrue, datatype=gdat.datatype, strgplotextn=gdat.strgplotextn)
+
 
 def cnfg_HR6819():
    
@@ -809,4 +863,4 @@ def cnfg_mock():
         )
 
 
-globals().get(sys.argv[1])()
+
