@@ -62,8 +62,8 @@ def retr_modl(gdat, para):
     peri = para[1]
     masscomp = para[2]
     
-    if gdat.boolmodlflat:
-        time = gdat.timeflat
+    if gdat.boolmodlbdtr:
+        time = gdat.timethis
     else:
         time = gdat.time
     phas = ((time - epoc) / peri) % 1.
@@ -78,7 +78,7 @@ def retr_modl(gdat, para):
     amplbeam = 2.8e-3 * peri**(-1. / 3.) * (gdat.massstar + masscomp)**(-2. / 3.) * masscomp
     deptelli = -amplelli * np.cos(4. * np.pi * phas) 
     deptbeam = -amplbeam * np.sin(2. * np.pi * phas)
-    if not gdat.boolmodlflat:
+    if not gdat.boolmodlbdtr:
         lcurmodl += deptelli + deptbeam
     
     return lcurmodl, deptelli + 1., deptbeam + 1., deptslen + 1.
@@ -108,7 +108,7 @@ def retr_lcur(peri, amplellp, ampldopp, ampllens, phaslens, stdvlens, boolfull):
 def retr_llik(para, gdat):
     
     lcurmodl, deptelli, deptbeam, deptslen = retr_modl(gdat, para)
-    lpos = np.sum(-0.5 * (gdat.lcurflat - lcurmodl)**2 / gdat.varilcurflatthis)
+    lpos = np.sum(-0.5 * (gdat.lcurbdtr - lcurmodl)**2 / gdat.varilcurbdtrthis)
 
     return lpos
 
@@ -161,19 +161,18 @@ def plot_datamodl(gdat):
         
         if k == 0:
             if gdat.datatype == 'obsd':
-                axis.text(0.5, 1.25, 'TIC %s' % (gdat.strgtici), color='k', transform=axis.transAxes, ha='center')
-            #axis.text(0.5, 1.15, 'S:%.3g, P:%.3g day, D:%.3g, T:%.3g day' % (gdat.listsdee[gdat.indxfilethis], \
+                axis.text(0.5, 1.25, 'TIC %s' % (gdat.strglcur), color='k', transform=axis.transAxes, ha='center')
+            #axis.text(0.5, 1.15, 'S:%.3g, P:%.3g day, D:%.3g, T:%.3g day' % (gdat.listsdee[gdat.indxlcurthis], \
             #                                                                        gdat.fittperimaxmthis, gdat.dept, gdat.dura), ha='center', \
             #                                                                                                transform=axis.transAxes, color='b')
             if gdat.datatype == 'mock':
-                axis.text(0.5, 1.05, 'P=%.3g day, M=%.3g M$_\odot$, Tmag=%.3g' % (gdat.trueperi[gdat.indxfilethis], \
-                                                                        gdat.truemasscomp[gdat.indxfilethis], gdat.truetmag[gdat.indxfilethis]), \
+                axis.text(0.5, 1.05, 'P=%.3g day, M=%.3g M$_\odot$, Tmag=%.3g' % (gdat.trueperi[gdat.indxlcurthis], \
+                                                                        gdat.truemasscomp[gdat.indxlcurthis], gdat.truetmag[gdat.indxlcurthis]), \
                                                                                                         transform=axis.transAxes, color='g', ha='center')
-            if gdat.datatype == 'mock':
-                axis.plot(gdat.time, gdat.truelcurtotl[:, gdat.indxfilethis], color='g', ls='-')
-                #axis.plot(gdat.time, gdat.truelcurelli[:, gdat.indxfilethis], color='g', ls='--')
-                #axis.plot(gdat.time, gdat.truelcurbeam[:, gdat.indxfilethis], color='g', ls=':')
-                axis.plot(gdat.time, gdat.truelcurslen[:, gdat.indxfilethis], color='g', ls='-.')
+                axis.plot(gdat.time, gdat.truelcurtotl[:, gdat.indxlcurthis], color='g', ls='-')
+                #axis.plot(gdat.time, gdat.truelcurelli[:, gdat.indxlcurthis], color='g', ls='--')
+                #axis.plot(gdat.time, gdat.truelcurbeam[:, gdat.indxlcurthis], color='g', ls=':')
+                axis.plot(gdat.time, gdat.truelcurslen[:, gdat.indxlcurthis], color='g', ls='-.')
                 
             axis.scatter(gdat.time, gdat.lcurthis, color='black', s=1)
             #axis.set_xlabel("Time [days]")
@@ -181,28 +180,31 @@ def plot_datamodl(gdat):
             axis.set_ylabel("Relative Flux")
             
         if k == 1:
-            axis.scatter(gdat.timeflat, gdat.lcurflat, color='black', s=1)
+            axis.scatter(gdat.timethis, gdat.lcurbdtr, color='black', s=1)
             axis.set_xlabel("Time [days]")
             axis.set_ylabel("Detrended Relative Flux")
             if gdat.boolblss:
-                if not (np.isscalar(gdat.timetran) and not np.isfinite(gdat.timetran)):
-                    for timetran in gdat.timetran:
-                        axis.axvline(timetran, color='orange', alpha=0.5, ls='--')
+                for k in range(len(gdat.dicttlss['peri'])):
+                    for n in range(-10, 10):
+                        axis.axvline(gdat.dicttlss['peri'] * n + gdat.dicttlss['epoc'], color='orange', alpha=0.5, ls='--')
             if gdat.boolmcmc:
                 for ii, i in enumerate(gdat.indxsampplot):
-                    axis.plot(gdat.timeflat, gdat.postlcurmodl[ii, :], color='b', alpha=0.1)
+                    axis.plot(gdat.timethis, gdat.postlcurmodl[ii, :], color='b', alpha=0.1)
             axis.set_xlabel("Time [days]")
             
-            
+        gdat.numbtlss = len(gdat.dicttlss['peri']) 
+        gdat.indxtlss = np.arange(gdat.numbtlss)
+
         if k == 2 and gdat.boolblss:
-            axis.axvline(gdat.fittperimaxmthis, alpha=0.5, color='b')
-            for n in range(2, 10):
-                axis.axvline(n*gdat.fittperimaxmthis, alpha=0.5, lw=1, linestyle="dashed", color='b')
-                axis.axvline(gdat.fittperimaxmthis / n, alpha=0.5, lw=1, linestyle="dashed", color='b')
+            for k in gdat.indxtlss:
+                axis.axvline(gdat.dicttlss['peri'][k], alpha=0.5, color='b')
+                for n in range(2, 10):
+                    axis.axvline(n*gdat.dicttlss['peri'][k], alpha=0.5, lw=1, linestyle="dashed", color='b')
+                    axis.axvline(gdat.dicttlss['peri'][k] / n, alpha=0.5, lw=1, linestyle="dashed", color='b')
             axis.set_ylabel(r'SDE')
             axis.set_xlabel('Period [days]')
-            axis.plot(gdat.peri, gdat.powr, color='black', lw=0.5)
-            axis.set_xlim([np.amin(gdat.peri), np.amax(gdat.peri)])
+            axis.plot(gdat.dicttlss['listperi'], gdat.dicttlss['powr'], color='black', lw=0.5)
+            #axis.set_xlim([np.amin(gdat.peri), np.amax(gdat.peri)])
         
         if k == 3:
             axis.plot(gdat.phasmodl, gdat.pcurmodl, color='violet')
@@ -223,71 +225,55 @@ def plot_datamodl(gdat):
 
 def exec_srch(gdat):
     
-    #lcurdetrregi, indxtimeregi, indxtimeregioutt, listobjtspln = \
-    #                                                        tesstarg.util.detr_lcur(gdat.time, gdat.lcurthis)
-    #gdat.lcurflat = np.concatenate(lcurdetrregi) 
+    # baseline detrend
+    lcurbdtrregi, gdat.listindxtimeregi, gdat.indxtimeregioutt, gdat.listobjtspln, timeedge = \
+                     tesstarg.util.bdtr_lcur(gdat.timethis, gdat.lcurthis, weigsplnbdtr=gdat.weigsplnbdtr, \
+                                                verbtype=gdat.verbtype, durabrek=gdat.durabrek, ordrspln=gdat.ordrspln, bdtrtype=gdat.bdtrtype)
     
-    gdat.lcurflat = 1. + gdat.lcurthis - scipy.signal.medfilt(gdat.lcurthis, gdat.numbtimefilt)
+    gdat.numbtime = gdat.timethis.size
+    gdat.listarrylcurbdtr = np.zeros((gdat.numbtime, 3))
+    gdat.listarrylcurbdtr[:, 0] = gdat.timethis
+    gdat.listarrylcurbdtr[:, 1] = np.concatenate(lcurbdtrregi)
+    gdat.lcurbdtr = gdat.listarrylcurbdtr[:, 1]
+    numbsplnregi = len(lcurbdtrregi)
+    gdat.indxsplnregi = np.arange(numbsplnregi)
+    gdat.indxtime = np.arange(gdat.numbtime)
     
     # mask out the edges
-    durabrek = 0.5
-    booladdddiscbdtr = False
-    timeedge = tesstarg.util.retr_timeedge(gdat.time, gdat.lcurflat, durabrek, booladdddiscbdtr)
-    listindxtimemask = []
-    for k in range(timeedge.size):
-        if k != 0:
-            indxtimemaskfrst = np.where(gdat.time < timeedge[k])[0][::-1][:2*gdat.numbtimefilt]
-            listindxtimemask.append(indxtimemaskfrst)
-        if k != timeedge.size - 1:
-            indxtimemaskseco = np.where(gdat.time > timeedge[k])[0][:2*gdat.numbtimefilt]
-            listindxtimemask.append(indxtimemaskseco)
-    listindxtimemask = np.concatenate(listindxtimemask)
-    
-    gdat.listindxtimegoodedge = np.setdiff1d(gdat.indxtime, listindxtimemask)
-    print('gdat.listindxtimegoodedge')
-    summgene(gdat.listindxtimegoodedge)
-    print('gdat.varilcurthis')
-    summgene(gdat.varilcurthis)
-    gdat.timeflat = gdat.time[gdat.listindxtimegoodedge]
-    gdat.lcurflat = gdat.lcurflat[gdat.listindxtimegoodedge]
-    gdat.varilcurflatthis = gdat.varilcurthis[gdat.listindxtimegoodedge]
-    print('gdat.indxtime')
-    summgene(gdat.indxtime)
+    #durabrek = 0.5
+    #timeedge = tesstarg.util.retr_timeedge(gdat.timethis, gdat.lcurbdtr, durabrek)
+    #listindxtimemask = []
+    #for k in range(timeedge.size):
+    #    if k != 0:
+    #        indxtimemaskfrst = np.where(gdat.time < timeedge[k])[0][::-1][:2*gdat.numbtimefilt]
+    #        print('indxtimemaskfrst')
+    #        summgene(indxtimemaskfrst)
+    #        listindxtimemask.append(indxtimemaskfrst)
+    #    if k != timeedge.size - 1:
+    #        indxtimemaskseco = np.where(gdat.time > timeedge[k])[0][:2*gdat.numbtimefilt]
+    #        print('indxtimemaskseco')
+    #        summgene(indxtimemaskseco)
+    #        listindxtimemask.append(indxtimemaskseco)
+    #    print('listindxtimemask')
+    #    print(listindxtimemask)
+    #listindxtimemask = np.concatenate(listindxtimemask)
+    #gdat.listindxtimegoodedge = np.setdiff1d(gdat.indxtime, listindxtimemask)
+    #gdat.timethis = gdat.time[gdat.listindxtimegoodedge]
+    #gdat.lcurbdtr = gdat.lcurbdtr[gdat.listindxtimegoodedge]
+    #gdat.varilcurbdtrthis = gdat.varilcurthis[gdat.listindxtimegoodedge]
     
     print('gdat.lcurthis')
     summgene(gdat.lcurthis)
-    print('gdat.lcurflat')
-    summgene(gdat.lcurflat)
+    print('gdat.lcurbdtr')
+    summgene(gdat.lcurbdtr)
     
     if gdat.boolblss:
-        print('Performing TLS on %s...' % gdat.strgtici)
-        #model = transitleastsquares(gdat.time, 2. - gdat.lcurflat)
+        print('Performing TLS on %s...' % gdat.strglcur)
         arry = np.zeros((gdat.numbtime, 3))
-        arry[:, 0] = gdat.time
-        arry[:, 1] = 2. - gdat.lcurflat
-        dicttlss = exec_tlss(arry, pathimag, thrs=7., tictarg=ticitarg)
+        arry[:, 0] = gdat.timethis
+        arry[:, 1] = 2. - gdat.lcurbdtr
+        gdat.dicttlss = tesstarg.util.exec_tlss(arry, gdat.pathimag, thrssdee=gdat.thrssdee)#, ticitarg=ticitarg)
 
-        # temp check how to do BLS instead of TLS
-        #gdat.results = model.power()
-        #gdat.listsdee[gdat.indxfilethis] = gdat.results.SDE
-        #gdat.fittperimaxmthis = gdat.results.period
-        #gdat.fittperimaxm.append(gdat.fittperimaxmthis)
-        #gdat.peri = gdat.results.periods
-        #gdat.dept = gdat.results.depth
-        #gdat.blssamplslen = 1 -  gdat.dept
-        #print('gdat.blssamplslen')
-        #print(gdat.blssamplslen)
-        #gdat.blssmasscomp = retr_masscomp(gdat, gdat.blssamplslen, 8.964)
-        #print('gdat.blssmasscomp')
-        #print(gdat.blssmasscomp)
-        #gdat.dura = gdat.results.duration
-        #gdat.powr = gdat.results.power
-        #gdat.timetran = gdat.results.transit_times
-        #gdat.phasmodl = gdat.results.model_folded_phase
-        #gdat.pcurmodl = 2. - gdat.results.model_folded_model
-        #gdat.phasdata = gdat.results.folded_phase
-        #gdat.pcurdata = 2. - gdat.results.folded_y
-    
 
 def proc_samp(gdat):
     
@@ -311,10 +297,10 @@ def init_wrap( \
                 print('paththis')
                 print(paththis)
                 liststrgfile = fnmatch.filter(os.listdir(paththis), '*.h5')
-                numbfile = len(liststrgfile)
-                print('Number of light curves: %s' % numbfile)
+                numblcur = len(liststrgfile)
+                print('Number of light curves: %s' % numblcur)
                 liststrgfile = np.array(liststrgfile)
-                n = np.arange(numbfile)
+                n = np.arange(numblcur)
                 if boolmultproc:
                     p = multiprocessing.Process(target=work, args=[dictruns])
                     p.start()
@@ -327,14 +313,23 @@ def init_wrap( \
 
 
 def init( \
-        indxruns, \
         datatype='obsd', \
+        
+        # data input
+        listticitarg=None, \
+        liststrgmast=None, \
         isec=None, \
-        icam=None, \
-        iccd=None, \
-        strgmast=None, \
-        boolmultproc=False, \
+        
+        # method, mfil or tlss
+        strgmeth='tlss', \
+        
+        # baseline detrending
+        weigsplnbdtr=None, \
+        ordrspln=None, \
+        durabrek=None, \
+        bdtrtype=None, \
         verbtype=1, \
+        
         **args
         ):
     
@@ -352,16 +347,27 @@ def init( \
 
     # string for date and time
     gdat.strgtimestmp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-    
+   
+    # check input
+    if gdat.liststrgmast is None and gdat.listticitarg is None and gdat.isec is None:
+        raise Exception('')
+    if gdat.listticitarg is not None and (gdat.liststrgmast is not None or gdat.isec is not None):
+        raise Exception('')
+    if gdat.liststrgmast is not None and (gdat.listticitarg is not None or gdat.isec is not None):
+        raise Exception('')
+    if gdat.isec is not None and (gdat.liststrgmast is not None or gdat.listticitarg is not None):
+        raise Exception('')
+    if gdat.liststrgmast is not None:
+        gdat.inpttype = 'mast'
+    if gdat.isec is not None:
+        gdat.inpttype = 'sect'
+    if gdat.listticitarg is not None:
+        gdat.inpttype = 'tici'
     print('BHOL initialized at %s...' % gdat.strgtimestmp)
 
-    if indxruns is None:
-        np.random.seed(0)
-    else:
-        np.random.seed(indxruns)
+    np.random.seed(0)
 
     # preliminary setup
-    # construct the global object 
    
     # paths
     ## read PCAT path environment variable
@@ -372,10 +378,14 @@ def init( \
     gdat.pathimag = gdat.pathbase + 'imag/'
     ## define paths
     
+    # settings
+    # mock data
     if gdat.datatype == 'mock':
         gdat.cade = 10. / 60. / 24. # days
+    
+    # SDE threshold
+    gdat.thrssdee = 7.1
 
-    # settings
     ## plotting
     gdat.strgplotextn = 'pdf'
     gdat.boolblss = True
@@ -383,7 +393,8 @@ def init( \
 
     gdat.strgdata = None
     gdat.boolsapp = False
-
+    
+    ### MCMC
     gdat.listlablpara = [['T$_0$', 'day'], ['P', 'day'], ['M', r'M$_s$']]
     gdat.numbpara = len(gdat.listlablpara)
     gdat.meanpara = np.empty(gdat.numbpara)
@@ -409,52 +420,53 @@ def init( \
     gdat.indxparahard = np.where(gdat.scalpara == 'self')[0]
 
     if gdat.datatype == 'obsd':
-        # temp
-        gdat.liststrgfile = [''.join(gdat.strgmast.split(' '))]
-        gdat.numbfile = 1
+        gdat.numblcur = len(gdat.liststrgmast)
     if gdat.datatype == 'mock':
-        gdat.numbfile = 5
+        gdat.numblcur = 5
 
-    print('Number of light curves: %s' % gdat.numbfile)
-    if gdat.numbfile == 0:
+    print('Number of light curves: %s' % gdat.numblcur)
+    if gdat.numblcur == 0:
         return
-    gdat.indxfile = np.arange(gdat.numbfile)
+    gdat.indxlcur = np.arange(gdat.numblcur)
     
     if gdat.datatype == 'mock':
-        gdat.numbtime = int((27.3 - 2.) / gdat.cade)
-        if gdat.numbtime % 2 == 1:
-            gdat.numbtime += 1
         print('gdat.numbtime') 
         print(gdat.numbtime)
         gdat.indxtimelink = np.where(abs(gdat.time - 13.7) < 2.)[0]
-        
-    if gdat.datatype == 'obsd':
-        datatype, arrylcur, arrylcursapp, arrylcurpdcc, listarrylcur, listarrylcursapp, listarrylcurpdcc, listisec, listicam, listiccd = \
-                                            tesstarg.util.retr_data(gdat.strgdata, gdat.strgmast, gdat.pathdata, gdat.boolsapp)
-        gdat.time = arrylcur[:, 0]
-        gdat.cade = gdat.time[1] - gdat.time[0]
-        gdat.numbtime = gdat.time.size
-    gdat.indxtime = np.arange(gdat.numbtime)
     
-    gdat.lcur = np.empty((gdat.numbtime, gdat.numbfile))
-    gdat.varilcur = np.empty((gdat.numbtime, gdat.numbfile))
+    # get data
+    gdat.lcur = []
+    gdat.varilcur = []
     if gdat.datatype == 'obsd':
-        gdat.lcur[:, 0] = arrylcur[:, 1]
-        gdat.varilcur[:, 0] = arrylcur[:, 2]**2
-    
+        gdat.time = [[] for n in gdat.indxlcur]
+        gdat.lcur = [[] for n in gdat.indxlcur]
+        gdat.varilcur = [[] for n in gdat.indxlcur]
+        for n in gdat.indxlcur:
+            datatype, arrylcur, arrylcursapp, arrylcurpdcc, listarrylcur, listarrylcursapp, listarrylcurpdcc, listisec, listicam, listiccd = \
+                                                tesstarg.util.retr_data(gdat.strgdata, gdat.liststrgmast[n], gdat.pathdata, gdat.boolsapp)
+            gdat.time[n] = arrylcur[:, 0]
+            gdat.lcur[n] = arrylcur[:, 1]
+            gdat.varilcur[n] = arrylcur[:, 2]**2
+            gdat.cade = np.amin(gdat.time[n][1:] - gdat.time[n][:-1])
+            
+            print('gdat.lcur[n]')
+            summgene(gdat.lcur[n])
+
+    # baseline detrending
     gdat.numbtimefilt = int(round(5. / 24. / gdat.cade))
     if gdat.numbtimefilt % 2 == 0:
         gdat.numbtimefilt += 1
     print('gdat.numbtimefilt')
     print(gdat.numbtimefilt)
 
-    #numbsect = len(listarrylcur)
-    #indxsect = np.arange(numbsect)
-        
+    #numbchun = len(listarrylcur)
+    #indxchun = np.arange(numbchun)
     
     print('gdat.cade [min]')
     print(gdat.cade * 24. * 60.)
-
+    
+    # to be done by pexo
+    ## target properties
     #gdat.radistar = 11.2
     #gdat.massstar = 18.
     gdat.radistar = 1.
@@ -479,15 +491,14 @@ def init( \
     # get data
     # inject signal
     if gdat.datatype == 'mock':
-        gdat.boolsigntrue = np.random.choice([0, 1], p=[0.1, 0.9], size=gdat.numbfile)
-        gdat.indxtruesign = np.where(gdat.boolsigntrue == 1.)[0]
-        gdat.numbsign = gdat.indxtruesign.size
+        gdat.boolreletrue = np.random.choice([0, 1], p=[0.1, 0.9], size=gdat.numblcur)
+        gdat.indxtruerele = np.where(gdat.boolreletrue == 1.)[0]
+        gdat.numbrele = gdat.indxtruerele.size
     
-    if gdat.datatype == 'true':
-        print('gdat.boolsigntrue')
-        summgene(gdat.boolsigntrue)
-        print('gdat.indxtruesign')
-        summgene(gdat.indxtruesign)
+        print('gdat.boolreletrue')
+        summgene(gdat.boolreletrue)
+        print('gdat.indxtruerele')
+        summgene(gdat.indxtruerele)
     
     # interpolate TESS photometric precision
     stdv = np.array([40., 40., 40., 90.,200.,700., 3e3, 2e4]) * 1e-6
@@ -530,22 +541,18 @@ def init( \
     plt.savefig(path)
     plt.close()
     
-    listindxtimebadd = None
-
     if gdat.datatype == 'obsd':
-        
-        if listindxtimebadd is not None:
-            listindxtimebadd = np.concatenate(listindxtimebadd)
-            listindxtimebadd = np.unique(listindxtimebadd)
-            listindxtimebadd = np.concatenate((listindxtimebadd, np.arange(100)))
-            listindxtimebadd = np.concatenate((listindxtimebadd, numbtime / 2 + np.arange(100)))
-            listindxtimegood = np.setdiff1d(indxtimetemp, listindxtimebadd)
-            print('Filtering the data...')
-            # filter the data
-            time = time[listindxtimegood]
-            gdat.lcur = gdat.lcur[listindxtimegood]
+        pass
+        #listindxtimebadd = np.concatenate(listindxtimebadd)
+        #listindxtimebadd = np.unique(listindxtimebadd)
+        #listindxtimebadd = np.concatenate((listindxtimebadd, np.arange(100)))
+        #listindxtimebadd = np.concatenate((listindxtimebadd, numbtime / 2 + np.arange(100)))
+        #listindxtimegood = np.setdiff1d(indxtimetemp, listindxtimebadd)
+        #print('Filtering the data...')
+        ## filter the data
+        #time = time[listindxtimegood]
+        #gdat.lcur = gdat.lcur[listindxtimegood]
     else:
-        
 
         # mock data setup 
     
@@ -574,8 +581,7 @@ def init( \
         lcurellp, lcurdopp, lcurlens, lcur = retr_lcur(peri, amplellp, ampldopp, ampllens, phaslens, stdvlens, True)
     
         delttime = 1. / 24. / 2.
-        fs = 1. / delttime
-        freq, psdn = scipy.signal.periodogram(lcur, fs=fs, window=None, nfft=None, detrend='constant', return_onesided=True, scaling='density', axis=-1)
+        freq, gdat.psdn = scipy.signal.periodogram(lcur, fs=fs, window=None, nfft=None, detrend='constant', return_onesided=True, scaling='density', axis=-1)
         perisamp = 1. / freq
         
         pathplot = gdat.pathdata + 'lcur.pdf'
@@ -587,11 +593,11 @@ def init( \
         gdat.boolfull = False
         numbsamp = 10
         indxsamp = np.arange(numbsamp)
-        boolsigntrue = np.ones(numbsamp, dtype=bool)
-        boolsigntrue[0] = False
-        boolsignpred = np.empty_like(boolsigntrue)
+        boolreletrue = np.ones(numbsamp, dtype=bool)
+        boolreletrue[0] = False
+        boolreleposi = np.empty_like(boolreletrue)
     
-        if boolsigntrue[k]:
+        if boolreletrue[k]:
             truepara = np.empty(gdat.numbpara)
             truepara[0] = np.random.uniform() * 9. + 1.
             truepara[1] = (1. + 1e-1 * np.random.randn()) * 10.
@@ -608,33 +614,31 @@ def init( \
         else:
             gdat.lcurdata = np.random.randn(gdat.numbtime)
 
-
-
         # generate mock data
-        gdat.boolmodlflat = False
-        gdat.indxtruenull = np.setdiff1d(gdat.indxfile, gdat.indxtruesign)
+        gdat.boolmodlbdtr = False
+        gdat.indxtruenull = np.setdiff1d(gdat.indxlcur, gdat.indxtruerele)
         gdat.trueminmtmag = 8.
         gdat.truemaxmtmag = 16.
-        gdat.truetmag = np.random.random(gdat.numbfile) * (gdat.truemaxmtmag - gdat.trueminmtmag) + gdat.trueminmtmag
+        gdat.truetmag = np.random.random(gdat.numblcur) * (gdat.truemaxmtmag - gdat.trueminmtmag) + gdat.trueminmtmag
     
         gdat.trueminmmasscomp = 1.
         gdat.truemaxmmasscomp = 10.
-        gdat.truemasscomp = np.random.random(gdat.numbsign) * (gdat.truemaxmmasscomp - gdat.trueminmmasscomp) + gdat.trueminmmasscomp
+        gdat.truemasscomp = np.random.random(gdat.numbrele) * (gdat.truemaxmmasscomp - gdat.trueminmmasscomp) + gdat.trueminmmasscomp
         
-        print('gdat.indxtruesign')
-        summgene(gdat.indxtruesign)
+        print('gdat.indxtruerele')
+        summgene(gdat.indxtruerele)
         gdat.time = np.concatenate((np.arange(0., 27.3 / 2. - 1., gdat.cade), np.arange(27.3 / 2. + 1., 27.3, gdat.cade)))
         print('gdat.time')
         summgene(gdat.time)
         numbpara = 5
-        gdat.trueepoc = np.random.rand(gdat.numbsign)
-        gdat.trueperi = np.random.rand(gdat.numbsign) * 5. + 5.
+        gdat.trueepoc = np.random.rand(gdat.numbrele)
+        gdat.trueperi = np.random.rand(gdat.numbrele) * 5. + 5.
        
-        gdat.truelcurtotl = np.empty((gdat.numbtime, gdat.numbfile))
-        gdat.truelcurelli = np.empty((gdat.numbtime, gdat.numbsign))
-        gdat.truelcurbeam = np.empty((gdat.numbtime, gdat.numbsign))
-        gdat.truelcurslen = np.empty((gdat.numbtime, gdat.numbsign))
-        para = np.empty((gdat.numbsign, numbpara))
+        gdat.truelcurtotl = np.empty((gdat.numbtime, gdat.numblcur))
+        gdat.truelcurelli = np.empty((gdat.numbtime, gdat.numbrele))
+        gdat.truelcurbeam = np.empty((gdat.numbtime, gdat.numbrele))
+        gdat.truelcurslen = np.empty((gdat.numbtime, gdat.numbrele))
+        para = np.empty((gdat.numbrele, numbpara))
         para[:, 0] = gdat.trueepoc
         para[:, 1] = gdat.trueperi
         para[:, 2] = gdat.truemasscomp
@@ -645,13 +649,13 @@ def init( \
         print('gdat.truestdvlcur')
         summgene(gdat.truestdvlcur)
         gdat.varilcur = gdat.truestdvlcur[None, :]**2 * np.ones_like(gdat.truelcurtotl)
-        for nn, n in enumerate(gdat.indxtruesign):
+        for nn, n in enumerate(gdat.indxtruerele):
             gdat.truelcurtotl[:, n], gdat.truelcurelli[:, nn], gdat.truelcurbeam[:, nn], gdat.truelcurslen[:, nn] = retr_modl(gdat, para[nn, :])
         for nn, n in enumerate(gdat.indxtruenull):
             gdat.truelcurtotl[:, n] = 1.
         gdat.lcur = np.copy(gdat.truelcurtotl)
-        for n in gdat.indxtruesign:
-            gdat.lcur[:, n] += gdat.truestdvlcur[n] * np.random.randn(gdat.numbtime)
+        for n in gdat.indxtruerele:
+            gdat.lcur[n] += gdat.truestdvlcur[n] * np.random.randn(gdat.numbtime)
 
         # histogram
         path = gdat.pathimag + 'truestdvlcur'
@@ -659,55 +663,70 @@ def init( \
         path = gdat.pathimag + 'truetmag'
         tdpy.mcmc.plot_hist(path, gdat.truetmag, 'Tmag', strgplotextn=gdat.strgplotextn)
             
-    gdat.boolmodlflat = True
-    if (~np.isfinite(gdat.lcur)).any():
-        print('gdat.lcur')
-        summgene(gdat.lcur)
-        raise Exception('')
+        # Boolean array of whether the mock light curves with signal have been labeled positively
+        gdat.boolpositrue = np.zeros(gdat.numblcur)
+        
+        # Boolean array of whether the positives have signal in them
+        gdat.booltrueposi = []
+    
+    gdat.boolmodlbdtr = True
 
     pathlogg = gdat.pathdata + 'logg/'
     pathloggsave = pathlogg + 'save/'
     
-    # Boolean array of whether the mock light curves with signal have been labeled positively
-    gdat.boolpositrue = np.zeros(gdat.numbfile)
-    
-    # Boolean array of whether the positives have signal in them
-    gdat.booltrueposi = []
-    
     gdat.fittmasscomp = []
     gdat.fittperimaxm = []
-    gdat.listsdee = np.empty(gdat.numbfile)
-    gdat.indxfileposi = []
+    gdat.listsdee = np.empty(gdat.numblcur)
+    gdat.indxlcurposi = []
     
+    boolposirele = np.empty(gdat.numblcur, dtype=bool)
     print('gdat.lcur')
     summgene(gdat.lcur)
 
-    for n in gdat.indxfile:
+    for n in gdat.indxlcur:
         
-        gdat.indxfilethis = n
-        gdat.lcurthis = gdat.lcur[:, n]
-        gdat.varilcurthis = gdat.varilcur[:, n]
+        gdat.indxlcurthis = n
+        gdat.timethis = gdat.time[n]
+        gdat.lcurthis = gdat.lcur[n]
+        gdat.varilcurthis = gdat.varilcur[n]
+        print('gdat.lcurthis')
+        summgene(gdat.lcurthis)
+        delttime = np.amin(gdat.timethis[1:] - gdat.timethis[:-1])
+        fs = 1. / delttime
 
+        # check data for finiteness
+        if (~np.isfinite(gdat.lcurthis)).any():
+            print('gdat.lcurthis')
+            summgene(gdat.lcurthis)
+            raise Exception('')
+        
         if gdat.datatype == 'obsd':
-            gdat.strgtici = gdat.liststrgfile[n][:-3]
-            print('gdat.strgtici')
-            print(gdat.strgtici)
-            # temp
-            #tici = int(gdat.strgtici)
+            if gdat.inpttype == 'sect':
+                gdat.strglcur = 'sc%02d_%12d' % gdat.listticitarg[n]
+            if gdat.inpttype == 'mast':
+                gdat.strglcur = gdat.liststrgmast[n]
+            if gdat.inpttype == 'tici':
+                gdat.strglcur = 'targ_%12d' % gdat.listticitarg[n]
+            print('gdat.strglcur')
+            print(gdat.strglcur)
         else:
-            gdat.strgtici = '%08d' % n
-
-        pathtcee = pathlogg + '%s_%s.txt' % (gdat.datatype, gdat.strgtici)
+            gdat.strglcur = '%08d' % n
+        
+        print('gdat.inpttype')
+        print(gdat.inpttype)
+        print('gdat.strglcur')
+        print(gdat.strglcur)
+        pathtcee = pathlogg + '%s_%s.txt' % (gdat.datatype, gdat.strglcur)
         
         if gdat.datatype == 'mock':
             print('gdat.truetmag[n]')
             print(gdat.truetmag[n])
             print('gdat.truestdvlcur[n]')
             print(gdat.truestdvlcur[n])
-        gdat.pathplotlcur = gdat.pathimag + '%s_lcur_%s.%s' % (gdat.datatype, gdat.strgtici, gdat.strgplotextn)
-        gdat.pathplotsdee = gdat.pathimag + '%s_sdee_%s.%s' % (gdat.datatype, gdat.strgtici, gdat.strgplotextn)
-        gdat.pathplotpcur = gdat.pathimag + '%s_pcur_%s.%s' % (gdat.datatype, gdat.strgtici, gdat.strgplotextn)
-        gdat.pathplottotl = gdat.pathimag + '%s_totl_%s.%s' % (gdat.datatype, gdat.strgtici, gdat.strgplotextn)
+        gdat.pathplotlcur = gdat.pathimag + '%s_lcur_%s.%s' % (gdat.datatype, gdat.strglcur, gdat.strgplotextn)
+        gdat.pathplotsdee = gdat.pathimag + '%s_sdee_%s.%s' % (gdat.datatype, gdat.strglcur, gdat.strgplotextn)
+        gdat.pathplotpcur = gdat.pathimag + '%s_pcur_%s.%s' % (gdat.datatype, gdat.strglcur, gdat.strgplotextn)
+        gdat.pathplottotl = gdat.pathimag + '%s_totl_%s.%s' % (gdat.datatype, gdat.strglcur, gdat.strgplotextn)
         boolpathplotdone = os.path.exists(gdat.pathplotlcur) and os.path.exists(gdat.pathplotsdee) and os.path.exists(gdat.pathplotpcur) \
                                                                                                             and os.path.exists(gdat.pathplottotl)
 
@@ -722,19 +741,13 @@ def init( \
                 gdat.boolloggprev = True
         
         if not gdat.boolloggprev:
-            print('Reading %s...' % gdat.strgtici)
+            print('Reading %s...' % gdat.strglcur)
             # log file
             filelogg = open(pathtcee, 'w+')
             exec_srch(gdat)
-            filelogg.write('SDE: %g\n' % gdat.results.SDE)
-            filelogg.write('Period: %g\n' % gdat.results.period)
-            filelogg.write('Depth: %g\n' % gdat.results.depth)
-            filelogg.write('Duration: %g\n' % gdat.results.duration)
-            filelogg.write('\n')
-            filelogg.close()
         
         else:
-            print('BLS has already been done. Reading the log file for %s at %s...' % (gdat.strgtici, pathtcee))
+            print('BLS has already been done. Reading the log file for %s at %s...' % (gdat.strglcur, pathtcee))
             filelogg = open(pathtcee, 'r')
             for k, line in enumerate(filelogg):
                 if k == 4:
@@ -750,31 +763,43 @@ def init( \
                     gdat.dura = valu
             filelogg.close()
        
+        # perform matched filter
+        exec_srch(gdat)
+
+        # calculate PSD
+        freq, gdat.psdn = scipy.signal.periodogram(gdat.lcurthis, fs=fs)
+        
         if gdat.listsdee[n] >= gdat.thrssdee:
-            gdat.boolpositrue[n] = 1.
-            if gdat.boolsigntrue[n]:
-                gdat.booltrueposi.append(1.)
-            else:
-                gdat.booltrueposi.append(0.)
-            gdat.indxfileposi.append(n)
+            
+            if gdat.datatype == 'mock':
+                gdat.boolpositrue[n] = 1.
+                if gdat.boolreletrue[n]:
+                    gdat.booltrueposi.append(1.)
+                else:
+                    gdat.booltrueposi.append(0.)
+            gdat.indxlcurposi.append(n)
             if not boolpathplotdone:
                 exec_srch(gdat)
                 proc_samp(gdat)
     
                 if gdat.boolmcmc:
-                    print('Performing sampling on %s...' % gdat.strgtici)
+                    print('Performing sampling on %s...' % gdat.strglcur)
                     dictllik = [gdat]
                     gdat.objtsamp = emcee.EnsembleSampler(gdat.numbwalk, gdat.numbpara, retr_lpos, args=dictllik, threads=10)
                     gdat.parainitburn, prob, state = gdat.objtsamp.run_mcmc(gdat.parainit, gdat.numbsampwalk)
                     
-                    gdat.medipara = np.median(gdat.objtsamp.flatchain[gdat.numbsamp/2:, :], 0)
+                    gdat.medipara = np.median(gdat.objtsamp.bdtrchain[gdat.numbsamp/2:, :], 0)
                     gdat.fittmasscomp.append(gdat.medipara[4])
 
                 print('Making plots...')
             else:
                 print('Plots have been made already at %s. Skipping...' % gdat.pathplottotl)
         
-        exec_srch(gdat)
+            boolposirele[k] = True
+        else:
+            boolposirele[k] = False
+            
+        # perform forward-modeling
         if gdat.boolmcmc:
             gdat.parapost = tesstarg.util.samp(gdat, gdat.pathimag, gdat.numbsampwalk, gdat.numbsampburnwalk, retr_modl, retr_lpos, \
                                                gdat.listlablpara, gdat.scalpara, gdat.minmpara, gdat.maxmpara, gdat.meanpara, gdat.stdvpara, gdat.numbdata)
@@ -782,25 +807,14 @@ def init( \
             gdat.numbsamp = gdat.parapost.shape[0]
             gdat.indxsamp = np.arange(gdat.numbsamp)
             gdat.indxsampplot = gdat.indxsamp[::100]
-            gdat.numbtimeflat = gdat.timeflat.size
             gdat.numbsampplot = gdat.indxsampplot.size
-            gdat.postlcurmodl = np.empty((gdat.numbsampplot, gdat.numbtimeflat))
+            gdat.postlcurmodl = np.empty((gdat.numbsampplot, gdat.numbtime))
             for ii, i in enumerate(gdat.indxsampplot):
                 gdat.postlcurmodl[ii, :], temp, temp, temp = retr_modl(gdat, gdat.parapost[i, :])
         plot_datamodl(gdat)
         
-        if np.amax(gdat.psdn) > 10.:
-            boolsignpred[k] = True
-        
-            #np.correlate(gdat.psdn, psdnmodl)
-             
-            boolbholpred = np.amax(gdat.psdn) > 1.
-    
-        else:
-            boolsignpred[k] = False
-        
         titl = 'Classified as '
-        if boolsignpred[k]:
+        if boolreleposi[k]:
             titl += 'BHC candidate'
         else:
             titl += 'background'
@@ -813,16 +827,18 @@ def init( \
         
         print('')
         
-    gdat.indxfileposi = np.array(gdat.indxfileposi)
+    gdat.indxlcurposi = np.array(gdat.indxlcurposi)
     gdat.fittperimaxm = np.array(gdat.fittperimaxm)
     gdat.fittmasscomp = np.array(gdat.fittmasscomp)
-    gdat.booltrueposi = np.array(gdat.booltrueposi)
+    
+    if gdat.datatype == 'mock':
+        gdat.booltrueposi = np.array(gdat.booltrueposi)
     
     # plot distributions
     numbbins = 10
     indxbins = np.arange(numbbins)
     if datatype == 'mock':
-        listvarbtrue = [gdat.trueperi, gdat.truemasscomp, gdat.truetmag[gdat.indxtruesign]]
+        listvarbtrue = [gdat.trueperi, gdat.truemasscomp, gdat.truetmag[gdat.indxtruerele]]
         listlablvarbtrue = ['P', 'M_c', 'Tmag']
         liststrgvarbtrue = ['trueperi', 'truemasscomp', 'truetmag']
     listvarb = [gdat.listsdee]
@@ -835,8 +851,7 @@ def init( \
 def cnfg_HR6819():
    
     init( \
-         None, \
-         strgmast='cnfg_HR6819', \
+         liststrgmast=['HR6819'], \
         )
 
 
@@ -844,8 +859,6 @@ def cnfg_obsd():
    
     listisec = [9]
     init( \
-         None, \
-         #boolmultproc=False, \
          #listisec=listisec, \
          strgmast='Vela X-1', \
         )
@@ -855,12 +868,11 @@ def cnfg_mock():
    
     listisec = [9]
     init( \
-         None, \
-         #boolmultproc=False, \
          #listisec=listisec, \
          
          datatype='mock', \
         )
 
 
+globals().get(sys.argv[1])()
 
