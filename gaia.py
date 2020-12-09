@@ -1,4 +1,4 @@
-import os, fnmatch
+import os, fnmatch, sys, json
 
 from tdpy.util import summgene
 
@@ -10,10 +10,46 @@ import matplotlib as mpl
 import astroquery
 from astroquery.mast import Catalogs
 
+
+from urllib.parse import quote as urlencode
+import http.client as httplib 
+
 import datetime
 import astropy
 
 from astropy.io import fits
+
+def mastQuery(request):
+
+    server='mast.stsci.edu'
+
+    # Grab Python Version
+    version = ".".join(map(str, sys.version_info[:3]))
+
+    # Create Http Header Variables
+    headers = {"Content-type": "application/x-www-form-urlencoded",
+               "Accept": "text/plain",
+               "User-agent":"python-requests/"+version}
+
+    # Encoding the request as a json string
+    requestString = json.dumps(request)
+    requestString = urlencode(requestString)
+
+    # opening the https connection
+    conn = httplib.HTTPSConnection(server)
+
+    # Making the query
+    conn.request("POST", "/api/v0/invoke", "request="+requestString, headers)
+
+    # Getting the response
+    resp = conn.getresponse()
+    head = resp.getheaders()
+    content = resp.read().decode('utf-8')
+
+    # Close the https connection
+    conn.close()
+
+    return head,content
 
 ## read PCAT path environment variable
 pathbase = os.environ['BHOL_DATA_PATH'] + '/'
@@ -58,7 +94,8 @@ for strgextn in liststrgextn:
     listobjtarch.append(objtarch)
     
     # temp
-    #break
+    break
+
 print('listcols')
 print(listcols)
 
@@ -91,6 +128,38 @@ arry[:, 0] = arrytotl[listindxradv, 5]
 arry[:, 1] = arrytotl[listindxradv, 7]
 print('arry')
 summgene(arry)
+
+numbgaia = arry.shape[0]
+indxgaia = np.arange(numbgaia)
+dictcoor = [[] for k in indxgaia]
+for k in indxgaia:
+    dictcoor[k] = dict()
+    dictcoor[k]['ra'] = arry[k, 0]
+    dictcoor[k]['dec'] = arry[k, 1]
+
+# crossmatch with TIC to get TIC IDs
+crossmatchInput = {"fields":[{"name":"ra","type":"float"},
+                             {"name":"dec","type":"float"}],
+                   #"data":[{"ra":210.8,"dec":54.3}]}
+                   "data":dictcoor}
+                   #"data":[dictcoor]}
+
+request =  {"service":"Mast.GaiaDR2.Crossmatch",
+            "data":crossmatchInput,
+            "params":{
+                "raColumn":"ra",
+                "decColumn":"dec",
+                "radius":0.1
+            },
+            "format":"json"}
+
+
+headers,outString = mastQuery(request)
+
+outData = json.loads(outString)
+
+
+
 
 # make plot of the Gaia DR2 catalog
 if False:
@@ -246,4 +315,5 @@ if not np.unique(listindxarry).size == listindxarry.size:
     print('np.unique(listindxarry)')
     print(np.unique(listindxarry))
     raise Exception('')
+
 
