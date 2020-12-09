@@ -715,7 +715,7 @@ widths = [5*j + 15 for j in range(10)] + [10*j + 70 for j in range(4)]
 for width in widths: 
     templates.append(mlc.offset_and_normalize(mlc.generate_template(1, width)))
     
-for sector in range(1, 15):
+for sector in range(15, 29):
     flags = ['SL', 'edge', 'transit', 'flare', 'highSL', 'ambiguousSL', 'ambiguousFlare', 'centroid']
     results = {flag: set() for flag in flags}
     if not os.path.exists("{}/Sector{}".format(foldername, sector)):
