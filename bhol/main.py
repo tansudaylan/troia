@@ -724,6 +724,10 @@ def init( \
         gdat.truemaxmmassstar = 2.
         gdat.truemassstar = np.random.random(gdat.numbtrueslen) * (gdat.truemaxmmassstar - gdat.trueminmmassstar) + gdat.trueminmmassstar
         
+        gdat.trueminmincl = 88.
+        gdat.truemaaxincl = 90.
+        gdat.trueincl = tdpy.util.icdf_self(np.random.random(gdat.numbtrueslen), gdat.trueminmincl, gdat.truemaaxincl)
+        
         gdat.truerflxtotl = np.empty((gdat.numbtime, gdat.numbtrueslen))
         gdat.truedflxelli = np.empty((gdat.numbtime, gdat.numbtrueslen))
         gdat.truedflxbeam = np.empty((gdat.numbtime, gdat.numbtrueslen))
