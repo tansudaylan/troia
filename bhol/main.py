@@ -1,91 +1,36 @@
+import matplotlib as mpl
 import matplotlib.pyplot as plt
-
-from transitleastsquares import transitleastsquares
 
 from tdpy.util import summgene
 import tdpy.util
 import tdpy.mcmc
-import tesstarg.util
+import ephesus.util
+import pexo.main
 
 import numpy as np
+import pandas as pd
+import scipy.interpolate
 
-import h5py
-
-import scipy
-from scipy import fftpack
-from scipy import signal
-from scipy import optimize
-import scipy.signal
-from scipy import interpolate
-
-import time as timemodu
+import json
 
 import os, sys, datetime, fnmatch
 
-import matplotlib.pyplot as plt
 
-import multiprocessing
-
-#from astroquery.mast import Catalogs
-#import astroquery
-#import astroquery.mast
-#from astroquery.mast import Tesscut
-#from astropy.coordinates import SkyCoord
-#from astroquery.simbad import Simbad
-#
-#import astropy
-#import astropy.wcs
-#from astropy.wcs import WCS
-#from astropy import units as u
-#from astropy.io import fits
-#import astropy.time
-
-
-def retr_smaxfromperimasstotl(peri, masstotl):
+def retr_llik(para, gdat):
     
-    smax = (masstotl * 7.496e-6 * peri*2)**(1. / 3.) # [AU]
-
-    return smax
-
-
-def retr_amplslen(radistar, peri, masscomp, massstar):
-    
-    amplslen = 7.15e-5 * radistar**(-2.) * peri**(2. / 3.) * masscomp * (masscomp + massstar)**(1. / 3.)
-
-    return amplslen
-
-
-def retr_duraslen(radistar, peri, masscomp, massstar):
-    
-    duraslen = 1.8 * np.pi / 4. * peri**(1. / 3.) * (masscomp + massstar)**(-1. / 3.) * radistar
-
-    return duraslen
-
-
-def retr_llik_effe(para, gdat):
+    '''
+    Returns the likelihood for a transit model
+    '''
     
     radistar = para[0]
     peri = para[1]
     masscomp = para[2]
     massstar = para[3]
     
-    amplslenmodl = retr_amplslen(radistar, peri, masscomp, massstar)
-    duraslenmodl = retr_duraslen(radistar, peri, masscomp, massstar)
+    rflxtotl, dflxelli, dflxbeam, dflxslen = retr_rflxmodl(gdat.timethis, para)
     
-    modleffe = np.array([amplslenmodl, duraslenmodl, peri])
-    
-    #print('para')
-    #print(para)
-    #print('modleffe')
-    #print(modleffe)
-    #print('gdat.dataeffe')
-    #print(gdat.dataeffe)
-    #print('gdat.varidataeffe')
-    #print(gdat.varidataeffe)
-    #print('')
+    llik = np.sum(-0.5 * (gdat.rflxbdtr - rflxmodl)**2 / gdat.varirflxbdtrthis)
 
-    llik = np.sum(-0.5 * (gdat.dataeffe - modleffe)**2 / gdat.varidataeffe)
-    
     return llik
 
 
@@ -97,9 +42,9 @@ def retr_dictderi_effe(para, gdat):
     massstar = para[3]
     masstotl = massstar + masscomp
 
-    amplslenmodl = retr_amplslen(radistar, peri, masscomp, massstar)
-    duraslenmodl = retr_duraslen(radistar, peri, masscomp, massstar)
-    smax = retr_smaxfromperimasstotl(peri, masstotl) * 215. # [R_S]
+    amplslenmodl = ephesus.util.retr_amplslen(peri, radistar, masscomp, massstar)
+    duraslenmodl = ephesus.util.retr_duraslen(peri, radistar, masscomp, massstar, incl)
+    smax = retr_smaxkepl(peri, masstotl) * 215. # [R_S]
     radischw = 4.24e-6 * masscomp # [R_S]
 
     dictvarbderi = None
@@ -115,20 +60,22 @@ def retr_dictderi_effe(para, gdat):
 
 def retr_masscomp( amplslen, peri):
     
-    # temp
+    print('temp')
     masscomp = amplslen / 7.15e-5 / peri**(2. / 3.) * gdat.radistar**2. / (gdat.massstar)**(1. / 3.)
     
     return masscomp
 
 
-def retr_dflxslensing(time, timeslen, amplslen, duraslen):
+def retr_dflxslensing(time, epocslen, amplslen, duraslen):
     
-    dflxslensing = amplslen / np.sqrt(2. * np.pi) / duraslen * np.exp(-0.5 * (timeslen - time)**2 / duraslen**2)
+    timediff = time - epocslen
+    
+    dflxslensing = amplslen * np.heaviside(duraslen / 2. + timediff, 0.5) * np.heaviside(duraslen / 2. - timediff, 0.5)
     
     return dflxslensing
 
 
-def retr_rflxcosc(gdat, time, para):
+def retr_rflxmodl(time, para):
     
     # parse parameters 
     epoc = para[0]
@@ -136,42 +83,54 @@ def retr_rflxcosc(gdat, time, para):
     radistar = para[2]
     masscomp = para[3]
     massstar = para[4]
-   
-    # temp -- this should change 1.89e-2
-    densstar = massstar / radistar**3
-
+    incl = para[5]
+    
     # phase
     phas = ((time - epoc) / peri) % 1.
     
     ## self-lensing
     ### duration
-    duraslen = retr_duraslen(radistar, peri, masscomp, massstar) # [hour]
+    duraslen = ephesus.util.retr_duraslen(peri, radistar, masscomp, massstar, incl) # [hour]
     ### amplitude
-    amplslen = retr_amplslen(radistar, peri, masscomp, massstar)
+    amplslen = ephesus.util.retr_amplslen(peri, radistar, masscomp, massstar)
+    print('peri')
+    print(peri)
+    print('radistar')
+    print(radistar)
+    print('masscomp')
+    print(masscomp)
+    print('massstar')
+    print(massstar)
+    print('duraslen')
+    print(duraslen)
+    print('amplslen')
+    print(amplslen)
     dflxslen = np.zeros_like(time)
-    for k in range(10):
-        dflxslen += retr_dflxslensing(time, epoc + peri * k, amplslen, duraslen)
+    indxtimetran = ephesus.util.retr_indxtimetran(time, epoc, peri, duraslen)
+    dflxslen[indxtimetran] += amplslen
     
     ## ellipsoidal variation
-    amplelli = 1.89e-2 * peri**(-2.) / densstar * (1. / (1. + massstar / masscomp))
-    dflxelli = -amplelli * np.cos(4. * np.pi * phas) 
+    ### density of the star
+    print('temp') 
+    # this should change 1.89e-2
+    densstar = massstar / radistar**3
+
+    amplelli = ephesus.util.retr_amplelli(peri, densstar, massstar, masscomp)
     
     ## beaming
-    amplbeam = 2.8e-3 * peri**(-1. / 3.) * (massstar + masscomp)**(-2. / 3.) * masscomp
-    dflxbeam = -amplbeam * np.sin(2. * np.pi * phas)
+    amplbeam = ephesus.util.retr_amplbeam(peri, massstar, masscomp)
+    
+    print('temp')
+    #amplelli = 0
+    #amplbeam = 0
+
+    dflxelli = -amplelli * np.cos(4. * np.pi * phas) 
+    dflxbeam = amplbeam * np.sin(2. * np.pi * phas)
     
     ## total relative flux
     rflxtotl = 1. + dflxslen + dflxelli + dflxbeam
     
     return rflxtotl, dflxelli + 1., dflxbeam + 1., dflxslen + 1.
-
-
-def retr_llik(para, gdat):
-    
-    rflxtotl, dflxelli, dflxbeam, dflxslen = retr_rflxcosc(gdat, gdat.timethis, para)
-    lpos = np.sum(-0.5 * (gdat.rflxbdtr - rflxmodl)**2 / gdat.varirflxbdtrthis)
-
-    return lpos
 
 
 def plot_psdn(gdat, n, perisamp, psdn, psdnelli=None, psdnbeam=None, psdnslen=None):
@@ -211,12 +170,12 @@ def plot_srch(gdat, n):
     for k, axis in enumerate(axgr):
         
         if k == 0:
-            if gdat.datatype == 'obsd':
+            if gdat.typedata == 'obsd':
                 axis.text(0.5, 1.25, '%s' % (gdat.labltarg[n]), color='k', transform=axis.transAxes, ha='center')
             #axis.text(0.5, 1.15, 'S:%.3g, P:%.3g day, D:%.3g, T:%.3g day' % (gdat.listsdee[gdat.indxtargthis], \
             #                                                                        gdat.fittperimaxmthis, gdat.dept, gdat.dura), ha='center', \
             #                                                                                                transform=axis.transAxes, color='b')
-            if gdat.datatype == 'mock':
+            if gdat.typedata == 'mock':
                 axis.text(0.5, 1.05, 'P=%.3g day, M=%.3g M$_\odot$, Tmag=%.3g' % (gdat.trueperi[gdat.indxtargthis], \
                                                                         gdat.truemasscomp[gdat.indxtargthis], gdat.truetmag[gdat.indxtargthis]), \
                                                                                                         transform=axis.transAxes, color='g', ha='center')
@@ -226,21 +185,21 @@ def plot_srch(gdat, n):
                 axis.plot(gdat.time, gdat.truedflxslen[:, gdat.indxtargthis], color='g', ls='-.')
                 
             axis.scatter(gdat.time[n], gdat.rflxthis, color='black', s=1, rasterized=True)
-            #axis.set_xlabel("Time [days]")
+            #axis.set_xlabel('Time [days]')
             axis.set_xticklabels([])
-            axis.set_ylabel("Relative Flux")
+            axis.set_ylabel('Relative Flux')
             
         if k == 1:
             axis.scatter(gdat.timethis, gdat.rflxbdtr, color='black', s=1, rasterized=True)
-            axis.set_xlabel("Time [days]")
-            axis.set_ylabel("Detrended Relative Flux")
+            axis.set_xlabel('Time [days]')
+            axis.set_ylabel('Detrended Relative Flux')
             if gdat.booltlsq:
                 for k in range(len(gdat.dicttlsq['peri'])):
                     for n in range(-10, 10):
                         axis.axvline(gdat.dicttlsq['peri'] * n + gdat.dicttlsq['epoc'], color='orange', alpha=0.5, ls='--')
             if gdat.boolmcmc and gdat.booltrig[n]:
                 axis.plot(gdat.timethis, gdat.postrflxmodl[n, :], color='b', alpha=0.1)
-            axis.set_xlabel("Time [days]")
+            axis.set_xlabel('Time [days]')
         
         if gdat.booltlsq:
             gdat.numbtlsq = len(gdat.dicttlsq['peri']) 
@@ -250,8 +209,8 @@ def plot_srch(gdat, n):
             for k in gdat.indxtlsq:
                 axis.axvline(gdat.dicttlsq['peri'][k], alpha=0.5, color='b')
                 for n in range(2, 10):
-                    axis.axvline(n*gdat.dicttlsq['peri'][k], alpha=0.5, lw=1, linestyle="dashed", color='b')
-                    axis.axvline(gdat.dicttlsq['peri'][k] / n, alpha=0.5, lw=1, linestyle="dashed", color='b')
+                    axis.axvline(n*gdat.dicttlsq['peri'][k], alpha=0.5, lw=1, linestyle='dashed', color='b')
+                    axis.axvline(gdat.dicttlsq['peri'][k] / n, alpha=0.5, lw=1, linestyle='dashed', color='b')
             axis.set_ylabel(r'SDE')
             axis.set_xlabel('Period [days]')
             axis.plot(gdat.dicttlsq['listperi'], gdat.dicttlsq['powr'], color='black', lw=0.5)
@@ -259,7 +218,7 @@ def plot_srch(gdat, n):
         
         if k == 3:
             axis.plot(gdat.phasmodl, gdat.pcurmodl, color='violet')
-            gdat.fittrflxmodl, gdat.fittdflxelli, gdat.fittdflxbeam, gdat.fittamplslen = retr_rflxcosc(gdat, gdat.timethis, gdat.medipara)
+            gdat.fittrflxmodl, gdat.fittdflxelli, gdat.fittdflxbeam, gdat.fittamplslen = retr_rflxmodl(gdat.timethis, gdat.medipara)
             mediphas = (gdat.time / gdat.medipara[0] - gdat.medipara[1]) % 1.
             axis.plot(mediphas, gdat.fittrflxmodl, color='b')
             axis.plot(mediphas, gdat.fittdflxelli, color='b', ls='--')
@@ -274,77 +233,20 @@ def plot_srch(gdat, n):
     plt.close()
 
 
-def exec_srch(gdat, n):
-    
-    # baseline detrend
-    print('Baseline detrending...')
-    rflxbdtrregi, gdat.listindxtimeregi, gdat.indxtimeregioutt, gdat.listobjtspln, timeedge = \
-                     tesstarg.util.bdtr_lcur(gdat.timethis, gdat.rflxthis, \
-                                                verbtype=gdat.verbtype, \
-                                                durabrek=gdat.durabrek, ordrspln=gdat.ordrspln, bdtrtype=gdat.bdtrtype)
-    
-    gdat.numbtime = gdat.timethis.size
-    gdat.listarryrflxbdtr = np.zeros((gdat.numbtime, 3))
-    gdat.listarryrflxbdtr[:, 0] = gdat.timethis
-    gdat.listarryrflxbdtr[:, 1] = np.concatenate(rflxbdtrregi)
-    gdat.rflxbdtr = gdat.listarryrflxbdtr[:, 1]
-    numbsplnregi = len(rflxbdtrregi)
-    gdat.indxsplnregi = np.arange(numbsplnregi)
-    gdat.indxtime = np.arange(gdat.numbtime)
-
-    # mask out the edges
-    #durabrek = 0.5
-    #timeedge = tesstarg.util.retr_timeedge(gdat.timethis, gdat.rflxbdtr, durabrek)
-    #listindxtimemask = []
-    #for k in range(timeedge.size):
-    #    if k != 0:
-    #        indxtimemaskfrst = np.where(gdat.time < timeedge[k])[0][::-1][:2*gdat.numbtimefilt]
-    #        print('indxtimemaskfrst')
-    #        summgene(indxtimemaskfrst)
-    #        listindxtimemask.append(indxtimemaskfrst)
-    #    if k != timeedge.size - 1:
-    #        indxtimemaskseco = np.where(gdat.time > timeedge[k])[0][:2*gdat.numbtimefilt]
-    #        print('indxtimemaskseco')
-    #        summgene(indxtimemaskseco)
-    #        listindxtimemask.append(indxtimemaskseco)
-    #    print('listindxtimemask')
-    #    print(listindxtimemask)
-    #listindxtimemask = np.concatenate(listindxtimemask)
-    #gdat.listindxtimegoodedge = np.setdiff1d(gdat.indxtime, listindxtimemask)
-    #gdat.timethis = gdat.time[gdat.listindxtimegoodedge]
-    #gdat.rflxbdtr = gdat.rflxbdtr[gdat.listindxtimegoodedge]
-    #gdat.varirflxbdtrthis = gdat.varirflxthis[gdat.listindxtimegoodedge]
-    
-    if gdat.booltlsq:
-        print('Performing TLS on %s...' % gdat.labltarg[n])
-        arry = np.zeros((gdat.numbtime, 3))
-        arry[:, 0] = gdat.timethis
-        arry[:, 1] = 2. - gdat.rflxbdtr
-        gdat.dicttlsq = tesstarg.util.exec_tlsq(arry, gdat.pathimag, thrssdee=gdat.thrssdee, strgextn=gdat.strgextnthis)#, ticitarg=ticitarg)
-    
-    if gdat.booltmpt:
-        corr, listindxtimeposimaxm, timefull, rflxfull = tesstarg.util.corr_tmpt(gdat.timethis, gdat.rflxthis, gdat.listtimetmpt, gdat.listdflxtmpt, \
-                                                                                thrs=gdat.thrstmpt, boolanim=gdat.boolanimtmpt, boolplot=gdat.boolplottmpt, \
-                                                                            verbtype=gdat.verbtype, strgextn=gdat.strgextnthis, pathimag=gdat.pathtargimag)
-        #find_bump(gdat.timethis, gdat.rflxthis, verbtype=1, strgextn='', numbduraslentmpt=3, minmduraslentmpt=None, maxmduraslentmpt=None, \
-        #                                                            pathimag=None, boolplot=True, boolanim=False, gdat.thrstmpt=None)
-
-
-
 def init_wrap( \
-         listisec=None, \
-         datatype='obsd', \
-         boolmultproc=True, \
+         listtsec=None, \
+         typedata='obsd', \
          **args \
         ):
- 
+    
+    
     if gdat.boolmultproc:
         listobjtproc = []
-    for gdat.isec in listisec:
-        for gdat.icam in listicam:
-            for gdat.iccd in listiccd:
+    for gdat.tsec in listtsec:
+        for gdat.tcam in listtcam:
+            for gdat.tccd in listtccd:
                 print('Reading files...')
-                paththis = '/pdo/qlp-data/sector-%d/ffi/cam%d/ccd%d/LC/' % (isec, icam, iccd)
+                paththis = '/pdo/qlp-data/sector-%d/ffi/cam%d/ccd%d/LC/' % (tsec, tcam, tccd)
                 print('paththis')
                 print(paththis)
                 liststrgfile = fnmatch.filter(os.listdir(paththis), '*.h5')
@@ -388,37 +290,22 @@ def infe_para():
     indxpara = np.arange(numbpara)
     listscalpara = ['self' for k in indxpara]
     
-    numbsampwalk = 10000
-    numbsampburnwalk = 10000
-    numbsampburnwalkseco = 5000
-   
-    gdat.dataeffe = np.array([gdat.bfitamplslen, gdat.bfitduraslen, gdat.bfitperi])
-    gdat.varidataeffe = np.array([gdat.stdvamplslen, gdat.stdvduraslen, gdat.stdvperi])**2
-    
-    ## define paths
-    gdat.pathbase = os.environ['BHOL_DATA_PATH'] + '/'
-    gdat.pathdata = gdat.pathbase + 'data/'
-    gdat.pathimag = gdat.pathbase + 'imag/'
-    gdat.pathimageffe = gdat.pathimag + 'effe/'
-    os.system('mkdir -p %s' % gdat.pathimageffe)
-    numbdata = gdat.dataeffe.size
-
-    strgextn = 'effe'
-    listpara, null = tdpy.mcmc.samp(gdat, gdat.pathimageffe, numbsampwalk, numbsampburnwalk, numbsampburnwalkseco, retr_llik_effe, \
-                                    listlablpara, listscalpara, listminmpara, listmaxmpara, listmeangauspara, liststdvgauspara, numbdata, strgextn=strgextn, \
-                                    retr_dictderi=retr_dictderi_effe, boolpool=False, listlablparaderi=listlablparaderi)
-   
     return
 
 
 def init( \
-        datatype='obsd', \
+        typedata='obsd', \
         
         # data input
         listticitarg=None, \
         liststrgmast=None, \
-        isec=None, \
+        tsec=None, \
         
+        typelisttarg=None, \
+
+        # Boolean flag to turn on multiprocessing
+        boolmultproc=False, \
+
         # method, mfil or tlsq
         strgmeth='tlsq', \
         
@@ -428,6 +315,9 @@ def init( \
         bdtrtype=None, \
         verbtype=1, \
         
+        # Boolean flag to make initial plota
+        boolplotinit=True, \
+
         **args
         ):
     
@@ -446,28 +336,25 @@ def init( \
     # string for date and time
     gdat.strgtimestmp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
    
-    # check input
-    if gdat.datatype == 'mocksimp':
-        if gdat.liststrgmast is not None or gdat.isec is not None:
-            raise Exception('')
-    else:
-        if gdat.liststrgmast is None and gdat.isec is None:
-            raise Exception('')
-        if gdat.liststrgmast is not None and gdat.isec is not None:
-            raise Exception('')
-    
-    if gdat.datatype == 'mocksimp':
-        gdat.targtype = 'mock'
-    else:
-        if gdat.liststrgmast is not None:
-            gdat.targtype = 'mast'
-        if gdat.isec is not None:
-            gdat.targtype = 'sect'
-    print('gdat.targtype')
-    print(gdat.targtype)
-    
     print('BHOL initialized at %s...' % gdat.strgtimestmp)
 
+    if boolmultproc:
+        import multiprocessing
+    
+    if gdat.typelisttarg is None:
+        if gdat.typedata == 'mock':
+            gdat.typelisttarg = 'mock'
+        else:
+            gdat.typelisttarg = 'rvel'
+        # mock: mock
+        # rvel: High RV targets from Gaia DR2
+        # brgt: brightest N
+        # xbin: X-ray binaries
+        # tsec: a particular TESS Sector
+
+    print('gdat.typelisttarg')
+    print(gdat.typelisttarg)
+    
     # paths
     ## read PCAT path environment variable
     gdat.pathbase = os.environ['BHOL_DATA_PATH'] + '/'
@@ -484,81 +371,192 @@ def init( \
     gdat.boolanimtmpt = False
     gdat.boolplottmpt = True
 
+    # get target list
+    
+
+    if boolplotinit:
+       
+        # plot amplitude vs. orbital period for three components of the light curve of a COSC
+        path = gdat.pathimag + 'fig0.pdf'
+        if not os.path.exists(path):
+            
+            radistar = 1.
+            massstar = 1.
+            densstar = 1.41 # [g/cm^3]
+            
+            listcolr = ['b', 'orange', 'g']
+            listlsty = ['-', '--', ':']
+            figr, axis = plt.subplots(figsize=(6, 4.5))
+            arryperi = np.linspace(0.3, 30., 100)
+            listmasscomp = [5., 30., 180.]
+            numbmasscomp = len(listmasscomp)
+            indxmasscomp = np.arange(numbmasscomp)
+            for k in indxmasscomp:
+
+                amplbeam = ephesus.util.retr_amplbeam(arryperi, massstar, listmasscomp[k])
+                amplelli = ephesus.util.retr_amplelli(arryperi, densstar, massstar, listmasscomp[k])
+                amplslen = ephesus.util.retr_amplslen(arryperi, radistar, listmasscomp[k], massstar)
+                
+                axis.plot(arryperi, amplbeam, ls=listlsty[k], color=listcolr[0])
+                axis.plot(arryperi, amplelli, ls=listlsty[k], color=listcolr[1])
+                axis.plot(arryperi, amplslen, ls=listlsty[k], color=listcolr[2])
+            axis.set_xlabel('Orbital Period [days]')
+            axis.set_ylabel('Amplitude')
+            axis.set_xscale('log')
+            axis.set_yscale('log')
+            axis.set_xlim([0.3, 30])
+            axis.set_ylim([5e-6, 0.5])
+            plt.tight_layout()
+            plt.savefig(path)
+            plt.close()
+        
+
+        # plot model light curves for COSCs with different orbital periods
+        time = np.arange(0., 17.3, 2. / 24. / 60.)
+        listperi = [1., 3., 10.]
+        numbperi = len(listperi)
+        indxperi = np.arange(numbperi)
+        para = np.empty(5)
+        for k in indxperi:
+            path = gdat.pathimag + 'fig%d.pdf' % (k + 1)
+            if not os.path.exists(path):
+                figr, axis = plt.subplots(figsize=(6, 4.5))
+                
+                para[0] = 3.
+                para[1] = listperi[k]
+                para[2] = 1.
+                para[3] = 10.
+                para[4] = 1.
+                rflxmodl, rflxelli, rflxbeam, rflxslen = retr_rflxmodl(time, para)
+                
+                axis.plot(time, rflxmodl, color='k')
+                axis.plot(time, rflxelli, color='b', ls='--')
+                axis.plot(time, rflxbeam, color='g', ls='--')
+                axis.plot(time, rflxslen, color='r', ls='--')
+
+                axis.set_xlabel('Time [days]')
+                plt.savefig(path)
+                plt.close()
+    
+        # plot occurence rate
+        occufiel = np.array([ \
+                            [1.7e-7, 2.2e-7, 2.2e-7, 2.2e-7, 2.5e-7], \
+                            [5.6e-7, 7.7e-7, 8.4e-7, 8.6e-7, 1.0e-6], \
+                            [2.2e-6, 3.7e-6, 4.0e-6, 4.3e-6, 5.3e-6], \
+                            [4.3e-6, 9.8e-6, 1.0e-5, 1.1e-5, 1.4e-5], \
+                            [8.9e-6, 2.3e-5, 2.8e-5, 3.0e-5, 3.6e-5], \
+                            ])
+        occucoen = np.array([ \
+                            [1.3e-6, 1.8e-6, 1.9e-6, 6.7e-7, 8.7e-9], \
+                            [2.3e-6, 3.1e-6, 3.1e-6, 7.9e-7, 3.9e-10], \
+                            [4.7e-6, 7.9e-6, 1.9e-6, 1.5e-9, 2.2e-10], \
+                            [8.4e-6, 1.8e-5, 1.2e-5, 2.7e-6, 2.0e-9], \
+                            [8.2e-6, 1.5e-5, 8.9e-6, 1.3e-8, 2.5e-9], \
+                            ])
+        
+        peri = np.array([0.3, 0.8, 1.9, 4.8, 11.9, 30.])
+        masscomp = np.array([5.0, 9.1, 16.6, 30.2, 54.9, 100.])
+        peri = np.exp((np.log(peri)[1:] + np.log(peri)[:-1]) / 2.)
+        masscomp = np.exp((np.log(masscomp)[1:] + np.log(masscomp)[:-1]) / 2.)
+        occufielintp = scipy.interpolate.interp2d(peri, masscomp, occufiel)#, kind='linear')
+        occucoenintp = scipy.interpolate.interp2d(peri, masscomp, occucoen)#, kind='linear')
+        peri = np.linspace(1., 25., 100)
+        masscomp = np.linspace(5., 80., 100)
+        for k in range(2):
+            if k == 0:
+                strg = 'fiel'
+            if k == 1:
+                strg = 'coen'
+            path = gdat.pathimag + 'occ_%s.pdf' % strg
+            if not os.path.exists(path):
+                figr, axis = plt.subplots(figsize=(6, 4.5))
+                if k == 0:
+                    data = occufielintp
+                if k == 1:
+                    data = occucoenintp
+                print('peri')
+                summgene(peri)
+                print('data')
+                summgene(data)
+                print('masscomp')
+                summgene(masscomp)
+                c = plt.pcolor(peri, masscomp, data(peri, masscomp), norm=mpl.colors.LogNorm(), cmap ='Greens')#, vmin = z_min, vmax = z_max)
+                plt.colorbar(c)
+                axis.set_xlabel('Orbital Period [days]')
+                axis.set_xlabel('CO mass')
+                plt.savefig(path)
+                plt.close()
+    
     ## data
     ### observed data
     #### be agnostic about the source of data
     gdat.strgdata = None
     #### Boolean flag to use SAP data (as oppsed to PDC SAP)
-    gdat.boolsapp = False
+    gdat.typedataspoc = 'PDC'
     # mock data
-    if gdat.datatype.startswith('mock'):
+    if gdat.typedata.startswith('mock'):
         gdat.cade = 10. / 60. / 24. # days
    
     ## number of targets
-    if gdat.datatype == 'obsd':
-        gdat.numbtarg = len(gdat.liststrgmast)
-    if gdat.datatype != 'obsd':
+    if gdat.typedata == 'obsd':
+        if gdat.typelisttarg == 'tsec':
+            gdat.numbtarg = len(gdat.liststrgmast)
+        if gdat.typelisttarg == 'rvel':
+            dictcatlrvel = retr_dictcatlrvel()
+            gdat.numbtarg = dictcatlrvel['rasc'].size
+    if gdat.typedata == 'mock':
         gdat.numbtarg = 5
-        gdat.numbtrue = gdat.numbtarg
     print('Number of targets: %s' % gdat.numbtarg)
     if gdat.numbtarg == 0:
         return
     gdat.indxtarg = np.arange(gdat.numbtarg)
     
-    if gdat.datatype.startswith('mock'):
+    if gdat.typedata.startswith('mock'):
         gdat.indxtrue = gdat.indxtarg
     
     gdat.strgtarg = [[] for n in gdat.indxtarg]
     gdat.labltarg = [[] for n in gdat.indxtarg]
+    gdat.pathtarg = [[] for n in gdat.indxtarg]
     gdat.pathtargdata = [[] for n in gdat.indxtarg]
     gdat.pathtargimagmcmc = [[] for n in gdat.indxtarg]
     gdat.pathtargimag = [[] for n in gdat.indxtarg]
     for n in gdat.indxtarg:
-        if gdat.datatype == 'obsd':
-            if gdat.targtype == 'sect':
-                gdat.strgtarg[n] = 'sc%02d_%12d' % (gdat.isec, gdat.listticitarg[n])
-                gdat.labltarg[n] = 'Sector %02d, TIC %d' % (gdat.isec, gdat.listticitarg[n])
-            if gdat.targtype == 'mast':
+        if gdat.typedata == 'obsd':
+            if gdat.typelisttarg == 'sect':
+                gdat.strgtarg[n] = 'sc%02d_%12d' % (gdat.tsec, gdat.listticitarg[n])
+                gdat.labltarg[n] = 'Sector %02d, TIC %d' % (gdat.tsec, gdat.listticitarg[n])
+            if gdat.typelisttarg == 'mast':
                 gdat.labltarg[n] = gdat.liststrgmast[n]
                 gdat.strgtarg[n] = ''.join(gdat.liststrgmast[n].split(' '))
-        if gdat.datatype != 'obsd':
+            if gdat.typelisttarg == 'rvel':
+                gdat.labltarg[n] = 'RA=%.4g,DEC=%.4g' % (dictcatlrvel['rasc'][n], dictcatlrvel['decl'][n])
+                gdat.strgtarg[n] = 'R%.4gDEC%.4g' % (dictcatlrvel['rasc'][n], dictcatlrvel['decl'][n])
+        if gdat.typedata == 'mock':
             gdat.strgtarg[n] = 'mock%04d' % n
             gdat.labltarg[n] = 'Mock target %08d' % n
-        gdat.pathtarg = gdat.pathbase + '%s/' % gdat.strgtarg[n]
-        gdat.pathtargdata[n] = gdat.pathtarg + 'data/'
-        gdat.pathtargimag[n] = gdat.pathtarg + 'imag/'
-        gdat.pathtargimagmcmc[n] = gdat.pathtargimag[n] + 'mcmc/'
-        os.system('mkdir -p %s' % gdat.pathtargdata[n])
-        os.system('mkdir -p %s' % gdat.pathtargimag[n])
-        
         print('gdat.strgtarg[n]')
         print(gdat.strgtarg[n])
-        print('gdat.labltarg[n]')
-        print(gdat.labltarg[n])
-        
+        if len(gdat.strgtarg[n]) == 0 or gdat.strgtarg[n] == '':
+            raise Exception('')
+        gdat.pathtarg[n] = gdat.pathbase + '%s/' % gdat.strgtarg[n]
+        gdat.pathtargdata[n] = gdat.pathtarg[n] + 'data/'
+        gdat.pathtargimag[n] = gdat.pathtarg[n] + 'imag/'
+        gdat.pathtargimagmcmc[n] = gdat.pathtargimag[n] + 'mcmc/'
+    
     # get data
     gdat.time = [[] for n in gdat.indxtarg]
     gdat.rflx = [[] for n in gdat.indxtarg]
-    if gdat.datatype == 'obsd':
-        gdat.varirflx = [[] for n in gdat.indxtarg]
-        for n in gdat.indxtarg:
-            datatype, arryrflx, arryrflxsapp, arryrflxpdcc, listarryrflx, listarryrflxsapp, listarryrflxpdcc, listisec, listicam, listiccd = \
-                                                tesstarg.util.retr_data(gdat.strgdata, gdat.liststrgmast[n], gdat.pathdata, gdat.boolsapp)
-            gdat.time[n] = arryrflx[:, 0]
-            gdat.rflx[n] = arryrflx[:, 1]
-            gdat.varirflx[n] = arryrflx[:, 2]**2
-            gdat.cade = np.amin(gdat.time[n][1:] - gdat.time[n][:-1])
             
     ## analysis
-    gdat.booltlsq = False
-    gdat.booltmpt = True
+    gdat.booltlsq = True
+    gdat.boolexectmat = False
     gdat.boolmcmc = True
     ### TLS
     #### SDE threshold
-    gdat.thrssdee = 7.1
-
+    gdat.thrssdeetlsq = 7.1
+    
     ### template matching
-    if gdat.booltmpt:
+    if gdat.boolexectmat:
         gdat.thrstmpt = None
         
         minmduraslentmpt = 0.5
@@ -581,9 +579,9 @@ def init( \
                 print(listduraslentmpt[k])
                 raise Exception('')
             gdat.listtimetmpt[k] = np.arange(numbtimekern[k]) * gdat.cade
-            timeslen = gdat.listtimetmpt[k][int(numbtimekern[k]/2)]
+            epocslen = gdat.listtimetmpt[k][int(numbtimekern[k]/2)]
             amplslen = 1.
-            gdat.listdflxtmpt[k] = retr_dflxslensing(gdat.listtimetmpt[k], timeslen, amplslen, listduraslentmpt[k])
+            gdat.listdflxtmpt[k] = retr_dflxslensing(gdat.listtimetmpt[k], epocslen, amplslen, listduraslentmpt[k])
             if not np.isfinite(gdat.listdflxtmpt[k]).all():
                 raise Exception('')
         
@@ -616,16 +614,6 @@ def init( \
     gdat.limtpara = tdpy.mcmc.retr_limtpara(gdat.scalpara, gdat.minmpara, gdat.maxmpara, gdat.meanpara, gdat.stdvpara)
     gdat.indxparahard = np.where(gdat.scalpara == 'self')[0]
 
-    # baseline detrending
-    gdat.numbtimefilt = int(round(5. / 24. / gdat.cade))
-    if gdat.numbtimefilt % 2 == 0:
-        gdat.numbtimefilt += 1
-    print('gdat.numbtimefilt')
-    print(gdat.numbtimefilt)
-
-    print('gdat.cade [min]')
-    print(gdat.cade * 24. * 60.)
-    
     gdat.boolwritplotover = True
 
     # to be done by pexo
@@ -636,22 +624,16 @@ def init( \
     gdat.massstar = 1.
     gdat.densstar = 1.41
 
-    if gdat.isec is not None:
-        strgsecc = '%02d%d%d' % (gdat.isec, gdat.icam, gdat.iccd)
-        print('Sector: %d' % gdat.isec)
-        print('Camera: %d' % gdat.icam)
-        print('CCD: %d' % gdat.iccd)
+    if gdat.tsec is not None:
+        print('Sector: %d' % gdat.tsec)
     
     # interpolate TESS photometric precision
-    stdv = np.array([40., 40., 40., 90.,200.,700., 3e3, 2e4]) * 1e-6
-    magt = np.array([ 2.,  4.,  6.,  8., 10., 12., 14., 16.])
-    #objtspln = scipy.interpolate.UnivariateSpline(magt, stdv)
-    #objtspln = np.poly1d(np.polyfit(magt, stdv, 3))
-    objtspln = interpolate.interp1d(magt, stdv)
+    tmag = np.linspace(2., 16., 100)
+    noistess = ephesus.util.retr_noistess(tmag)
 
     # plot TESS photometric precision
     figr, axis = plt.subplots(figsize=(6, 4))
-    axis.plot(magt, objtspln(magt))
+    axis.plot(tmag, noistess)
     axis.set_xlabel('Tmag')
     axis.set_ylabel(r'$s$')
     axis.set_yscale('log')
@@ -668,14 +650,15 @@ def init( \
     massstar = 1.
     radistar = 1.
     for masscomp in listmasscomp:
-        amplslentmag = retr_amplslen(radistar, peri, masscomp, massstar)
+        amplslentmag = ephesus.util.retr_amplslen(peri, radistar, masscomp, massstar)
         axis.plot(peri, amplslentmag, label=r'M = %.3g M$_\odot$' % masscomp)
     for tmag in listtmag:
+        noistess = ephesus.util.retr_noistess(tmag)
         if tmag == 16:
-            axis.text(0.1, objtspln(tmag) * 1.6, ('Tmag = %.3g' % tmag),  color='black')
+            axis.text(0.1, noistess * 1.6, ('Tmag = %.3g' % tmag),  color='black')
         else:
-            axis.text(0.1, objtspln(tmag) / 2, ('Tmag = %.3g' % tmag),  color='black')
-        axis.axhline(objtspln(tmag), ls='--', color='black')#, label=('Tmag = %.3g' % tmag))
+            axis.text(0.1, noistess / 2, ('Tmag = %.3g' % tmag),  color='black')
+        axis.axhline(noistess, ls='--', color='black')#, label=('Tmag = %.3g' % tmag))
     axis.set_xlabel('Period [day]')
     axis.set_ylabel(r'Self-lensing amplitude')
     axis.set_xscale('log')
@@ -689,7 +672,7 @@ def init( \
     #gdat.claspred = np.choice(gdat.indxclastrue, size=numbsamp)
     
     gdat.boolposi = np.empty(gdat.numbtarg, dtype=bool)
-    if gdat.datatype == 'obsd':
+    if gdat.typedata == 'obsd':
         pass
         #listindxtimebadd = np.concatenate(listindxtimebadd)
         #listindxtimebadd = np.unique(listindxtimebadd)
@@ -701,21 +684,20 @@ def init( \
         #time = time[listindxtimegood]
         #gdat.rflx = gdat.rflx[listindxtimegood]
     
-    if gdat.datatype != 'obsd':
+    if gdat.typedata == 'mock':
         
         # mock data setup 
-        if gdat.datatype == 'mocksimp':
-            gdat.minmtime = 0.
-            gdat.maxmtime = 27.3
-            for nn, n in enumerate(gdat.indxtrue):
-                gdat.time[n] = np.concatenate((np.arange(0., 27.3 / 2. - 1., gdat.cade), np.arange(27.3 / 2. + 1., 27.3, gdat.cade)))
-            gdat.indxtimelink = np.where(abs(gdat.time[n] - 13.7) < 2.)[0]
+        gdat.minmtime = 0.
+        gdat.maxmtime = 27.3
+        for nn, n in enumerate(gdat.indxtrue):
+            gdat.time[n] = np.concatenate((np.arange(0., 27.3 / 2. - 1., gdat.cade), np.arange(27.3 / 2. + 1., 27.3, gdat.cade)))
+        gdat.indxtimelink = np.where(abs(gdat.time[n] - 13.7) < 2.)[0]
     
         gdat.numbtime = gdat.time[n].size
         
         gdat.numbclastrue = 2
         gdat.indxclastrue = np.arange(gdat.numbclastrue)
-        gdat.clastrue = np.random.choice(gdat.indxclastrue, size=gdat.numbtarg)
+        gdat.clastrue = np.random.choice(gdat.indxclastrue, size=gdat.numbtarg, p=[0, 1])
         gdat.indxtrueflat = np.where(gdat.clastrue == 0)[0]
         gdat.indxtrueslen = np.where(gdat.clastrue == 1)[0]
         gdat.numbtrueslen = gdat.indxtrueslen.size
@@ -726,20 +708,20 @@ def init( \
         
         gdat.trueepoc = np.random.rand(gdat.numbtrueslen) * gdat.maxmtime
         
-        gdat.trueminmperi = 4.5
-        gdat.truemaxmperi = 4.5
+        gdat.trueminmperi = 5.
+        gdat.truemaxmperi = 6.
         gdat.trueperi = np.random.rand(gdat.numbtrueslen) * (gdat.truemaxmperi - gdat.trueminmperi) + gdat.trueminmperi
         
-        gdat.trueminmradistar = 660.
-        gdat.truemaxmradistar = 660.
+        gdat.trueminmradistar = 2.
+        gdat.truemaxmradistar = 3.
         gdat.trueradistar = np.random.random(gdat.numbtrueslen) * (gdat.truemaxmradistar - gdat.trueminmradistar) + gdat.trueminmradistar
         
-        gdat.trueminmmasscomp = 2.4e6
-        gdat.truemaxmmasscomp = 2.4e6
+        gdat.trueminmmasscomp = 4.
+        gdat.truemaxmmasscomp = 6.
         gdat.truemasscomp = np.random.random(gdat.numbtrueslen) * (gdat.truemaxmmasscomp - gdat.trueminmmasscomp) + gdat.trueminmmasscomp
         
-        gdat.trueminmmassstar = 100.
-        gdat.truemaxmmassstar = 100.
+        gdat.trueminmmassstar = 1.
+        gdat.truemaxmmassstar = 2.
         gdat.truemassstar = np.random.random(gdat.numbtrueslen) * (gdat.truemaxmmassstar - gdat.trueminmmassstar) + gdat.trueminmmassstar
         
         gdat.truerflxtotl = np.empty((gdat.numbtime, gdat.numbtrueslen))
@@ -752,6 +734,7 @@ def init( \
         gdat.paratrueslen[:, 2] = gdat.trueradistar
         gdat.paratrueslen[:, 3] = gdat.truemasscomp
         gdat.paratrueslen[:, 4] = gdat.truemassstar
+        gdat.paratrueslen[:, 5] = gdat.trueincl
                 
         gdat.trueminmtmag = 8.
         gdat.truemaxmtmag = 16.
@@ -763,33 +746,15 @@ def init( \
             
         ## self-lensing targets
         for nn, n in enumerate(gdat.indxtrueslen):
-            gdat.truerflxtotl[:, nn], gdat.truedflxelli[:, nn], gdat.truedflxbeam[:, nn], gdat.truedflxslen[:, nn] = retr_rflxcosc(gdat, \
+            gdat.truerflxtotl[:, nn], gdat.truedflxelli[:, nn], gdat.truedflxbeam[:, nn], gdat.truedflxslen[:, nn] = retr_rflxmodl( \
                                                                                                                   gdat.time[n], gdat.paratrueslen[nn, :])
             gdat.rflx[n] = np.copy(gdat.truerflxtotl[:, nn])
-            
+        
+        gdat.truestdvrflx = ephesus.util.retr_noistess(gdat.truetmag)
         for n in gdat.indxtarg:
             # add noise
-            gdat.truestdvrflx = objtspln(gdat.truetmag)
             gdat.rflx[n] += gdat.truestdvrflx[n] * np.random.randn(gdat.numbtime)
             
-            # determine data variance
-            gdat.varirflx = gdat.truestdvrflx[n]**2 * np.ones_like(gdat.rflx[n])
-            
-        for nn, n in enumerate(gdat.indxtrueslen):
-            # plot
-            dictmodl = dict()
-            dictmodl['modltotl'] = {'lcur': gdat.truerflxtotl[:, nn], 'time': gdat.time[n]}
-            dictmodl['modlelli'] = {'lcur': gdat.truedflxelli[:, nn], 'time': gdat.time[n]}
-            dictmodl['modlbeam'] = {'lcur': gdat.truedflxbeam[:, nn], 'time': gdat.time[n]}
-            dictmodl['modlslen'] = {'lcur': gdat.truedflxslen[:, nn], 'time': gdat.time[n]}
-            strgextn = '%s_%s' % (gdat.datatype, gdat.strgtarg[n])
-            titl = ''
-            tesstarg.util.plot_lcur(gdat.pathtargimag[n], dictmodl=dictmodl, timedata=gdat.time[n], lcurdata=gdat.rflx[n], boolover=gdat.boolwritplotover, \
-                                                                                                                            strgextn=strgextn, titl=titl)
-            
-        delttime = 1. / 24. / 2.
-        fs = 1. / delttime
-        
         # histogram
         path = gdat.pathimag + 'truestdvrflx'
         tdpy.mcmc.plot_hist(path, gdat.truestdvrflx, r'$\sigma$', strgplotextn=gdat.plotfiletype)
@@ -798,118 +763,128 @@ def init( \
             
     pathlogg = gdat.pathdata + 'logg/'
     
+    if gdat.typelisttarg == 'tsec':
+        dictcatltsec = retr_dictcatltsec(pathdata, tsec)
+
     gdat.listsdee = np.empty(gdat.numbtarg)
     gdat.indxtargposi = []
     
     gdat.booltrig = np.empty(gdat.numbtarg, dtype=bool)
+    
+    if gdat.typedata == 'mock':
+        nn = 0
+
     for n in gdat.indxtarg:
         
-        gdat.indxtargthis = n
-        gdat.timethis = gdat.time[n]
-        gdat.rflxthis = gdat.rflx[n]
-        gdat.varirflxthis = gdat.varirflx[n]
+        gdat.strgextnthis = '%s_%s' % (gdat.typedata, gdat.strgtarg[n])
+        pathtcee = pathlogg + '%s_%s.txt' % (gdat.typedata, gdat.strgtarg[n])
         
-        delttime = np.amin(gdat.timethis[1:] - gdat.timethis[:-1])
-        fs = 1. / delttime
+        os.system('mkdir -p %s' % gdat.pathtargdata[n])
+        os.system('mkdir -p %s' % gdat.pathtargimag[n])
+        
+        if gdat.typedata == 'mock':
+            
+            if n in gdat.indxtrueslen:
+                # plot
+                dictmodl = dict()
+                dictmodl['modltotl'] = {'lcur': gdat.truerflxtotl[:, nn], 'time': gdat.time[n]}
+                dictmodl['modlelli'] = {'lcur': gdat.truedflxelli[:, nn], 'time': gdat.time[n]}
+                dictmodl['modlbeam'] = {'lcur': gdat.truedflxbeam[:, nn], 'time': gdat.time[n]}
+                dictmodl['modlslen'] = {'lcur': gdat.truedflxslen[:, nn], 'time': gdat.time[n]}
+                strgextn = '%s_%s' % (gdat.typedata, gdat.strgtarg[n])
+                titl = ''
+                print('nn, n')
+                print(nn, n)
+                ephesus.util.plot_lcur(gdat.pathtargimag[n], dictmodl=dictmodl, timedata=gdat.time[n], \
+                                                                                lcurdata=gdat.rflx[n], boolover=gdat.boolwritplotover, \
+                                                                                                                           strgextn=strgextn, titl=titl)
+                nn += 1
 
-        # check data for finiteness
-        if (~np.isfinite(gdat.rflxthis)).any():
-            print('gdat.rflxthis')
-            summgene(gdat.rflxthis)
-            raise Exception('')
-        
-        gdat.strgextnthis = '%s_%s' % (gdat.datatype, gdat.strgtarg[n])
-        pathtcee = pathlogg + '%s_%s.txt' % (gdat.datatype, gdat.strgtarg[n])
-        
-        if gdat.datatype == 'mock':
-            print('gdat.truetmag[n]')
-            print(gdat.truetmag[n])
-            print('gdat.truestdvrflx[n]')
-            print(gdat.truestdvrflx[n])
-
-        # check if log file has been created properly before
-        gdat.boolloggprev = False
-        if os.path.exists(pathtcee):
-            cntr = 0
-            with open(pathtcee, 'r') as objtfile:
-                for k, line in enumerate(objtfile):
-                    cntr += 1
-            if cntr == 5:
-                gdat.boolloggprev = True
-        
-        if not gdat.boolloggprev:
-            print('Reading %s...' % gdat.strgtarg[n])
-            # log file
-            filelogg = open(pathtcee, 'w+')
-            exec_srch(gdat, n)
-        
+            gdat.listarry = dict()
+            gdat.listarry['raww'] = [[[[]]], []]
+            arrytemp = np.empty((gdat.time[n].size, 3))
+            arrytemp[:, 0] = gdat.time[n]
+            arrytemp[:, 1] = gdat.rflx[n]
+            arrytemp[:, 2] = gdat.truestdvrflx[n]
+            gdat.listarry['raww'][0][0][0] = arrytemp
+            
+            rasctarg = None
+            decltarg = None
+            listarrytser = gdat.listarry
+            labltarg = gdat.labltarg[n]
         else:
-            print('BLS has already been done. Reading the log file for %s at %s...' % (gdat.strgtarg[n], pathtcee))
-            filelogg = open(pathtcee, 'r')
-            for k, line in enumerate(filelogg):
-                if k == 4:
-                    continue
-                valu = float(line.split(' ')[1])
-                if k == 0:
-                    gdat.listsdee[n] = valu
-                if k == 1:
-                    gdat.peri = valu
-                if k == 2:
-                    gdat.dept = valu
-                if k == 3:
-                    gdat.dura = valu
-            filelogg.close()
-       
-        # perform matched filter
-        exec_srch(gdat, n)
-
-        # calculate PSD
-        freq, gdat.psdn = scipy.signal.periodogram(gdat.rflxthis, fs=fs)
-        perisamp = 1. / freq
-        
-        gdat.booltrig[n] = gdat.listsdee[n] >= gdat.thrssdee
-        if gdat.booltrig[n]:
-            
-            gdat.indxtargposi.append(n)
-            
-            if gdat.datatype == 'mock':
-                boolreleposi[gdat.indxtrueslen[k]] = True
-            
-            gdat.boolposi[n] = True
-            if gdat.datatype == 'mock':
-                boolposirele[gdat.indxtrueslen[k]] = True
-            
-            # temp
-            if (True or not os.path.exists(gdat.pathtargimagmcmc[n])) and gdat.boolmcmc:
-                print('Performing sampling on %s...' % gdat.labltarg[n])
-                dictllik = [gdat]
+            if gdat.typelisttarg == 'tsec':
+                arrytemp = np.empty((gdat.time[n].size, 3))
+                arrytemp[:, 0] = gdat.time[n]
+                arrytemp[:, 1] = gdat.rflx[n]
+                arrytemp[:, 2] = gdat.stdvrflx[n]
                 
-                # perform forward-modeling
-                if gdat.boolmcmc:
-                    gdat.parapost = tdpy.mcmc.samp(gdat, gdat.pathimag, gdat.numbtargwalk, gdat.numbtargburnwalk, retr_rflxcosc, retr_lpos, \
-                                           gdat.listlablpara, gdat.scalpara, gdat.minmpara, gdat.maxmpara, gdat.meanpara, gdat.stdvpara, gdat.numbdata)
+                rasctarg = None
+                decltarg = None
+                labltarg = None
+                listarrytser = gdat.listarry
+        
+            if gdat.typelisttarg == 'rvel':
+                rasctarg = dictcatlrvel['rasc'][n]
+                decltarg = dictcatlrvel['decl'][n]
+                labltarg = None
+                listarrytser = None
+        
+        # call pexo to analyze data
+        print('gdat.pathtarg[n]')
+        print(gdat.pathtarg[n])
+        dictpexo = pexo.main.init( \
+                                  rasctarg=rasctarg, \
+                                  decltarg=decltarg, \
+                                  listarrytser=listarrytser, \
+                                  typemodl='bhol', \
+                                  labltarg=labltarg, \
+                                  boolclip=False, \
+                                  boolexectmat=gdat.boolexectmat, \
+                                  pathtarg=gdat.pathtarg[n], \
+                                  thrssdeetlsq=gdat.thrssdeetlsq, \
+                                 )
+        
+        #gdat.listsdee[n] = dictpexo['dicttlsq']['sdeetotl'] 
 
-                print('Making plots...')
-                os.system('mkdir -p %s' % gdat.pathtargimagmcmc[n])
-        
-        else:
-            gdat.boolposi[n] = False
-            if gdat.datatype == 'mock':
-                boolposirele[gdat.indxtrueslen[k]] = False
+        #gdat.booltrig[n] = gdat.listsdee[n] >= gdat.thrssdeetlsq
+        #if gdat.booltrig[n]:
+        #    
+        #    gdat.indxtargposi.append(n)
+        #    
+        #    if gdat.typedata == 'mock':
+        #        boolreleposi[gdat.indxtrueslen[k]] = True
+        #    
+        #    gdat.boolposi[n] = True
+        #    if gdat.typedata == 'mock':
+        #        boolposirele[gdat.indxtrueslen[k]] = True
+        #    
+        #    print('temp')
+        #    if (True or not os.path.exists(gdat.pathtargimagmcmc[n])) and gdat.boolmcmc:
+        #        print('Performing sampling on %s...' % gdat.labltarg[n])
+        #        dictllik = [gdat]
+        #        
+        #        # perform forward-modeling
+        #        if gdat.boolmcmc:
+        #            gdat.parapost = tdpy.mcmc.samp(gdat, gdat.pathimag, gdat.numbtargwalk, gdat.numbtargburnwalk, retr_rflxmodl, retr_lpos, \
+        #                                   gdat.listlablpara, gdat.scalpara, gdat.minmpara, gdat.maxmpara, gdat.meanpara, gdat.stdvpara, gdat.numbdata)
+
+        #        print('Making plots...')
+        #        os.system('mkdir -p %s' % gdat.pathtargimagmcmc[n])
+        #
+        #else:
+        #    gdat.boolposi[n] = False
+        #    if gdat.typedata == 'mock':
+        #        boolposirele[gdat.indxtrueslen[k]] = False
             
-        gdat.pathplotsrch = gdat.pathtargimag[n] + 'srch_%s_%s.%s' % (gdat.datatype, gdat.strgtarg[n], gdat.plotfiletype)
-        # temp
-        if True or not os.path.exists(gdat.pathtargimagmcmc[n]):
-            plot_srch(gdat, n)
+        #gdat.pathplotsrch = gdat.pathtargimag[n] + 'srch_%s_%s.%s' % (gdat.typedata, gdat.strgtarg[n], gdat.plotfiletype)
         
-        plot_psdn(gdat, n, perisamp, gdat.psdn)
-        
-        print('')
-        
+        #plot_psdn(gdat, n, perisamp, gdat.psdn)
+    
     gdat.indxtargposi = np.array(gdat.indxtargposi)
     
     # plot distributions
-    if datatype == 'mock':
+    if typedata == 'mock':
         listvarbreca = [gdat.trueperi, gdat.truemasscomp, gdat.truetmag[gdat.indxtrueslen]]
         listlablvarbreca = ['P', 'M_c', 'Tmag']
         liststrgvarbreca = ['trueperi', 'truemasscomp', 'truetmag']
@@ -917,9 +892,27 @@ def init( \
     listlablvarbprec = ['SNR']
     liststrgvarbprec = ['sdee']
     
-    if datatype == 'mock':
-        tdpy.util.plot_recaprec(gdat.pathimag, gdat.strgextn, listvarbreca, listvarbprec, liststrgvarbreca, liststrgvarbprec, \
-                                listlablvarbreca, listlablvarbprec, boolposirele, boolreleposi)
+    #if typedata == 'mock':
+    #    tdpy.util.plot_recaprec(gdat.pathimag, gdat.strgextn, listvarbreca, listvarbprec, liststrgvarbreca, liststrgvarbprec, \
+    #                            listlablvarbreca, listlablvarbprec, boolposirele, boolreleposi)
+
+
+
+def retr_dictcatlrvel():
+    
+    print('Reading Sauls Gaia high RV catalog...')
+    path = os.environ['BHOL_DATA_PATH'] + '/data/Gaia_high_RV_errors.txt'
+    for line in open(path):
+        listnamesaul = line[:-1].split('\t')
+        break
+    print('Reading from %s...' % path)
+    data = np.loadtxt(path, skiprows=1)
+    dictcatl = dict()
+    dictcatl['rasc'] = data[:, 0]
+    dictcatl['decl'] = data[:, 1]
+    dictcatl['stdvrvel'] = data[:, -4]
+    
+    return dictcatl
 
 
 def cnfg_HR6819():
@@ -937,21 +930,27 @@ def cnfg_Rafael():
         )
 
 
-def cnfg_obsd():
+def cnfg_rvel():
    
-    listisec = [9]
     init( \
-         #listisec=listisec, \
-         strgmast='Vela X-1', \
+         #listtsec=listtsec, \
+         #liststrgmast=['Vela X-1'], \
         )
 
 
 def cnfg_mock():
    
-    listisec = [9]
+    listtsec = [9]
     init( \
-         #listisec=listisec, \
-         datatype='mocksimp', \
+         #listtsec=listtsec, \
+         typedata='mock', \
+        )
+
+
+def cnfg_tsec():
+   
+    init( \
+         tsec=1, \
         )
 
 

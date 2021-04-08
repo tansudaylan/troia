@@ -19,54 +19,13 @@ import astropy
 
 from astropy.io import fits
 
-def mastQuery(request):
-
-    server='mast.stsci.edu'
-
-    # Grab Python Version
-    version = ".".join(map(str, sys.version_info[:3]))
-
-    # Create Http Header Variables
-    headers = {"Content-type": "application/x-www-form-urlencoded",
-               "Accept": "text/plain",
-               "User-agent":"python-requests/"+version}
-
-    # Encoding the request as a json string
-    requestString = json.dumps(request)
-    requestString = urlencode(requestString)
-
-    # opening the https connection
-    conn = httplib.HTTPSConnection(server)
-
-    # Making the query
-    conn.request("POST", "/api/v0/invoke", "request="+requestString, headers)
-
-    # Getting the response
-    resp = conn.getresponse()
-    head = resp.getheaders()
-    content = resp.read().decode('utf-8')
-
-    # Close the https connection
-    conn.close()
-
-    return head,content
-
 ## read PCAT path environment variable
 pathbase = os.environ['BHOL_DATA_PATH'] + '/'
 pathdata = pathbase + 'data/'
 pathimag = pathbase + 'imag/'
 
 # read Gaia IDs with high radial velocity errors from Saul
-print('Reading Sauls Gaia high RV catalog...')
-path = pathdata + 'Gaia_high_RV_errors.txt'
-for line in open(path):
-    listnamesaul = line[:-1].split('\t')
-    break
-print('Reading from %s...' % path)
-dataradv = np.loadtxt(path, skiprows=1)
-rascradv = dataradv[:, 0]
-declradv = dataradv[:, 1]
-stdvradv = dataradv[:, -4]
+dictcatl = retr_dictcatlrvel()
 
 print('listnamesaul')
 print(listnamesaul)
@@ -137,26 +96,7 @@ for k in indxgaia:
     dictcoor[k]['ra'] = arry[k, 0]
     dictcoor[k]['dec'] = arry[k, 1]
 
-# crossmatch with TIC to get TIC IDs
-crossmatchInput = {"fields":[{"name":"ra","type":"float"},
-                             {"name":"dec","type":"float"}],
-                   #"data":[{"ra":210.8,"dec":54.3}]}
-                   "data":dictcoor}
-                   #"data":[dictcoor]}
-
-request =  {"service":"Mast.GaiaDR2.Crossmatch",
-            "data":crossmatchInput,
-            "params":{
-                "raColumn":"ra",
-                "decColumn":"dec",
-                "radius":0.1
-            },
-            "format":"json"}
-
-
-headers,outString = mastQuery(request)
-
-outData = json.loads(outString)
+# crossmatch with TIC using the GaiaIDs to get TIC IDs
 
 
 
@@ -234,10 +174,6 @@ path = pathimag + 'stdvradvradi.pdf'
 print('Writing to %s...' % path)
 plt.savefig(path)
 plt.close()
-
-
-
-raise Exception('')
 
 
 
