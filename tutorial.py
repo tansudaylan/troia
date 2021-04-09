@@ -1,6 +1,6 @@
 import sys
 
-import bhol.main
+import troia.main
 
 def cnfg_HR6819():
    
@@ -28,10 +28,10 @@ def cnfg_rvel():
 def cnfg_mock():
    
     listtsec = [9]
-    init( \
-         #listtsec=listtsec, \
-         typedata='mock', \
-        )
+    troia.main.init( \
+                    #listtsec=listtsec, \
+                    typedata='mock', \
+                   )
 
 
 def cnfg_tsec():
