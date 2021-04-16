@@ -1,6 +1,5 @@
 import sys
-
-import troia.main
+import troia
 
 def cnfg_HR6819():
    
@@ -28,7 +27,7 @@ def cnfg_rvel():
 def cnfg_mock():
    
     listtsec = [9]
-    troia.main.init( \
+    troia.init( \
                     #listtsec=listtsec, \
                     typedata='mock', \
                    )

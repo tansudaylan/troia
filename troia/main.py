@@ -2,10 +2,9 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from tdpy.util import summgene
-import tdpy.util
-import tdpy.mcmc
-import ephesus.util
-import pexo.main
+import tdpy
+import ephesus
+import miletos
 
 import numpy as np
 import pandas as pd
@@ -42,8 +41,8 @@ def retr_dictderi_effe(para, gdat):
     massstar = para[3]
     masstotl = massstar + masscomp
 
-    amplslenmodl = ephesus.util.retr_amplslen(peri, radistar, masscomp, massstar)
-    duraslenmodl = ephesus.util.retr_duraslen(peri, radistar, masscomp, massstar, incl)
+    amplslenmodl = ephesus.retr_amplslen(peri, radistar, masscomp, massstar)
+    duratranmodl = ephesus.retr_duratran(peri, radistar, masscomp, massstar, incl)
     smax = retr_smaxkepl(peri, masstotl) * 215. # [R_S]
     radischw = 4.24e-6 * masscomp # [R_S]
 
@@ -51,7 +50,7 @@ def retr_dictderi_effe(para, gdat):
 
     dictparaderi = dict()
     dictparaderi['amplslenmodl'] = np.array([amplslenmodl])
-    dictparaderi['duraslenmodl'] = np.array([duraslenmodl])
+    dictparaderi['duratranmodl'] = np.array([duratranmodl])
     dictparaderi['smaxmodl'] = np.array([smax])
     dictparaderi['radischw'] = np.array([radischw])
 
@@ -66,11 +65,11 @@ def retr_masscomp( amplslen, peri):
     return masscomp
 
 
-def retr_dflxslensing(time, epocslen, amplslen, duraslen):
+def retr_dflxslensing(time, epocslen, amplslen, duratran):
     
     timediff = time - epocslen
     
-    dflxslensing = amplslen * np.heaviside(duraslen / 2. + timediff, 0.5) * np.heaviside(duraslen / 2. - timediff, 0.5)
+    dflxslensing = amplslen * np.heaviside(duratran / 2. + timediff, 0.5) * np.heaviside(duratran / 2. - timediff, 0.5)
     
     return dflxslensing
 
@@ -90,9 +89,9 @@ def retr_rflxmodl(time, para):
     
     ## self-lensing
     ### duration
-    duraslen = ephesus.util.retr_duraslen(peri, radistar, masscomp, massstar, incl) # [hour]
+    duratran = ephesus.retr_duratran(peri, radistar, masscomp, massstar, incl) # [hour]
     ### amplitude
-    amplslen = ephesus.util.retr_amplslen(peri, radistar, masscomp, massstar)
+    amplslen = ephesus.retr_amplslen(peri, radistar, masscomp, massstar)
     print('peri')
     print(peri)
     print('radistar')
@@ -101,12 +100,12 @@ def retr_rflxmodl(time, para):
     print(masscomp)
     print('massstar')
     print(massstar)
-    print('duraslen')
-    print(duraslen)
+    print('duratran')
+    print(duratran)
     print('amplslen')
     print(amplslen)
     dflxslen = np.zeros_like(time)
-    indxtimetran = ephesus.util.retr_indxtimetran(time, epoc, peri, duraslen)
+    indxtimetran = ephesus.retr_indxtimetran(time, epoc, peri, duratran)
     dflxslen[indxtimetran] += amplslen
     
     ## ellipsoidal variation
@@ -115,10 +114,10 @@ def retr_rflxmodl(time, para):
     # this should change 1.89e-2
     densstar = massstar / radistar**3
 
-    amplelli = ephesus.util.retr_amplelli(peri, densstar, massstar, masscomp)
+    amplelli = ephesus.retr_amplelli(peri, densstar, massstar, masscomp)
     
     ## beaming
-    amplbeam = ephesus.util.retr_amplbeam(peri, massstar, masscomp)
+    amplbeam = ephesus.retr_amplbeam(peri, massstar, masscomp)
     
     print('temp')
     #amplelli = 0
@@ -268,12 +267,12 @@ def init_wrap( \
 def infe_para():
     
     # construct global object
-    gdat = tdpy.util.gdatstrt()
+    gdat = tdpy.gdatstrt()
     
     gdat.bfitperi = 4.25 # [days]
     gdat.stdvperi = 1e-2 * gdat.bfitperi # [days]
-    gdat.bfitduraslen = 0.45 * 24. # [hours]
-    gdat.stdvduraslen = 1e-1 * gdat.bfitduraslen # [hours]
+    gdat.bfitduratran = 0.45 * 24. # [hours]
+    gdat.stdvduratran = 1e-1 * gdat.bfitduratran # [hours]
     gdat.bfitamplslen = 0.14 # [relative]
     gdat.stdvamplslen = 1e-1 * gdat.bfitamplslen # [relative]
     
@@ -322,7 +321,7 @@ def init( \
         ):
     
     # construct global object
-    gdat = tdpy.util.gdatstrt()
+    gdat = tdpy.gdatstrt()
     
     # copy unnamed inputs to the global object
     for attr, valu in locals().items():
@@ -336,7 +335,7 @@ def init( \
     # string for date and time
     gdat.strgtimestmp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
    
-    print('BHOL initialized at %s...' % gdat.strgtimestmp)
+    print('troia initialized at %s...' % gdat.strgtimestmp)
 
     if boolmultproc:
         import multiprocessing
@@ -357,7 +356,7 @@ def init( \
     
     # paths
     ## read PCAT path environment variable
-    gdat.pathbase = os.environ['BHOL_DATA_PATH'] + '/'
+    gdat.pathbase = os.environ['TROIA_DATA_PATH'] + '/'
     gdat.pathdata = gdat.pathbase + 'data/'
     gdat.pathimag = gdat.pathbase + 'imag/'
     
@@ -393,9 +392,9 @@ def init( \
             indxmasscomp = np.arange(numbmasscomp)
             for k in indxmasscomp:
 
-                amplbeam = ephesus.util.retr_amplbeam(arryperi, massstar, listmasscomp[k])
-                amplelli = ephesus.util.retr_amplelli(arryperi, densstar, massstar, listmasscomp[k])
-                amplslen = ephesus.util.retr_amplslen(arryperi, radistar, listmasscomp[k], massstar)
+                amplbeam = ephesus.retr_amplbeam(arryperi, massstar, listmasscomp[k])
+                amplelli = ephesus.retr_amplelli(arryperi, densstar, massstar, listmasscomp[k])
+                amplslen = ephesus.retr_amplslen(arryperi, radistar, listmasscomp[k], massstar)
                 
                 axis.plot(arryperi, amplbeam, ls=listlsty[k], color=listcolr[0])
                 axis.plot(arryperi, amplelli, ls=listlsty[k], color=listcolr[1])
@@ -559,29 +558,29 @@ def init( \
     if gdat.boolexectmat:
         gdat.thrstmpt = None
         
-        minmduraslentmpt = 0.5
-        maxmduraslentmpt = 24.
+        minmduratrantmpt = 0.5
+        maxmduratrantmpt = 24.
         
-        numbduraslentmpt = 3
-        indxduraslentmpt = np.arange(numbduraslentmpt)
-        listduraslentmpt = np.linspace(minmduraslentmpt, maxmduraslentmpt, numbduraslentmpt)
+        numbduratrantmpt = 3
+        indxduratrantmpt = np.arange(numbduratrantmpt)
+        listduratrantmpt = np.linspace(minmduratrantmpt, maxmduratrantmpt, numbduratrantmpt)
         
         listcorr = []
-        gdat.listdflxtmpt = [[] for k in indxduraslentmpt]
-        gdat.listtimetmpt = [[] for k in indxduraslentmpt]
-        numbtimekern = np.empty(numbduraslentmpt, dtype=int)
-        for k in indxduraslentmpt:
-            numbtimekern[k] = listduraslentmpt[k] / gdat.cade
+        gdat.listdflxtmpt = [[] for k in indxduratrantmpt]
+        gdat.listtimetmpt = [[] for k in indxduratrantmpt]
+        numbtimekern = np.empty(numbduratrantmpt, dtype=int)
+        for k in indxduratrantmpt:
+            numbtimekern[k] = listduratrantmpt[k] / gdat.cade
             if numbtimekern[k] == 0:
                 print('gdat.cade')
                 print(gdat.cade)
-                print('listduraslentmpt[k]')
-                print(listduraslentmpt[k])
+                print('listduratrantmpt[k]')
+                print(listduratrantmpt[k])
                 raise Exception('')
             gdat.listtimetmpt[k] = np.arange(numbtimekern[k]) * gdat.cade
             epocslen = gdat.listtimetmpt[k][int(numbtimekern[k]/2)]
             amplslen = 1.
-            gdat.listdflxtmpt[k] = retr_dflxslensing(gdat.listtimetmpt[k], epocslen, amplslen, listduraslentmpt[k])
+            gdat.listdflxtmpt[k] = retr_dflxslensing(gdat.listtimetmpt[k], epocslen, amplslen, listduratrantmpt[k])
             if not np.isfinite(gdat.listdflxtmpt[k]).all():
                 raise Exception('')
         
@@ -616,7 +615,7 @@ def init( \
 
     gdat.boolwritplotover = True
 
-    # to be done by pexo
+    # to be done by miletos
     ## target properties
     #gdat.radistar = 11.2
     #gdat.massstar = 18.
@@ -629,7 +628,7 @@ def init( \
     
     # interpolate TESS photometric precision
     tmag = np.linspace(2., 16., 100)
-    noistess = ephesus.util.retr_noistess(tmag)
+    noistess = ephesus.retr_noistess(tmag)
 
     # plot TESS photometric precision
     figr, axis = plt.subplots(figsize=(6, 4))
@@ -650,10 +649,10 @@ def init( \
     massstar = 1.
     radistar = 1.
     for masscomp in listmasscomp:
-        amplslentmag = ephesus.util.retr_amplslen(peri, radistar, masscomp, massstar)
+        amplslentmag = ephesus.retr_amplslen(peri, radistar, masscomp, massstar)
         axis.plot(peri, amplslentmag, label=r'M = %.3g M$_\odot$' % masscomp)
     for tmag in listtmag:
-        noistess = ephesus.util.retr_noistess(tmag)
+        noistess = ephesus.retr_noistess(tmag)
         if tmag == 16:
             axis.text(0.1, noistess * 1.6, ('Tmag = %.3g' % tmag),  color='black')
         else:
@@ -703,7 +702,7 @@ def init( \
         gdat.numbtrueslen = gdat.indxtrueslen.size
         
         # generate mock data
-        gdat.numbparatrueslen = 5
+        gdat.numbparatrueslen = 6
         gdat.paratrueslen = np.empty((gdat.numbtrueslen, gdat.numbparatrueslen))
         
         gdat.trueepoc = np.random.rand(gdat.numbtrueslen) * gdat.maxmtime
@@ -726,7 +725,7 @@ def init( \
         
         gdat.trueminmincl = 88.
         gdat.truemaaxincl = 90.
-        gdat.trueincl = tdpy.util.icdf_self(np.random.random(gdat.numbtrueslen), gdat.trueminmincl, gdat.truemaaxincl)
+        gdat.trueincl = tdpy.icdf_self(np.random.random(gdat.numbtrueslen), gdat.trueminmincl, gdat.truemaaxincl)
         
         gdat.truerflxtotl = np.empty((gdat.numbtime, gdat.numbtrueslen))
         gdat.truedflxelli = np.empty((gdat.numbtime, gdat.numbtrueslen))
@@ -754,7 +753,7 @@ def init( \
                                                                                                                   gdat.time[n], gdat.paratrueslen[nn, :])
             gdat.rflx[n] = np.copy(gdat.truerflxtotl[:, nn])
         
-        gdat.truestdvrflx = ephesus.util.retr_noistess(gdat.truetmag)
+        gdat.truestdvrflx = ephesus.retr_noistess(gdat.truetmag)
         for n in gdat.indxtarg:
             # add noise
             gdat.rflx[n] += gdat.truestdvrflx[n] * np.random.randn(gdat.numbtime)
@@ -799,8 +798,8 @@ def init( \
                 titl = ''
                 print('nn, n')
                 print(nn, n)
-                ephesus.util.plot_lcur(gdat.pathtargimag[n], dictmodl=dictmodl, timedata=gdat.time[n], \
-                                                                                lcurdata=gdat.rflx[n], boolover=gdat.boolwritplotover, \
+                ephesus.plot_lcur(gdat.pathtargimag[n], dictmodl=dictmodl, timedata=gdat.time[n], \
+                                                                                lcurdata=gdat.rflx[n], boolwritover=gdat.boolwritplotover, \
                                                                                                                            strgextn=strgextn, titl=titl)
                 nn += 1
 
@@ -834,10 +833,10 @@ def init( \
                 labltarg = None
                 listarrytser = None
         
-        # call pexo to analyze data
+        # call miletos to analyze data
         print('gdat.pathtarg[n]')
         print(gdat.pathtarg[n])
-        dictpexo = pexo.main.init( \
+        dictmile = miletos.init( \
                                   rasctarg=rasctarg, \
                                   decltarg=decltarg, \
                                   listarrytser=listarrytser, \
@@ -849,7 +848,7 @@ def init( \
                                   thrssdeetlsq=gdat.thrssdeetlsq, \
                                  )
         
-        #gdat.listsdee[n] = dictpexo['dicttlsq']['sdeetotl'] 
+        #gdat.listsdee[n] = dictmile['dicttlsq']['sdeetotl'] 
 
         #gdat.booltrig[n] = gdat.listsdee[n] >= gdat.thrssdeetlsq
         #if gdat.booltrig[n]:
@@ -897,7 +896,7 @@ def init( \
     liststrgvarbprec = ['sdee']
     
     #if typedata == 'mock':
-    #    tdpy.util.plot_recaprec(gdat.pathimag, gdat.strgextn, listvarbreca, listvarbprec, liststrgvarbreca, liststrgvarbprec, \
+    #    tdpy.plot_recaprec(gdat.pathimag, gdat.strgextn, listvarbreca, listvarbprec, liststrgvarbreca, liststrgvarbprec, \
     #                            listlablvarbreca, listlablvarbprec, boolposirele, boolreleposi)
 
 
@@ -905,7 +904,7 @@ def init( \
 def retr_dictcatlrvel():
     
     print('Reading Sauls Gaia high RV catalog...')
-    path = os.environ['BHOL_DATA_PATH'] + '/data/Gaia_high_RV_errors.txt'
+    path = os.environ['TROIA_DATA_PATH'] + '/data/Gaia_high_RV_errors.txt'
     for line in open(path):
         listnamesaul = line[:-1].split('\t')
         break

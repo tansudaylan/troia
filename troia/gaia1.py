@@ -20,7 +20,7 @@ import astropy
 from astropy.io import fits
 
 ## read PCAT path environment variable
-pathbase = os.environ['BHOL_DATA_PATH'] + '/'
+pathbase = os.environ['TROIA_DATA_PATH'] + '/'
 pathdata = pathbase + 'data/'
 pathimag = pathbase + 'imag/'
 
