@@ -28,9 +28,9 @@ def cnfg_mock():
    
     listtsec = [9]
     troia.init( \
-                    #listtsec=listtsec, \
-                    typedata='mock', \
-                   )
+               #listtsec=listtsec, \
+               typedata='mock', \
+              )
 
 
 def cnfg_tsec():
@@ -41,5 +41,3 @@ def cnfg_tsec():
 
 
 globals().get(sys.argv[1])()
-
-
