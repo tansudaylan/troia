@@ -98,8 +98,9 @@ def retr_rflxmodlbhol(time, para):
     #print(amplslen)
     
     dflxslen = np.zeros_like(time)
-    indxtimetran = ephesus.retr_indxtimetran(time, epoc, peri, duratran)
-    dflxslen[indxtimetran] += amplslen
+    if np.isfinite(duratran):
+        indxtimetran = ephesus.retr_indxtimetran(time, epoc, peri, duratran)
+        dflxslen[indxtimetran] += amplslen
     
     ## ellipsoidal variation
     ### density of the star
@@ -231,26 +232,16 @@ def init_wrap( \
 
 
 def init( \
+        # type of data: 'mock' or 'obds'
         typedata='obsd', \
         
         # population type
-        typepopl='sc17', \
+        typepopl='2minsc17', \
 
-        # data input
-        listticitarg=None, \
-        liststrgmast=None, \
-        tsec=None, \
-        
         # Boolean flag to turn on multiprocessing
         boolmultproc=False, \
 
-        # method, mfil or blsq
-        strgmeth='blsq', \
-        
-        # baseline detrending
-        ordrspln=None, \
-        durabrek=None, \
-        bdtrtype=None, \
+        # verbosity level
         verbtype=1, \
         
         # Boolean flag to make initial plota
@@ -279,9 +270,8 @@ def init( \
     if boolmultproc:
         import multiprocessing
     
-    # mock: mock
     # rvel: High RV targets from Gaia DR2
-    # brgt: brightest N
+    # m135: brighter than magnitude 13.5
     # xbin: X-ray binaries
     # tsec: a particular TESS Sector
     print('gdat.typepopl')
@@ -303,8 +293,10 @@ def init( \
     gdat.boolanimtmpt = False
     gdat.boolplottmpt = True
 
-    # get target list
+    dictpopl = miletos.retr_dictcatltic8(typepopl=gdat.typepopl)
     
+    # interpolate TESS photometric precision
+    dictpopl['nois'] = ephesus.retr_noistess(dictpopl['tmag'])
 
     if boolplotinit:
        
@@ -406,12 +398,6 @@ def init( \
                     data = occufielintp
                 if k == 1:
                     data = occucoenintp
-                print('peri')
-                summgene(peri)
-                print('data')
-                summgene(data)
-                print('masscomp')
-                summgene(masscomp)
                 c = plt.pcolor(peri, masscomp, data(peri, masscomp), norm=mpl.colors.LogNorm(), cmap ='Greens')#, vmin = z_min, vmax = z_max)
                 plt.colorbar(c)
                 axis.set_xlabel('Orbital Period [days]')
@@ -419,32 +405,59 @@ def init( \
                 plt.savefig(path)
                 plt.close()
     
-    ## data
-    ### observed data
-    #### be agnostic about the source of data
-    gdat.strgdata = None
+        # plot TESS photometric precision
+        figr, axis = plt.subplots(figsize=(6, 4))
+        axis.plot(dictpopl['tmag'], dictpopl['nois'])
+        axis.set_xlabel('Tmag')
+        axis.set_ylabel(r'$s$')
+        axis.set_yscale('log')
+        path = gdat.pathimag + 'sigmtmag.%s' % (gdat.plotfiletype) 
+        print('Writing to %s...' % path)
+        plt.savefig(path)
+        plt.close()
+        
+        # plot SNR
+        figr, axis = plt.subplots(figsize=(5, 3))
+        peri = np.logspace(-1, 2, 100)
+        listtmag = [10., 13., 16.]
+        listmasscomp = [1., 10., 100.]
+        massstar = 1.
+        radistar = 1.
+        for masscomp in listmasscomp:
+            amplslentmag = ephesus.retr_amplslen(peri, radistar, masscomp, massstar)
+            axis.plot(peri, amplslentmag, label=r'M = %.3g M$_\odot$' % masscomp)
+        for tmag in listtmag:
+            noistess = ephesus.retr_noistess(tmag)
+            if tmag == 16:
+                axis.text(0.1, noistess * 1.6, ('Tmag = %.3g' % tmag),  color='black')
+            else:
+                axis.text(0.1, noistess / 2, ('Tmag = %.3g' % tmag),  color='black')
+            axis.axhline(noistess, ls='--', color='black')#, label=('Tmag = %.3g' % tmag))
+        axis.set_xlabel('Period [day]')
+        axis.set_ylabel(r'Self-lensing amplitude')
+        axis.set_xscale('log')
+        axis.set_yscale('log')
+        axis.legend(loc=4, framealpha=1.)
+        path = gdat.pathimag + 'sigm.%s' % (gdat.plotfiletype) 
+        print('Writing to %s...' % path)
+        plt.savefig(path)
+        plt.close()
+    
+    ## input dictionary to miletos
     dictmileinpt = dict()
-    #### Boolean flag to use SAP data (as oppsed to PDC SAP)
+    #### Boolean flag to use PDC data
     dictmileinpt['typedataspoc'] = 'PDC'
     dictmileinpt['boolplotprop'] = False
+    
     # mock data
     if gdat.typedata == 'mock':
         gdat.cade = 10. / 60. / 24. # days
         gdat.numbtarg = 3
-   
-    ## number of targets
-    if gdat.typepopl == 'tsec':
-        gdat.numbtarg = len(gdat.liststrgmast)
-    if gdat.typepopl == 'rvel':
-        dictcatlrvel = retr_dictcatlrvel()
-        gdat.numbtarg = dictcatlrvel['rasc'].size
+    else:
+        ## number of targets
+        gdat.numbtarg = dictpopl['rasc'].size
     print('Number of targets: %s' % gdat.numbtarg)
-    if gdat.numbtarg == 0:
-        return
     gdat.indxtarg = np.arange(gdat.numbtarg)
-    
-    if gdat.typedata == 'mock':
-        gdat.indxtrue = gdat.indxtarg
     
     gdat.strgtarg = [[] for n in gdat.indxtarg]
     gdat.labltarg = [[] for n in gdat.indxtarg]
@@ -454,10 +467,10 @@ def init( \
     gdat.pathtargimag = [[] for n in gdat.indxtarg]
     for n in gdat.indxtarg:
         if gdat.typedata == 'obsd':
-            if gdat.typepopl == 'sect':
+            if gdat.typepopl == '2minsc17':
                 gdat.strgtarg[n] = 'sc%02d_%12d' % (gdat.tsec, gdat.listticitarg[n])
                 gdat.labltarg[n] = 'Sector %02d, TIC %d' % (gdat.tsec, gdat.listticitarg[n])
-            if gdat.typepopl == 'mast':
+            if gdat.typepopl == 'xbin':
                 gdat.labltarg[n] = gdat.liststrgmast[n]
                 gdat.strgtarg[n] = ''.join(gdat.liststrgmast[n].split(' '))
             if gdat.typepopl == 'rvel':
@@ -481,73 +494,23 @@ def init( \
             
     gdat.boolwritplotover = True
 
-    # to be done by miletos
-    ## target properties
-    #gdat.radistar = 11.2
-    #gdat.massstar = 18.
-    gdat.radistar = 1.
-    gdat.massstar = 1.
-    gdat.densstar = 1.41
-
+    if typepopl == '2minsc17':
+        gdat.tsec = 17
+    
     if gdat.tsec is not None:
         print('Sector: %d' % gdat.tsec)
-    
-    if gdat.typepopl == 'sc17':
-        tsec = 17
-    else:
-        tsec = None
-    dictpopl = miletos.retr_dictcatltic8(tsec)
-    
-    # interpolate TESS photometric precision
-    dictpopl['nois'] = ephesus.retr_noistess(dictpopl['tmag'])
 
-    # plot TESS photometric precision
-    figr, axis = plt.subplots(figsize=(6, 4))
-    axis.plot(dictpopl['tmag'], dictpopl['nois'])
-    axis.set_xlabel('Tmag')
-    axis.set_ylabel(r'$s$')
-    axis.set_yscale('log')
-    path = gdat.pathimag + 'sigmtmag.%s' % (gdat.plotfiletype) 
-    print('Writing to %s...' % path)
-    plt.savefig(path)
-    plt.close()
-    
-    # plot SNR
-    figr, axis = plt.subplots(figsize=(5, 3))
-    peri = np.logspace(-1, 2, 100)
-    listtmag = [10., 13., 16.]
-    listmasscomp = [1., 10., 100.]
-    massstar = 1.
-    radistar = 1.
-    for masscomp in listmasscomp:
-        amplslentmag = ephesus.retr_amplslen(peri, radistar, masscomp, massstar)
-        axis.plot(peri, amplslentmag, label=r'M = %.3g M$_\odot$' % masscomp)
-    for tmag in listtmag:
-        noistess = ephesus.retr_noistess(tmag)
-        if tmag == 16:
-            axis.text(0.1, noistess * 1.6, ('Tmag = %.3g' % tmag),  color='black')
-        else:
-            axis.text(0.1, noistess / 2, ('Tmag = %.3g' % tmag),  color='black')
-        axis.axhline(noistess, ls='--', color='black')#, label=('Tmag = %.3g' % tmag))
-    axis.set_xlabel('Period [day]')
-    axis.set_ylabel(r'Self-lensing amplitude')
-    axis.set_xscale('log')
-    axis.set_yscale('log')
-    axis.legend(loc=4, framealpha=1.)
-    path = gdat.pathimag + 'sigm.%s' % (gdat.plotfiletype) 
-    print('Writing to %s...' % path)
-    plt.savefig(path)
-    plt.close()
-    
-    gdat.claspred = np.empty(gdat.numbtarg, dtype=int)
-    gdat.boolposi = np.empty((gdat.numbtarg, 2), dtype=bool)
+    gdat.numbclasposi = 2
+    gdat.boolposi = np.empty((gdat.numbtarg, gdat.numbclasposi), dtype=bool)
     
     if gdat.typedata == 'mock':
         
+        print('Making mock data...')
+
         # mock data setup 
         gdat.minmtime = 0.
         gdat.maxmtime = 27.3
-        for nn, n in enumerate(gdat.indxtrue):
+        for nn, n in enumerate(gdat.indxtarg):
             gdat.time[n] = np.concatenate((np.arange(0., 27.3 / 2. - 1., gdat.cade), np.arange(27.3 / 2. + 1., 27.3, gdat.cade)))
         gdat.indxtimelink = np.where(abs(gdat.time[n] - 13.7) < 2.)[0]
     
@@ -633,10 +596,7 @@ def init( \
             
     pathlogg = gdat.pathdata + 'logg/'
     
-    if gdat.typepopl == 'tsec':
-        dictcatltsec = retr_dictcatltsec(pathdata, tsec)
-
-    gdat.listsdeemaxm = np.empty(gdat.numbtarg)
+    gdat.listsdee = np.empty(gdat.numbtarg)
     gdat.indxtargposi = []
     
     gdat.booltrig = np.zeros(gdat.numbtarg, dtype=bool)
@@ -723,14 +683,14 @@ def init( \
                                   **dictmileinpt, \
                                  )
         
-        if len(dictmileoutp['dictsrchpboxoutp']['sdeemaxm']) > 0:
+        if len(dictmileoutp['dictsrchpboxoutp']['sdee']) > 0:
             # taking the fist element, which belongs to the first TCE
-            gdat.listsdeemaxm[n] = dictmileoutp['dictsrchpboxoutp']['sdeemaxm'][0]
+            gdat.listsdee[n] = dictmileoutp['dictsrchpboxoutp']['sdee'][0]
 
-            gdat.booltrig[n] = gdat.listsdeemaxm[n] >= dictmileinpt['dictsrchpboxoutp']['thrssdee']
+            gdat.booltrig[n] = gdat.listsdee[n] >= dictmileinpt['dictsrchpboxoutp']['thrssdee']
         
-        print('dictmileoutp[dictsrchpboxoutp][sdeemaxm]')
-        print(dictmileoutp['dictsrchpboxoutp']['sdeemaxm'])
+        print('dictmileoutp[dictsrchpboxoutp][sdee]')
+        print(dictmileoutp['dictsrchpboxoutp']['sdee'])
         print('gdat.booltrig[n]')
         print(gdat.booltrig[n])
         if gdat.booltrig[n]:
@@ -748,8 +708,8 @@ def init( \
         else:
             gdat.boolposi[n, 0] = False
     
-    print('gdat.listsdeemaxm')
-    summgene(gdat.listsdeemaxm)
+    print('gdat.listsdee')
+    summgene(gdat.listsdee)
 
     gdat.boolposirele = np.array(gdat.boolposirele)
     gdat.indxtargposi = np.where(gdat.boolposi[:, 0])[0]
@@ -759,7 +719,7 @@ def init( \
         listvarbreca = [gdat.trueperi, gdat.truemasscomp, gdat.truetmag[gdat.indxtruerele]]
         listlablvarbreca = [['$P$', 'day'], ['$M_c$', '$M_\odot$'], ['Tmag', '']]
         liststrgvarbreca = ['trueperi', 'truemasscomp', 'truetmag']
-    listvarbprec = [gdat.listsdeemaxm]
+    listvarbprec = [gdat.listsdee]
     listlablvarbprec = [['SNR', '']]
     liststrgvarbprec = ['sdee']
     
