@@ -136,7 +136,7 @@ def plot_lspe(gdat, n, perisamp, psdn, psdnelli=None, psdnbeam=None, psdnslen=No
     axis.set_xscale('log')
     axis.set_yscale('log')
     plt.tight_layout()
-    path = gdat.pathtargimag[n] + 'psdn_%s.%s' % (gdat.strgextnthis, gdat.plotfiletype)
+    path = gdat.pathimagpopl + 'psdn_%s.%s' % (gdat.strgextnthis, gdat.plotfiletype)
     plt.savefig(path)
     plt.close()
     
@@ -282,7 +282,15 @@ def init( \
     gdat.pathbase = os.environ['TROIA_DATA_PATH'] + '/'
     gdat.pathdata = gdat.pathbase + 'data/'
     gdat.pathimag = gdat.pathbase + 'imag/'
-    
+    gdat.pathpopl = gdat.pathbase + gdat.typepopl + '_' + gdat.typedata + '/'
+    gdat.pathimagpopl = gdat.pathpopl + 'imag/'
+    gdat.pathdatapopl = gdat.pathpopl + 'data/'
+
+    # make folders
+    for attr, valu in gdat.__dict__.items():
+        if attr.startswith('path'):
+            os.system('mkdir -p %s' % valu)
+
     # settings
     ## seed
     np.random.seed(0)
@@ -445,6 +453,9 @@ def init( \
     
     ## input dictionary to miletos
     dictmileinpt = dict()
+    
+    dictmileinpt['pathbasetarg'] = gdat.pathpopl
+
     #### Boolean flag to use PDC data
     dictmileinpt['typedataspoc'] = 'PDC'
     dictmileinpt['boolplotprop'] = False
@@ -461,10 +472,6 @@ def init( \
     
     gdat.strgtarg = [[] for n in gdat.indxtarg]
     gdat.labltarg = [[] for n in gdat.indxtarg]
-    gdat.pathtarg = [[] for n in gdat.indxtarg]
-    gdat.pathtargdata = [[] for n in gdat.indxtarg]
-    gdat.pathtargimagmcmc = [[] for n in gdat.indxtarg]
-    gdat.pathtargimag = [[] for n in gdat.indxtarg]
     for n in gdat.indxtarg:
         if gdat.typedata == 'obsd':
             if gdat.typepopl == '2minsc17':
@@ -479,14 +486,6 @@ def init( \
         if gdat.typedata == 'mock':
             gdat.strgtarg[n] = 'mock%04d' % n
             gdat.labltarg[n] = 'Mock target %08d' % n
-        print('gdat.strgtarg[n]')
-        print(gdat.strgtarg[n])
-        if len(gdat.strgtarg[n]) == 0 or gdat.strgtarg[n] == '':
-            raise Exception('')
-        gdat.pathtarg[n] = gdat.pathbase + '%s/' % gdat.strgtarg[n]
-        gdat.pathtargdata[n] = gdat.pathtarg[n] + 'data/'
-        gdat.pathtargimag[n] = gdat.pathtarg[n] + 'imag/'
-        gdat.pathtargimagmcmc[n] = gdat.pathtargimag[n] + 'mcmc/'
     
     # get data
     gdat.time = [[] for n in gdat.indxtarg]
@@ -619,9 +618,6 @@ def init( \
         gdat.strgextnthis = '%s_%s' % (gdat.typedata, gdat.strgtarg[n])
         pathtcee = pathlogg + '%s_%s.txt' % (gdat.typedata, gdat.strgtarg[n])
         
-        os.system('mkdir -p %s' % gdat.pathtargdata[n])
-        os.system('mkdir -p %s' % gdat.pathtargimag[n])
-        
         if gdat.typedata == 'mock':
             
             if n in gdat.indxtruerele:
@@ -634,7 +630,7 @@ def init( \
                 strgextn = '%s_%s' % (gdat.typedata, gdat.strgtarg[n])
                 titl = 'P=%.3g day, M=%.3g M$_\odot$, Tmag=%.3g' % (gdat.trueperi[gdat.indxreletrue[n]], \
                                                                 gdat.truemasscomp[gdat.indxreletrue[n]], gdat.truetmag[gdat.indxreletrue[n]])
-                ephesus.plot_lcur(gdat.pathtargimag[n], dictmodl=dictmodl, timedata=gdat.time[n], titl=titl, \
+                ephesus.plot_lcur(gdat.pathimagpopl, dictmodl=dictmodl, timedata=gdat.time[n], titl=titl, \
                                                                                 lcurdata=gdat.rflx[n], boolwritover=gdat.boolwritplotover, \
                                                                                                                            strgextn=strgextn)
                 nn += 1
@@ -679,7 +675,6 @@ def init( \
                                   listarrytser=listarrytser, \
                                   typemodl='bhol', \
                                   boolclip=False, \
-                                  pathtarg=gdat.pathtarg[n], \
                                   **dictmileinpt, \
                                  )
         
