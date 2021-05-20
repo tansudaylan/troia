@@ -147,8 +147,7 @@ def plot_srch(gdat, n):
     
     figr, axis = plt.subplots(figsize=(10, 4.5))
     
-    if gdat.typedata == 'obsd':
-        axis.text(0.5, 1.25, '%s' % (gdat.labltarg[n]), color='k', transform=axis.transAxes, ha='center')
+    axis.text(0.5, 1.25, '%s' % (gdat.labltarg[n]), color='k', transform=axis.transAxes, ha='center')
         
     axis.scatter(gdat.time[n], gdat.rflx[n], color='black', s=1, rasterized=True)
     #axis.set_xlabel('Time [days]')
@@ -245,7 +244,7 @@ def init( \
         verbtype=1, \
         
         # Boolean flag to make initial plota
-        boolplotinit=True, \
+        boolplotinit=False, \
 
         **args
         ):
@@ -300,13 +299,17 @@ def init( \
     
     gdat.boolanimtmpt = False
     gdat.boolplottmpt = True
+        
+    if gdat.typepopl != 'cand':
+        dictpopl = miletos.retr_dictcatltic8(typepopl=gdat.typepopl)
 
-    dictpopl = miletos.retr_dictcatltic8(typepopl=gdat.typepopl)
-    
-    # interpolate TESS photometric precision
-    dictpopl['nois'] = ephesus.retr_noistess(dictpopl['tmag'])
+    if gdat.typepopl == 'cand':
+        liststrgmast = ['V723 Mon']
+    else:
+        liststrgmast = dictpopl['tici']
 
     if boolplotinit:
+        dictpopl = miletos.retr_dictcatltic8(typepopl='m135nomi')
        
         # plot amplitude vs. orbital period for three components of the light curve of a COSC
         path = gdat.pathimag + 'fig0.pdf'
@@ -413,6 +416,9 @@ def init( \
                 plt.savefig(path)
                 plt.close()
     
+        # interpolate TESS photometric precision
+        dictpopl['nois'] = ephesus.retr_noistess(dictpopl['tmag'])
+
         # plot TESS photometric precision
         figr, axis = plt.subplots(figsize=(6, 4))
         axis.plot(dictpopl['tmag'], dictpopl['nois'])
@@ -466,7 +472,10 @@ def init( \
         gdat.numbtarg = 3
     else:
         ## number of targets
-        gdat.numbtarg = dictpopl['rasc'].size
+        if gdat.typepopl == 'cand':
+            gdat.numbtarg = len(liststrgmast)
+        else:
+            gdat.numbtarg = dictpopl['rasc'].size
     print('Number of targets: %s' % gdat.numbtarg)
     gdat.indxtarg = np.arange(gdat.numbtarg)
     
@@ -493,11 +502,12 @@ def init( \
             
     gdat.boolwritplotover = True
 
-    if typepopl == '2minsc17':
+    if gdat.typepopl == '2minsc17':
         gdat.tsec = 17
     
-    if gdat.tsec is not None:
-        print('Sector: %d' % gdat.tsec)
+    if gdat.typepopl != 'cand':
+        if gdat.tsec is not None:
+            print('Sector: %d' % gdat.tsec)
 
     gdat.numbclasposi = 2
     gdat.boolposi = np.empty((gdat.numbtarg, gdat.numbclasposi), dtype=bool)
@@ -610,8 +620,9 @@ def init( \
     #dictmileinpt['verbtype'] = 0
     #dictmileinpt['boolsrchsingpuls'] = True
     
-    gdat.boolreleposi = []
-    gdat.boolposirele = np.empty(gdat.numbtrueslen, dtype=bool)
+    if gdat.typedata == 'mock':
+        gdat.boolreleposi = []
+        gdat.boolposirele = np.empty(gdat.numbtrueslen, dtype=bool)
     gdat.strgextn = '%s_%s' % (gdat.typedata, gdat.typepopl)
     for n in gdat.indxtarg:
         
@@ -645,6 +656,7 @@ def init( \
             
             rasctarg = None
             decltarg = None
+            strgmast = None
             listarrytser = gdat.listarry
             labltarg = gdat.labltarg[n]
         else:
@@ -657,12 +669,20 @@ def init( \
                 rasctarg = None
                 decltarg = None
                 labltarg = None
+                strgmast = None
                 listarrytser = gdat.listarry
         
             if gdat.typepopl == 'rvel':
                 rasctarg = dictcatlrvel['rasc'][n]
                 decltarg = dictcatlrvel['decl'][n]
                 labltarg = None
+                listarrytser = None
+                strgmast = None
+            if gdat.typepopl == 'cand':
+                rasctarg = None
+                decltarg = None
+                labltarg = None
+                strgmast = liststrgmast[n]
                 listarrytser = None
         
         print('Calling miletos.init() to analyze and model the data for the target...')
@@ -671,6 +691,7 @@ def init( \
                                   rasctarg=rasctarg, \
                                   decltarg=decltarg, \
                                   labltarg=labltarg, \
+                                  strgmast=strgmast, \
                                   
                                   listarrytser=listarrytser, \
                                   typemodl='bhol', \
