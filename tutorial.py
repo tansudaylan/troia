@@ -1,24 +1,33 @@
 import sys
 import troia
 
+def cnfg_candidates():
+   
+    
+    typepopl = 'cand'
+
+    troia.init( \
+         typepopl=typepopl, \
+        )
+
+
 def cnfg_HR6819():
    
-    init( \
+    troia.init( \
          liststrgmast=['HR6819'], \
-         bdtrtype='medi', \
         )
 
 
 def cnfg_Rafael():
    
-    init( \
+    troia.init( \
          liststrgmast=['TIC 356069146'], \
         )
 
 
 def cnfg_rvel():
    
-    init( \
+    troia.init( \
          #listtsec=listtsec, \
          #liststrgmast=['Vela X-1'], \
         )
