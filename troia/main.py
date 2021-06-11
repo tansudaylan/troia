@@ -48,14 +48,25 @@ def retr_dflxslensing(time, epocslen, amplslen, duratran):
     return dflxslensing
 
 
-def retr_rflxmodlbhol(time, para):
+def retr_rflxmodlbhol( \
+                      # time axis
+                      time, \
+                      # parameter vector (see below for details)
+                      para, \
+                     ):
     
     # parse parameters 
+    ## epoch of the orbit
     epoc = para[0]
+    ## orbital period in days
     peri = para[1]
+    ## radius of the star in Solar radius
     radistar = para[2]
+    ## mass of the companion in Solar mass
     masscomp = para[3]
+    ## mass of the star in Solar mass
     massstar = para[4]
+    ## inclination of the orbit in degrees
     incl = para[5]
     
     # phase
@@ -78,35 +89,14 @@ def retr_rflxmodlbhol(time, para):
     ### amplitude
     amplslen = ephesus.retr_amplslen(peri, radistar, masscomp, massstar)
     
-    #print('radistar')
-    #print(radistar)
-    #print('masscomp')
-    #print(masscomp)
-    #print('massstar')
-    #print(massstar)
-    #print('peri')
-    #print(peri)
-    #print('smax')
-    #print(smax)
-    #print('rsma')
-    #print(rsma)
-    #print('cosi')
-    #print(cosi)
-    #print('duratran')
-    #print(duratran)
-    #print('amplslen')
-    #print(amplslen)
-    
     dflxslen = np.zeros_like(time)
     if np.isfinite(duratran):
         indxtimetran = ephesus.retr_indxtimetran(time, epoc, peri, duratran)
         dflxslen[indxtimetran] += amplslen
     
     ## ellipsoidal variation
-    ### density of the star
-    print('temp: stellar density calculation is wrong.') 
-    # this should change 1.89e-2
-    densstar = massstar / radistar**3
+    ### density of the star in g/cm3
+    densstar = 1.41 * massstar / radistar**3
 
     amplelli = ephesus.retr_amplelli(peri, densstar, massstar, masscomp)
     
