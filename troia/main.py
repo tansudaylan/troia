@@ -3,6 +3,8 @@ import os, sys, datetime, fnmatch
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
+import astroquery
+
 import numpy as np
 import pandas as pd
 import scipy.interpolate
@@ -13,6 +15,13 @@ from tdpy.util import summgene
 import tdpy
 import ephesus
 import miletos
+
+
+def retr_angleins(masslens, distlens, distsour, distlenssour):
+    
+    angleins = np.sqrt(masslens / 10**(11.09) * distlenssour / distlens / distsour)
+    
+    return angleins
 
 
 def retr_dictderi_effe(para, gdat):
@@ -43,7 +52,7 @@ def retr_dflxslensing(time, epocslen, amplslen, duratran):
     
     timediff = time - epocslen
     
-    dflxslensing = amplslen * np.heaviside(duratran / 2. + timediff, 0.5) * np.heaviside(duratran / 2. - timediff, 0.5)
+    dflxslensing = amplslen * np.heaviside(duratran / 48. + timediff, 0.5) * np.heaviside(duratran / 48. - timediff, 0.5)
     
     return dflxslensing
 
@@ -72,7 +81,7 @@ def retr_rflxmodlbhol( \
     # phase
     phas = ((time - epoc) / peri) % 1.
     
-    factrsrj, factrjre, factrsre, factmsmj, factmjme, factmsme, factaurs = ephesus.retr_factconv()
+    dictfact = ephesus.retr_factconv()
     
     ## self-lensing
     ### total mass
@@ -221,19 +230,28 @@ def init_wrap( \
 
 
 def init( \
+        # population type
+        typepopl=None, \
+
+        # list of target TIC IDs
+        listticitarg=None, \
+
+        # list of MAST keywords
+        liststrgmast=None, \
+        
+        # list of GAIA IDs
+        listgaid=None, \
+
         # type of data: 'mock' or 'obds'
         typedata='obsd', \
         
-        # population type
-        typepopl='2minsc17', \
-
         # Boolean flag to turn on multiprocessing
         boolmultproc=False, \
 
         # verbosity level
         verbtype=1, \
         
-        # Boolean flag to make initial plota
+        # Boolean flag to make initial plots
         boolplotinit=False, \
 
         **args
@@ -255,11 +273,21 @@ def init( \
     gdat.strgtimestmp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
    
     print('troia initialized at %s...' % gdat.strgtimestmp)
-
+    
+    if gdat.liststrgmast is not None and gdat.listticitarg is not None:
+        raise Exception('liststrgmast and listticitarg cannot be defined simultaneously.')
+    
+    gdat.booltargusertici = gdat.listticitarg is not None
+    gdat.booltargusermast = gdat.liststrgmast is not None
+    gdat.booltargusergaid = gdat.listgaid is not None
+    gdat.booltarguser = gdat.liststrgmast is not None or gdat.listticitarg is not None
+    
+    if (liststrgmast is not None or listticitarg is not None) and gdat.typepopl is None:
+        raise Exception('The type of population, typepopl, must be defined by the user when the target list is provided by the user')
+    
     if boolmultproc:
         import multiprocessing
     
-    # rvel: High RV targets from Gaia DR2
     # m135: brighter than magnitude 13.5
     # xbin: X-ray binaries
     # tsec: a particular TESS Sector
@@ -289,16 +317,59 @@ def init( \
     
     gdat.boolanimtmpt = False
     gdat.boolplottmpt = True
-        
-    if gdat.typepopl != 'cand':
+    
+    if not gdat.booltarguser:
         dictpopl = miletos.retr_dictcatltic8(typepopl=gdat.typepopl)
-
-    if gdat.typepopl == 'cand':
-        liststrgmast = ['V723 Mon']
+    
+    # mock data
+    if gdat.typedata == 'mock':
+        gdat.cade = 10. / 60. / 24. # days
+        gdat.numbtarg = 3
     else:
-        liststrgmast = dictpopl['tici']
+        ## number of targets
+        if gdat.typepopl == 'cand':
+            gdat.numbtarg = len(liststrgmast)
+        else:
+            if gdat.booltarguser:
+                if gdat.booltargusertici:
+                    gdat.numbtarg = len(gdat.listticitarg)
+                else:
+                    gdat.numbtarg = len(gdat.liststrgmast)
+            else:
+                gdat.numbtarg = dicpopl['ID'].size
+                
+    print('Number of targets: %s' % gdat.numbtarg)
+    gdat.indxtarg = np.arange(gdat.numbtarg)
+    
+    if gdat.booltarguser:
+        if not gdat.booltargusertici:
+            for k in gdat.indxtarg:
+                listdictcatl = astroquery.mast.Catalogs.query_object(gdat.liststrgmast[k], catalog='TIC', radius='40s')
+                if listdictcatl[0]['dstArcSec'] < 0.1:
+                    gdat.listticitarg = listdictcatl[0]['ID']
+        dictpopl = miletos.xmat_tici(gdat.listticitarg)
 
     if boolplotinit:
+        
+        # plot Einstein radius vs lens mass
+        figr, axis = plt.subplots(figsize=(6, 4))
+        listmass = np.logspace(-8., 18., 200)
+        distlens = 1e-7 # Gpc
+        distsour = 1e-7 # Gpc
+        dictfact = ephesus.retr_factconv()
+        smax = ephesus.retr_smaxkepl(peri, masstotl) # AU
+        distlenssour = 1e-9 * smax / dictfact['pcau'] # Gpc
+        listangleins = retr_angleins(listmass, distlens, distsour, distlenssour)
+        axis.plot(listmass, listangleins)
+        axis.set_xlabel('$M$ [$M_\odot$]')
+        axis.set_ylabel(r'$\theta_E$ [arcsec]')
+        axis.set_xscale('log')
+        axis.set_yscale('log')
+        path = gdat.pathimag + 'angleins.%s' % (gdat.plotfiletype) 
+        print('Writing to %s...' % path)
+        plt.savefig(path)
+        plt.close()
+        
         dictpopl = miletos.retr_dictcatltic8(typepopl='m135nomi')
        
         # plot amplitude vs. orbital period for three components of the light curve of a COSC
@@ -456,19 +527,9 @@ def init( \
     dictmileinpt['typedataspoc'] = 'PDC'
     dictmileinpt['boolplotprop'] = False
     
-    # mock data
-    if gdat.typedata == 'mock':
-        gdat.cade = 10. / 60. / 24. # days
-        gdat.numbtarg = 3
-    else:
-        ## number of targets
-        if gdat.typepopl == 'cand':
-            gdat.numbtarg = len(liststrgmast)
-        else:
-            gdat.numbtarg = dictpopl['rasc'].size
-    print('Number of targets: %s' % gdat.numbtarg)
-    gdat.indxtarg = np.arange(gdat.numbtarg)
-    
+    if gdat.typepopl == '2minsc17':
+        gdat.tsec = 17
+
     gdat.strgtarg = [[] for n in gdat.indxtarg]
     gdat.labltarg = [[] for n in gdat.indxtarg]
     for n in gdat.indxtarg:
@@ -476,11 +537,14 @@ def init( \
             if gdat.typepopl == '2minsc17':
                 gdat.strgtarg[n] = 'sc%02d_%12d' % (gdat.tsec, gdat.listticitarg[n])
                 gdat.labltarg[n] = 'Sector %02d, TIC %d' % (gdat.tsec, gdat.listticitarg[n])
-            if gdat.typepopl == 'xbin':
+            if gdat.booltargusertici:
+                gdat.labltarg[n] = 'TIC' + gdat.listticitarg[n]
+                gdat.strgtarg[n] = ''.join(gdat.liststrgmast[n].split(' '))
+            if gdat.booltargusermast:
                 gdat.labltarg[n] = gdat.liststrgmast[n]
                 gdat.strgtarg[n] = ''.join(gdat.liststrgmast[n].split(' '))
-            if gdat.typepopl == 'rvel':
-                gdat.labltarg[n] = 'RA=%.4g,DEC=%.4g' % (dictcatlrvel['rasc'][n], dictcatlrvel['decl'][n])
+            if gdat.booltargusergaid:
+                gdat.labltarg[n] = 'GID=' % (dictcatlrvel['rasc'][n], dictcatlrvel['decl'][n])
                 gdat.strgtarg[n] = 'R%.4gDEC%.4g' % (dictcatlrvel['rasc'][n], dictcatlrvel['decl'][n])
         if gdat.typedata == 'mock':
             gdat.strgtarg[n] = 'mock%04d' % n
@@ -494,10 +558,7 @@ def init( \
 
     if gdat.typepopl == '2minsc17':
         gdat.tsec = 17
-    
-    if gdat.typepopl != 'cand':
-        if gdat.tsec is not None:
-            print('Sector: %d' % gdat.tsec)
+        print('Sector: %d' % gdat.tsec)
 
     gdat.numbclasposi = 2
     gdat.boolposi = np.empty((gdat.numbtarg, gdat.numbclasposi), dtype=bool)
@@ -603,7 +664,7 @@ def init( \
     if gdat.typedata == 'mock':
         nn = 0
     
-    ## miletos dictionary
+    ## fill miletos input dictionary
     dictmileinpt['boollspe'] = True
     #### SDE threshold for the pipeline to search for periodic boxes
     dictmileinpt['dictsrchpboxoutp'] = {'thrssdee': 0.}
@@ -662,19 +723,14 @@ def init( \
                 strgmast = None
                 listarrytser = gdat.listarry
         
-            if gdat.typepopl == 'rvel':
-                rasctarg = dictcatlrvel['rasc'][n]
-                decltarg = dictcatlrvel['decl'][n]
-                labltarg = None
-                listarrytser = None
-                strgmast = None
-            if gdat.typepopl == 'cand':
+            if gdat.booltargusermast:
                 rasctarg = None
                 decltarg = None
                 labltarg = None
                 strgmast = liststrgmast[n]
                 listarrytser = None
-        
+            
+            
         print('Calling miletos.init() to analyze and model the data for the target...')
         # call miletos to analyze data
         dictmileoutp = miletos.init( \

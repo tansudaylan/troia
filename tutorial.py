@@ -11,11 +11,20 @@ def cnfg_candidates():
         )
 
 
-def cnfg_HR6819():
+def cnfg_candidates():
    
     troia.init( \
-         liststrgmast=['HR6819'], \
-        )
+               liststrgmast=['V723 Mon'], \
+               typepopl='Candidates', \
+              )
+
+
+def cnfg_XRB():
+   
+    troia.init( \
+               liststrgmast=['HR6819'], \
+               typepopl='XRB', \
+              )
 
 
 def cnfg_Rafael():
@@ -25,6 +34,7 @@ def cnfg_Rafael():
         )
 
 
+# rvel: High RV targets from Gaia DR2
 def cnfg_rvel():
    
     troia.init( \
