@@ -89,7 +89,7 @@ def retr_rflxmodlbhol( \
     ### semi-major axis
     smax = ephesus.retr_smaxkepl(peri, masstotl)
     ### radius of the star divided by the semi-major axis
-    rsma = radistar / smax / factaurs
+    rsma = radistar / smax / dictfact['factaurs']
     ### cosine of the inclination angle
     cosi = np.cos(incl / 180. * np.pi)
     
