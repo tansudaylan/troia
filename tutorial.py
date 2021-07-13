@@ -1,15 +1,6 @@
 import sys
 import troia
 
-def cnfg_candidates():
-   
-    
-    typepopl = 'cand'
-
-    troia.init( \
-         typepopl=typepopl, \
-        )
-
 
 def cnfg_candidates():
    
@@ -22,7 +13,7 @@ def cnfg_candidates():
 def cnfg_XRB():
    
     troia.init( \
-               liststrgmast=['HR6819'], \
+               liststrgmast=['HR6819', 'Vela X-1'], \
                typepopl='XRB', \
               )
 
@@ -30,33 +21,32 @@ def cnfg_XRB():
 def cnfg_Rafael():
    
     troia.init( \
-         liststrgmast=['TIC 356069146'], \
-        )
+               liststrgmast=['TIC 356069146'], \
+               typepopl='Rafael', \
+              )
 
 
 # rvel: High RV targets from Gaia DR2
 def cnfg_rvel():
    
     troia.init( \
-         #listtsec=listtsec, \
-         #liststrgmast=['Vela X-1'], \
-        )
+               typepopl='rvel', \
+              )
 
 
-def cnfg_mock():
+def cnfg_2minsc17_mock():
    
-    listtsec = [9]
     troia.init( \
-               #listtsec=listtsec, \
+               typepopl='2minsc17', \
                typedata='mock', \
               )
 
 
-def cnfg_tsec():
+def cnfg_sc17():
    
-    init( \
-         tsec=1, \
-        )
+    troi.init( \
+              typepopl='2minsc17', \
+             )
 
 
 globals().get(sys.argv[1])()

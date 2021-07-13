@@ -81,23 +81,24 @@ def retr_rflxmodlbhol( \
     # phase
     phas = ((time - epoc) / peri) % 1.
     
+    # conversion constants
     dictfact = ephesus.retr_factconv()
     
-    ## self-lensing
-    ### total mass
+    ## total mass
     masstotl = masscomp + massstar
-    ### semi-major axis
+    ## semi-major axis
     smax = ephesus.retr_smaxkepl(peri, masstotl)
-    ### radius of the star divided by the semi-major axis
-    rsma = radistar / smax / dictfact['factaurs']
-    ### cosine of the inclination angle
+    ## radius of the star divided by the semi-major axis
+    rsma = radistar / smax / dictfact['aurs']
+    ## cosine of the inclination angle
     cosi = np.cos(incl / 180. * np.pi)
     
+    ## self-lensing
     ### duration
     duratran = ephesus.retr_duratran(peri, rsma, cosi)
     ### amplitude
     amplslen = ephesus.retr_amplslen(peri, radistar, masscomp, massstar)
-    
+    ### signal
     dflxslen = np.zeros_like(time)
     if np.isfinite(duratran):
         indxtimetran = ephesus.retr_indxtimetran(time, epoc, peri, duratran)
@@ -106,13 +107,14 @@ def retr_rflxmodlbhol( \
     ## ellipsoidal variation
     ### density of the star in g/cm3
     densstar = 1.41 * massstar / radistar**3
-
+    ### amplitude
     amplelli = ephesus.retr_amplelli(peri, densstar, massstar, masscomp)
+    ### signal
+    dflxelli = -amplelli * np.cos(4. * np.pi * phas) 
     
     ## beaming
     amplbeam = ephesus.retr_amplbeam(peri, massstar, masscomp)
-    
-    dflxelli = -amplelli * np.cos(4. * np.pi * phas) 
+    ### signal
     dflxbeam = amplbeam * np.sin(2. * np.pi * phas)
     
     ## total relative flux
@@ -135,14 +137,14 @@ def plot_lspe(gdat, n, perisamp, psdn, psdnelli=None, psdnbeam=None, psdnslen=No
     axis.set_xscale('log')
     axis.set_yscale('log')
     plt.tight_layout()
-    path = gdat.pathimagpopl + 'psdn_%s.%s' % (gdat.strgextnthis, gdat.plotfiletype)
+    path = gdat.pathimagpopl + 'psdn_%s.%s' % (gdat.strgextnthis, gdat.typefileplot)
     plt.savefig(path)
     plt.close()
     
 
 def plot_srch(gdat, n):
     
-    gdat.pathplotsrch = gdat.pathtargimag[n] + 'srch_%s_%s.%s' % (gdat.typedata, gdat.strgtarg[n], gdat.plotfiletype)
+    gdat.pathplotsrch = gdat.pathtargimag[n] + 'srch_%s_%s.%s' % (gdat.typedata, gdat.strgtarg[n], gdat.typefileplot)
     
     figr, axis = plt.subplots(figsize=(10, 4.5))
     
@@ -313,7 +315,7 @@ def init( \
     np.random.seed(0)
     
     ## plotting
-    gdat.plotfiletype = 'pdf'
+    gdat.typefileplot = 'pdf'
     
     gdat.boolanimtmpt = False
     gdat.boolplottmpt = True
@@ -324,7 +326,7 @@ def init( \
     # mock data
     if gdat.typedata == 'mock':
         gdat.cade = 10. / 60. / 24. # days
-        gdat.numbtarg = 3
+        gdat.numbtarg = 7
     else:
         ## number of targets
         if gdat.typepopl == 'cand':
@@ -365,7 +367,7 @@ def init( \
         axis.set_ylabel(r'$\theta_E$ [arcsec]')
         axis.set_xscale('log')
         axis.set_yscale('log')
-        path = gdat.pathimag + 'angleins.%s' % (gdat.plotfiletype) 
+        path = gdat.pathimag + 'angleins.%s' % (gdat.typefileplot) 
         print('Writing to %s...' % path)
         plt.savefig(path)
         plt.close()
@@ -486,7 +488,7 @@ def init( \
         axis.set_xlabel('Tmag')
         axis.set_ylabel(r'$s$')
         axis.set_yscale('log')
-        path = gdat.pathimag + 'sigmtmag.%s' % (gdat.plotfiletype) 
+        path = gdat.pathimag + 'sigmtmag.%s' % (gdat.typefileplot) 
         print('Writing to %s...' % path)
         plt.savefig(path)
         plt.close()
@@ -513,7 +515,7 @@ def init( \
         axis.set_xscale('log')
         axis.set_yscale('log')
         axis.legend(loc=4, framealpha=1.)
-        path = gdat.pathimag + 'sigm.%s' % (gdat.plotfiletype) 
+        path = gdat.pathimag + 'sigm.%s' % (gdat.typefileplot) 
         print('Writing to %s...' % path)
         plt.savefig(path)
         plt.close()
@@ -529,13 +531,17 @@ def init( \
     
     if gdat.typepopl == '2minsc17':
         gdat.tsec = 17
+        gdat.listticitarg = dictpopl['tici']
 
     gdat.strgtarg = [[] for n in gdat.indxtarg]
     gdat.labltarg = [[] for n in gdat.indxtarg]
     for n in gdat.indxtarg:
-        if gdat.typedata == 'obsd':
+        if gdat.typedata == 'toyy':
+            gdat.strgtarg[n] = 'mock%04d' % n
+            gdat.labltarg[n] = 'Mock target %08d' % n
+        else:
             if gdat.typepopl == '2minsc17':
-                gdat.strgtarg[n] = 'sc%02d_%12d' % (gdat.tsec, gdat.listticitarg[n])
+                gdat.strgtarg[n] = 'sc%02d_TIC%d' % (gdat.tsec, gdat.listticitarg[n])
                 gdat.labltarg[n] = 'Sector %02d, TIC %d' % (gdat.tsec, gdat.listticitarg[n])
             if gdat.booltargusertici:
                 gdat.labltarg[n] = 'TIC' + gdat.listticitarg[n]
@@ -546,9 +552,6 @@ def init( \
             if gdat.booltargusergaid:
                 gdat.labltarg[n] = 'GID=' % (dictcatlrvel['rasc'][n], dictcatlrvel['decl'][n])
                 gdat.strgtarg[n] = 'R%.4gDEC%.4g' % (dictcatlrvel['rasc'][n], dictcatlrvel['decl'][n])
-        if gdat.typedata == 'mock':
-            gdat.strgtarg[n] = 'mock%04d' % n
-            gdat.labltarg[n] = 'Mock target %08d' % n
     
     # get data
     gdat.time = [[] for n in gdat.indxtarg]
@@ -557,7 +560,6 @@ def init( \
     gdat.boolwritplotover = True
 
     if gdat.typepopl == '2minsc17':
-        gdat.tsec = 17
         print('Sector: %d' % gdat.tsec)
 
     gdat.numbclasposi = 2
@@ -613,7 +615,7 @@ def init( \
         gdat.truemaxmmassstar = 2.
         gdat.truemassstar = np.random.random(gdat.numbtrueslen) * (gdat.truemaxmmassstar - gdat.trueminmmassstar) + gdat.trueminmmassstar
         
-        gdat.trueminmincl = 88.
+        gdat.trueminmincl = 89.
         gdat.truemaaxincl = 90.
         gdat.trueincl = tdpy.icdf_self(np.random.random(gdat.numbtrueslen), gdat.trueminmincl, gdat.truemaaxincl)
         
@@ -639,20 +641,29 @@ def init( \
             
         ## self-lensing targets
         for nn, n in enumerate(gdat.indxtruerele):
+            print('nn, n')
+            print(nn)
+            print(n)
+            print('gdat.truedflxslen[:, nn]')
             gdat.truerflxtotl[:, nn], gdat.truedflxelli[:, nn], gdat.truedflxbeam[:, nn], gdat.truedflxslen[:, nn] = retr_rflxmodlbhol( \
-                                                                                                                  gdat.time[n], gdat.paratrueslen[nn, :])
+                                                                                                            gdat.time[n], gdat.paratrueslen[nn, :])
+            summgene(gdat.truedflxslen[:, nn])
+            print('gdat.truedflxelli[:, nn]')
+            summgene(gdat.truedflxelli[:, nn])
+            print('')
+
             gdat.rflx[n] = np.copy(gdat.truerflxtotl[:, nn])
         
-        gdat.truestdvrflx = ephesus.retr_noistess(gdat.truetmag)
+        gdat.truestdvrflx = ephesus.retr_noistess(gdat.truetmag) * 1e-6 # [dimensionless]
         for n in gdat.indxtarg:
             # add noise
             gdat.rflx[n] += gdat.truestdvrflx[n] * np.random.randn(gdat.numbtime)
             
         # histogram
         path = gdat.pathimag + 'truestdvrflx'
-        tdpy.plot_hist(path, gdat.truestdvrflx, r'$\sigma$', strgplotextn=gdat.plotfiletype)
+        tdpy.plot_hist(path, gdat.truestdvrflx, r'$\sigma$', typefileplot=gdat.typefileplot)
         path = gdat.pathimag + 'truetmag'
-        tdpy.plot_hist(path, gdat.truetmag, 'Tmag', strgplotextn=gdat.plotfiletype)
+        tdpy.plot_hist(path, gdat.truetmag, 'Tmag', typefileplot=gdat.typefileplot)
             
     pathlogg = gdat.pathdata + 'logg/'
     
@@ -673,7 +684,7 @@ def init( \
     
     if gdat.typedata == 'mock':
         gdat.boolreleposi = []
-        gdat.boolposirele = np.empty(gdat.numbtrueslen, dtype=bool)
+        gdat.boolposirele = np.zeros(gdat.numbtrueslen, dtype=bool)
     gdat.strgextn = '%s_%s' % (gdat.typedata, gdat.typepopl)
     for n in gdat.indxtarg:
         
@@ -710,6 +721,7 @@ def init( \
             strgmast = None
             listarrytser = gdat.listarry
             labltarg = gdat.labltarg[n]
+            strgtarg = gdat.strgtarg[n]
         else:
             if gdat.typepopl == 'tsec':
                 arrytemp = np.empty((gdat.time[n].size, 3))
@@ -736,6 +748,7 @@ def init( \
         dictmileoutp = miletos.init( \
                                   rasctarg=rasctarg, \
                                   decltarg=decltarg, \
+                                  strgtarg=strgtarg, \
                                   labltarg=labltarg, \
                                   strgmast=strgmast, \
                                   
@@ -760,7 +773,8 @@ def init( \
             gdat.boolposi[n, 0] = True
             if gdat.typedata == 'mock':
                 
-                gdat.boolposirele[gdat.indxreletrue[n]] = True
+                if gdat.indxreletrue[n] != -1:
+                    gdat.boolposirele[gdat.indxreletrue[n]] = True
                 
                 if gdat.boolreletrue[n]:
                     gdat.boolreleposi.append(True)
@@ -772,22 +786,37 @@ def init( \
     
     print('gdat.listsdee')
     summgene(gdat.listsdee)
-
+    
     gdat.boolposirele = np.array(gdat.boolposirele)
     gdat.indxtargposi = np.where(gdat.boolposi[:, 0])[0]
 
     # plot distributions
     if typedata == 'mock':
-        listvarbreca = [gdat.trueperi, gdat.truemasscomp, gdat.truetmag[gdat.indxtruerele]]
+        listvarbreca = np.vstack([gdat.trueperi, gdat.truemasscomp, gdat.truetmag[gdat.indxtruerele]]).T
+        print('listvarbreca')
+        summgene(listvarbreca)
         listlablvarbreca = [['$P$', 'day'], ['$M_c$', '$M_\odot$'], ['Tmag', '']]
         liststrgvarbreca = ['trueperi', 'truemasscomp', 'truetmag']
-    listvarbprec = [gdat.listsdee]
+    
+    listvarbprec = gdat.listsdee[:, None]
     listlablvarbprec = [['SNR', '']]
     liststrgvarbprec = ['sdee']
     
+    print('listvarbreca')
+    print(listvarbreca)
+    print('listvarbprec')
+    print(listvarbprec)
+    print('gdat.boolposirele')
+    print(gdat.boolposirele)
+    print('gdat.boolreleposi')
+    print(gdat.boolreleposi)
+    if np.sum(gdat.boolposirele) != len(gdat.boolreleposi):
+        raise Exception('')
+
+
     if typedata == 'mock':
         strgextn = '%s' % (gdat.typepopl)
-        tdpy.plot_recaprec(gdat.pathimag, strgextn, listvarbreca, listvarbprec, liststrgvarbreca, liststrgvarbprec, \
+        tdpy.plot_recaprec(gdat.pathimagpopl, strgextn, listvarbreca, listvarbprec, liststrgvarbreca, liststrgvarbprec, \
                                 listlablvarbreca, listlablvarbprec, gdat.boolposirele, gdat.boolreleposi)
 
 
