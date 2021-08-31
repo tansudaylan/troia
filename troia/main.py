@@ -174,11 +174,11 @@ def mile_work(gdat, p):
                                   **gdat.dictmileinpt, \
                                  )
         
-        if len(dictmileoutp['dictsrchpboxoutp']['sdee']) > 0:
+        if len(dictmileoutp['dictpboxoutp']['sdee']) > 0:
             # taking the fist element, which belongs to the first TCE
             gdat.listpowrlspe[n] = dictmileoutp['powrlspe']
-            gdat.listsdee[n] = dictmileoutp['dictsrchpboxoutp']['sdee'][0]
-            gdat.booltrig[n] = gdat.listsdee[n] >= gdat.dictmileinpt['dictsrchpboxoutp']['thrssdee']
+            gdat.listsdee[n] = dictmileoutp['dictpboxoutp']['sdee'][0]
+            gdat.booltrig[n] = gdat.listsdee[n] >= gdat.dictmileinpt['dictpboxoutp']['thrssdee']
         
         if gdat.typedata == 'mock':
             # plot mock relevant (i.e., signal-containing) data with known components
@@ -211,24 +211,24 @@ def mile_work(gdat, p):
                 
                 strgextn = '%s_%s_raww' % (gdat.typedata, gdat.strgtarg[n])
                 pathplot = ephesus.plot_lcur(gdat.pathimagpopl, timedata=gdat.time[n], titl=titlraww, timeoffs=gdat.timeoffs, limtyaxi=limtyaxi, \
-                                                                            lcurdata=gdat.rflxobsd[n], boolwritover=gdat.boolwritplotover, strgextn=strgextn)
+                                                                            lcurdata=gdat.rflxobsd[n], strgextn=strgextn)
                 os.system('cp %s %s' % (pathplot, dictmileoutp['pathtarg'] + 'imag/'))
                 
                 strgextn = '%s_%s_over' % (gdat.typedata, gdat.strgtarg[n])
                 pathplot = ephesus.plot_lcur(gdat.pathimagpopl, dictmodl=dictmodl, timedata=gdat.time[n], titl=titlinje, timeoffs=gdat.timeoffs, limtyaxi=limtyaxi, \
-                                                                            lcurdata=gdat.rflxobsd[n], boolwritover=gdat.boolwritplotover, strgextn=strgextn)
+                                                                            lcurdata=gdat.rflxobsd[n], strgextn=strgextn)
                 os.system('cp %s %s' % (pathplot, dictmileoutp['pathtarg'] + 'imag/'))
                 
                 strgextn = '%s_%s_inje' % (gdat.typedata, gdat.strgtarg[n])
                 pathplot = ephesus.plot_lcur(gdat.pathimagpopl, timedata=gdat.time[n], titl=titlinje, timeoffs=gdat.timeoffs, limtyaxi=limtyaxi, \
-                                                                            lcurdata=gdat.rflx[n], boolwritover=gdat.boolwritplotover, strgextn=strgextn)
+                                                                            lcurdata=gdat.rflx[n], strgextn=strgextn)
                 os.system('cp %s %s' % (pathplot, dictmileoutp['pathtarg'] + 'imag/'))
                 
         print('gdat.booltrig[n]')
         print(gdat.booltrig[n])
         if gdat.booltrig[n]:
             
-            gdat.boolposi[n, 0] = True
+            gdat.boolposianls[n, 0] = True
             if gdat.typedata == 'mock':
                 
                 if gdat.indxreletrue[n] != -1:
@@ -240,7 +240,7 @@ def mile_work(gdat, p):
                     gdat.boolreleposi.append(False)
             
         else:
-            gdat.boolposi[n, 0] = False
+            gdat.boolposianls[n, 0] = False
     
     return gdat
 
@@ -342,9 +342,8 @@ def init( \
         for name in dictpopl.keys():
             dictpopl[name] = dictpopl[name][indx]
     
-    # mock data
-    if gdat.typedata == 'mock':
-        gdat.cade = 10. / 60. / 24. # days
+    # determine number of targets
+    if gdat.typedata == 'toyy' or gdat.typedata == 'mock':
         gdat.numbtarg = 100
     else:
         ## number of targets
@@ -376,7 +375,7 @@ def init( \
     else:
         gdat.listticitarg = dictpopl['tici']
 
-
+    # make initial plots
     if boolplotinit:
         # plot Einstein radius vs lens mass
         figr, axis = plt.subplots(figsize=(6, 4))
@@ -555,14 +554,14 @@ def init( \
     
     ## input dictionary to miletos
     gdat.dictmileinpt = dict()
-    
+    ### path to put target data and images
     gdat.dictmileinpt['pathbasetarg'] = gdat.pathpopl
-
-    #### Boolean flag to use PDC data
+    ### Boolean flag to use PDC data
     gdat.dictmileinpt['timescalbdtrspln'] = 0.5
     gdat.dictmileinpt['boolplotprop'] = False
     gdat.dictmileinpt['boolplotprio'] = False
     
+    # target labels and file name extensions
     gdat.strgtarg = [[] for n in gdat.indxtarg]
     if gdat.liststrgmast is None:
         gdat.liststrgmast = [[] for n in gdat.indxtarg]
@@ -596,21 +595,24 @@ def init( \
     gdat.rflx = [[] for n in gdat.indxtarg]
     gdat.stdvrflx = [[] for n in gdat.indxtarg]
             
-    gdat.boolwritplotover = True
-
-    gdat.numbclasposi = 2
-    gdat.boolposi = np.empty((gdat.numbtarg, gdat.numbclasposi), dtype=bool)
+    # number of analyses
+    gdat.numbanlsposi = 2
+    gdat.boolposianls = np.empty((gdat.numbtarg, gdat.numbanlsposi), dtype=bool)
     
     if gdat.typedata == 'toyy':
         
-        print('Making mock data...')
-
+        print('Making toy mock data...')
+        
         # mock data setup 
+        ## cadence
+        gdat.cade = 10. / 60. / 24. # days
+        ## minimum time
         gdat.minmtime = 0.
-        gdat.maxmtime = 27.3
+        ## maximum time
+        gdat.maxmtime = 30.
+        ## time axis for each target
         for nn, n in enumerate(gdat.indxtarg):
             gdat.time[n] = np.concatenate((np.arange(0., 27.3 / 2. - 1., gdat.cade), np.arange(27.3 / 2. + 1., 27.3, gdat.cade)))
-        gdat.indxtimelink = np.where(abs(gdat.time[n] - 13.7) < 2.)[0]
     
     else:
         for nn, n in enumerate(gdat.indxtarg):
@@ -638,9 +640,6 @@ def init( \
                 gdat.rflxobsd[n] = arrylcurtess[:, 1]
                 gdat.stdvrflxobsd[n] = arrylcurtess[:, 2]
                 
-    if gdat.typedata == 'toyy':
-        gdat.numbtime = gdat.time[n].size
-        
     if gdat.typedata == 'mock':
         
         gdat.numbclastrue = 2
@@ -743,7 +742,7 @@ def init( \
     gdat.dictmileinpt['listtypeobjt'] = ['bhol']
     gdat.dictmileinpt['maxmfreqlspe'] = 1. / 0.1 # minimum period is 0.1 day
     #### SDE threshold for the pipeline to search for periodic boxes
-    gdat.dictmileinpt['dictsrchpboxoutp'] = {'thrssdee': 0.}
+    gdat.dictmileinpt['dictpboxoutp'] = {'thrssdee': 0.}
     #gdat.dictmileinpt['verbtype'] = 0
     #gdat.dictmileinpt['boolsrchsingpuls'] = True
     
@@ -780,7 +779,7 @@ def init( \
     
     if gdat.typedata == 'mock':
         gdat.boolposirele = np.array(gdat.boolposirele)
-    gdat.indxtargposi = np.where(gdat.boolposi[:, 0])[0]
+    gdat.indxtargposi = np.where(gdat.boolposianls[:, 0])[0]
 
     # plot distributions
     if typedata == 'mock':

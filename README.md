@@ -1,4 +1,5 @@
 # troia
 
 ## Introduction
-Pipeline to find compact objects with stellar binaries from the TESS data.
+Troia is a pipeline to search for and characterize compact objects with stellar companions.
+
