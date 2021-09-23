@@ -741,10 +741,12 @@ def init( \
     gdat.dictmileinpt['boollspe'] = True
     gdat.dictmileinpt['listtypeobjt'] = ['bhol']
     gdat.dictmileinpt['maxmfreqlspe'] = 1. / 0.1 # minimum period is 0.1 day
-    #### SDE threshold for the pipeline to search for periodic boxes
-    gdat.dictmileinpt['dictpboxoutp'] = {'thrssdee': 0.}
     #gdat.dictmileinpt['verbtype'] = 0
     #gdat.dictmileinpt['boolsrchsingpuls'] = True
+    ### input dictionary to periodic box search
+    gdat.dictmileinpt['dictpboxoutp'] = dict()
+    #### define SDE threshold for periodic box search
+    gdat.dictmileinpt['dictpboxoutp']['thrssdee'] = 0.
     
     if gdat.typedata == 'mock':
         gdat.boolreleposi = []
