@@ -6,13 +6,19 @@ import troia
 from tdpy import summgene
 
 
-def cnfg_misc():
+def cnfg_prev():
     '''
-    Miscellaneous targets
+    Previous discoveries
     '''    
     
+    dictmileinpt = dict()
+    dictmileinpt['dictpboxinpt'] = dict()
+    dictmileinpt['dictpboxinpt']['factosam'] = 0.1
+
     troia.init( \
                liststrgmast=['V723 Mon'], \
+               typepopl='prev', \
+               dictmileinpt=dictmileinpt, \
               )
 
     
@@ -65,9 +71,20 @@ def cnfg_tessnomi2min():
     2-minute targets from the nominal mission
     '''
     
+    dictmileinpt = dict()
+    dictmileinpt['dictpboxinpt'] = dict()
+    dictmileinpt['dictpboxinpt']['factosam'] = 1.
+    dictmileinpt['dictpboxinpt']['minmperi'] = 1.
+    dictmileinpt['dictpboxinpt']['maxmperi'] = 40.
+    
+    dictlcurtessinpt = dict()
+    dictlcurtessinpt['booltpxfonly'] = True
+    
     troia.init( \
                typepopl='tessnomi2min', \
                typedata='mock', \
+               dictmileinpt=dictmileinpt, \
+               dictlcurtessinpt=dictlcurtessinpt, \
               )
 
 

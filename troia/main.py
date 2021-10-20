@@ -15,6 +15,7 @@ from tdpy.util import summgene
 import tdpy
 import ephesus
 import miletos
+import pergamon
 
 def retr_angleins(masslens, distlens, distsour, distlenssour):
     
@@ -159,7 +160,9 @@ def mile_work(gdat, p):
             strgmast = None
             labltarg = gdat.labltarg[n]
             strgtarg = gdat.strgtarg[n]
-        
+            if len(strgtarg) == 0:
+                raise Exception('')
+
         print('Calling miletos.init() to analyze and model the data for the target...')
         # call miletos to analyze data
         dictmileoutp = miletos.init( \
@@ -174,11 +177,13 @@ def mile_work(gdat, p):
                                   **gdat.dictmileinpt, \
                                  )
         
-        if len(dictmileoutp['dictpboxoutp']['sdee']) > 0:
-            # taking the fist element, which belongs to the first TCE
-            gdat.listpowrlspe[n] = dictmileoutp['powrlspe']
-            gdat.listsdee[n] = dictmileoutp['dictpboxoutp']['sdee'][0]
-            gdat.booltrig[n] = gdat.listsdee[n] >= gdat.dictmileinpt['dictpboxoutp']['thrssdee']
+        gdat.dictfeat['totl']['perilspempow'][n] = dictmileoutp['perilspempow']
+        gdat.dictfeat['totl']['powrlspempow'][n] = dictmileoutp['powrlspempow']
+        
+        gdat.dictfeat['totl']['sdeeprim'][n] = dictmileoutp['dictpboxoutp']['sdee'][0]
+        
+        # taking the fist element, which belongs to the first TCE
+        gdat.booltrig[n] = gdat.dictfeat['totl']['sdeeprim'][n] >= gdat.dictmileinpt['dictpboxinpt']['thrssdee']
         
         if gdat.typedata == 'mock':
             # plot mock relevant (i.e., signal-containing) data with known components
@@ -224,8 +229,6 @@ def mile_work(gdat, p):
                                                                             lcurdata=gdat.rflx[n], strgextn=strgextn)
                 os.system('cp %s %s' % (pathplot, dictmileoutp['pathtarg'] + 'imag/'))
                 
-        print('gdat.booltrig[n]')
-        print(gdat.booltrig[n])
         if gdat.booltrig[n]:
             
             gdat.boolposianls[n, 0] = True
@@ -264,6 +267,12 @@ def init( \
         # Boolean flag to turn on multiprocessing
         #boolmultproc=True, \
         boolmultproc=False, \
+        
+        # input dictionary to miletos
+        dictmileinpt=dict(), \
+
+        # input dictionary to retr_lcurtess()
+        dictlcurtessinpt = dict(), \
 
         # verbosity level
         verbtype=1, \
@@ -294,8 +303,8 @@ def init( \
     if gdat.liststrgmast is not None and gdat.listticitarg is not None:
         raise Exception('liststrgmast and listticitarg cannot be defined simultaneously.')
     
-    gdat.booltargusermast = gdat.liststrgmast is not None
     gdat.booltargusertici = gdat.listticitarg is not None
+    gdat.booltargusermast = gdat.liststrgmast is not None
     gdat.booltargusergaid = gdat.listgaid is not None
     gdat.booltarguser = gdat.booltargusertici or gdat.booltargusermast or gdat.booltargusergaid
     
@@ -338,43 +347,36 @@ def init( \
     if not gdat.booltarguser:
         dictpopl = miletos.retr_dictcatltic8(typepopl=gdat.typepopl)
         
-        indx = np.random.choice(np.arange(dictpopl['tici'].size), replace=False, size=dictpopl['tici'].size)
+        size = dictpopl['tici'].size
+        size = 10
+
+        indx = np.random.choice(np.arange(dictpopl['tici'].size), replace=False, size=size)
         for name in dictpopl.keys():
             dictpopl[name] = dictpopl[name][indx]
     
     # determine number of targets
-    if gdat.typedata == 'toyy' or gdat.typedata == 'mock':
-        gdat.numbtarg = 100
+    ## number of targets
+    if gdat.booltarguser:
+        if gdat.booltargusertici:
+            gdat.numbtarg = len(gdat.listticitarg)
+        if gdat.booltargusermast:
+            gdat.numbtarg = len(gdat.liststrgmast)
+        if gdat.booltargusergaid:
+            gdat.numbtarg = len(gdat.listgaidtarg)
     else:
-        ## number of targets
-        if gdat.booltarguser:
-            if gdat.booltargusertici:
-                gdat.numbtarg = len(gdat.listticitarg)
-            if gdat.booltargusermast:
-                gdat.numbtarg = len(gdat.liststrgmast)
-            if gdat.booltargusergaid:
-                gdat.numbtarg = len(gdat.listgaidtarg)
-        else:
-            gdat.numbtarg = dicpopl['ID'].size
+        gdat.numbtarg = dictpopl['tici'].size
+    if gdat.typedata == 'toyy' or gdat.typedata == 'mock':
+        gdat.numbtarg = min(100, gdat.numbtarg)
                 
     print('Number of targets: %s' % gdat.numbtarg)
     gdat.indxtarg = np.arange(gdat.numbtarg)
     
-    if gdat.booltarguser:
-        if gdat.booltargusermast:
-            for k in gdat.indxtarg:
-                listdictcatl = astroquery.mast.Catalogs.query_object(gdat.liststrgmast[k], catalog='TIC', radius='40s')
-                if listdictcatl[0]['dstArcSec'] < 0.1:
-                    gdat.listticitarg = listdictcatl[0]['ID']
-                else:
-                    print('Warning! No match to the provided MAST keyword: ' % gdat.liststrgmast[k])
-        #if gdat.booltargusertici:
-        #    dictpopl = miletos.xmat_tici(gdat.listticitarg)
-        #    print('dictpopl')
-        #    print(dictpopl)
-    else:
+    if gdat.listticitarg is None:
+        gdat.listticitarg = [[] for k in gdat.indxtarg]
+    
+    if not gdat.booltarguser:
         gdat.listticitarg = dictpopl['tici']
-
+    
     # make initial plots
     if boolplotinit:
         # plot Einstein radius vs lens mass
@@ -552,8 +554,6 @@ def init( \
         plt.savefig(path)
         plt.close()
     
-    ## input dictionary to miletos
-    gdat.dictmileinpt = dict()
     ### path to put target data and images
     gdat.dictmileinpt['pathbasetarg'] = gdat.pathpopl
     ### Boolean flag to use PDC data
@@ -578,13 +578,13 @@ def init( \
             if gdat.booltargusertici:
                 gdat.labltarg[n] = 'TIC ' + str(gdat.listticitarg[n])
                 gdat.strgtarg[n] = 'TIC' + str(gdat.listticitarg[n])
-            if gdat.typepopl == 'listmast':
+            if gdat.booltargusermast:
                 gdat.labltarg[n] = gdat.liststrgmast[n]
                 gdat.strgtarg[n] = ''.join(gdat.liststrgmast[n].split(' '))
             if gdat.booltargusergaid:
                 gdat.labltarg[n] = 'GID=' % (dictcatlrvel['rasc'][n], dictcatlrvel['decl'][n])
                 gdat.strgtarg[n] = 'R%.4gDEC%.4g' % (dictcatlrvel['rasc'][n], dictcatlrvel['decl'][n])
-    
+
     # real data
     gdat.timeobsd = [[] for n in gdat.indxtarg]
     gdat.rflxobsd = [[] for n in gdat.indxtarg]
@@ -594,7 +594,7 @@ def init( \
     gdat.time = [[] for n in gdat.indxtarg]
     gdat.rflx = [[] for n in gdat.indxtarg]
     gdat.stdvrflx = [[] for n in gdat.indxtarg]
-            
+    
     # number of analyses
     gdat.numbanlsposi = 2
     gdat.boolposianls = np.empty((gdat.numbtarg, gdat.numbanlsposi), dtype=bool)
@@ -615,30 +615,42 @@ def init( \
             gdat.time[n] = np.concatenate((np.arange(0., 27.3 / 2. - 1., gdat.cade), np.arange(27.3 / 2. + 1., 27.3, gdat.cade)))
     
     else:
-        for nn, n in enumerate(gdat.indxtarg):
+        for k in gdat.indxtarg:
             
             # get TIC ID
-            if gdat.booltargusertici:
-                tici = gdat.listticitarg[n]
+            if gdat.booltarguser:
+                if gdat.booltargusertici:
+                    dictlcurtessinpt['strgmast'] = None
+                    dictlcurtessinpt['ticitarg'] = gdat.listticitarg[k]
+                elif gdat.booltargusermast:
+                    dictlcurtessinpt['strgmast'] = gdat.liststrgmast[k]
+                    dictlcurtessinpt['ticitarg'] = None
             else:
-                tici = int(gdat.liststrgmast[n][4:])
+                dictlcurtessinpt['strgmast'] = None
+                dictlcurtessinpt['ticitarg'] = gdat.listticitarg[k]
             
-            # get the list of TESS sectors and file paths
-            listtsec, listpath = ephesus.retr_tsectici(tici)
-            # get data
-            listarrylcur = [[] for k in range(len(listpath))]
-            listtsec = np.empty(len(listpath))
-            listtcam = np.empty(len(listpath))
-            listtccd = np.empty(len(listpath))
-            for k in range(len(listpath)):
-                listarrylcur[k], indxtimequalgood, indxtimenanngood, listtsec[k], listtcam[k], listtccd[k] = ephesus.read_tesskplr_file(listpath[k], typeinst='tess', \
-                                                                                                                                                            strgtype='PDCSAP_FLUX')
+            arrylcurtess, gdat.arrytsersapp, gdat.arrytserpdcc, listarrylcurtess, gdat.listarrytsersapp, gdat.listarrytserpdcc, \
+                                  gdat.listtsec, gdat.listtcam, gdat.listtccd, listpathdownspoclcur = \
+                                  ephesus.retr_lcurtess( \
+                                                        **gdat.dictlcurtessinpt, \
+                                                       )
+
+            ## get the list of TESS sectors and file paths
+            #listtsec, listpath = ephesus.retr_tsectici(tici)
+            ## get data
+            #listarrylcur = [[] for k in range(len(listpath))]
+            #listtsec = np.empty(len(listpath))
+            #listtcam = np.empty(len(listpath))
+            #listtccd = np.empty(len(listpath))
+            #for o in range(len(listpath)):
+            #    listarrylcur[o], indxtimequalgood, indxtimenanngood, listtsec[o], listtcam[o], listtccd[o] = ephesus.read_tesskplr_file(listpath[o], typeinst='tess', \
+            #                                                                                                                                                strgtype='PDCSAP_FLUX')
             # load data
-            if len(listarrylcur) > 0:
-                arrylcurtess = np.concatenate(listarrylcur)
-                gdat.timeobsd[n] = arrylcurtess[:, 0]
-                gdat.rflxobsd[n] = arrylcurtess[:, 1]
-                gdat.stdvrflxobsd[n] = arrylcurtess[:, 2]
+            if len(arrylcurtess) > 0:
+                #arrylcurtess = np.concatenate(listarrylcur)
+                gdat.timeobsd[k] = arrylcurtess[:, 0]
+                gdat.rflxobsd[k] = arrylcurtess[:, 1]
+                gdat.stdvrflxobsd[k] = arrylcurtess[:, 2]
                 
     if gdat.typedata == 'mock':
         
@@ -731,9 +743,15 @@ def init( \
 
     gdat.pathlogg = gdat.pathdata + 'logg/'
     
-    gdat.listsdee = np.empty(gdat.numbtarg)
-    gdat.listpowrlspe = np.empty(gdat.numbtarg)
     gdat.indxtargposi = []
+    
+    # output features of miletos
+    gdat.dictfeat = dict()
+    gdat.dictfeat['totl'] = dict()
+
+    gdat.listnamefeat = ['sdeeprim', 'perilspempow', 'powrlspempow']
+    for namefeat in gdat.listnamefeat:
+        gdat.dictfeat['totl'][namefeat] = np.empty(gdat.numbtarg)
     
     gdat.booltrig = np.zeros(gdat.numbtarg, dtype=bool)
     
@@ -743,10 +761,10 @@ def init( \
     gdat.dictmileinpt['maxmfreqlspe'] = 1. / 0.1 # minimum period is 0.1 day
     #gdat.dictmileinpt['verbtype'] = 0
     #gdat.dictmileinpt['boolsrchsingpuls'] = True
-    ### input dictionary to periodic box search
-    gdat.dictmileinpt['dictpboxoutp'] = dict()
     #### define SDE threshold for periodic box search
-    gdat.dictmileinpt['dictpboxoutp']['thrssdee'] = 0.
+    if not 'dictpboxinpt' in gdat.dictmileinpt:
+        gdat.dictmileinpt['dictpboxinpt'] = dict()
+    gdat.dictmileinpt['dictpboxinpt']['thrssdee'] = 0.
     
     if gdat.typedata == 'mock':
         gdat.boolreleposi = []
@@ -776,13 +794,18 @@ def init( \
         gdat.listindxtarg = [gdat.indxtarg]
         temp = mile_work(gdat, 0)
 
-    print('gdat.listsdee')
-    summgene(gdat.listsdee)
-    
     if gdat.typedata == 'mock':
         gdat.boolposirele = np.array(gdat.boolposirele)
     gdat.indxtargposi = np.where(gdat.boolposianls[:, 0])[0]
 
+    typeanls = 'bhol_%s' % gdat.typepopl
+    pergamon.init( \
+                  typeanls=typeanls, \
+                  dictpopl=gdat.dictfeat, \
+                  pathimag=gdat.pathimagpopl, \
+                  pathdata=gdat.pathdatapopl, \
+                 )
+        
     # plot distributions
     if typedata == 'mock':
         listvarbreca = np.vstack([gdat.trueperi, gdat.truemasscomp, gdat.truetmag[gdat.indxtruerele]]).T
@@ -790,11 +813,15 @@ def init( \
         summgene(listvarbreca)
         listlablvarbreca = [['$P$', 'day'], ['$M_c$', '$M_\odot$'], ['Tmag', '']]
         liststrgvarbreca = ['trueperi', 'truemasscomp', 'truetmag']
-    
-        listvarbprec = np.vstack([gdat.listsdee, gdat.listpowrlspe]).T
-        listlablvarbprec = [['SDE', ''], ['$P_{LS}$', '']]
-        liststrgvarbprec = ['sdee', 'powrlspe']
-    
+        
+        listtemp = []
+        for namefeat in gdat.listnamefeat:
+            listtemp.append(gdat.dictfeat['totl'][namefeat])
+        listvarbprec = np.vstack(listtemp).T
+        #listvarbprec = np.vstack([gdat.listsdee, gdat.listpowrlspe]).T
+        #listlablvarbprec = [['SDE', ''], ['$P_{LS}$', '']]
+        liststrgvarbprec = gdat.listnamefeat#['sdee', 'powrlspe']
+        listlablvarbprec = tdpy.retr_listlablscalpara(gdat.listnamefeat)
         print('listvarbreca')
         print(listvarbreca)
         print('listvarbprec')
