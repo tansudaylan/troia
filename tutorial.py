@@ -17,11 +17,24 @@ def cnfg_prev():
 
     troia.init( \
                liststrgmast=['V723 Mon'], \
+               typeinst='TESS', \
                typepopl='prev', \
                dictmileinpt=dictmileinpt, \
               )
 
     
+def cnfg_TTL5():
+    '''
+    Simulated analysis for simulatenaous data collected by TESS EM2 and TESS L5
+    '''
+    
+    troia.init( \
+               typeinst='TTL5', \
+               typepopl='nomi', \
+               typedata='toyy', \
+              )
+
+
 def cnfg_candidates_Rom():
     '''
     Targets from Rom's RNN
@@ -31,6 +44,7 @@ def cnfg_candidates_Rom():
     troia.init( \
                listticitarg=listticitarg, \
                typepopl='candidates_Rom', \
+               typeinst='TESS', \
               )
 
 
@@ -66,23 +80,35 @@ def cnfg_rvel():
               )
 
 
-def cnfg_tessnomi2min():
+def cnfg_tessnomi2min(typedata='mock'):
     '''
     2-minute targets from the nominal mission
     '''
     
     dictmileinpt = dict()
     dictmileinpt['dictpboxinpt'] = dict()
-    dictmileinpt['dictpboxinpt']['factosam'] = 1.
-    dictmileinpt['dictpboxinpt']['minmperi'] = 1.
-    dictmileinpt['dictpboxinpt']['maxmperi'] = 40.
+    #dictmileinpt['dictpboxinpt']['factosam'] = 1.
+    #dictmileinpt['dictpboxinpt']['minmperi'] = 5.394
+    #dictmileinpt['dictpboxinpt']['maxmperi'] = 5.402
     
+    # oversampling factor (wrt to transit duration) when rebinning data to decrease the time resolution
+    dictmileinpt['dictpboxinpt']['factduracade'] = 2.
+    # factor by which to oversample the frequency grid
+    dictmileinpt['dictpboxinpt']['factosam'] = 10.
+    # number of duty cycle samples  
+    dictmileinpt['dictpboxinpt']['numbdcyc'] = 3
+    # spread in the logarithm of duty cycle
+    dictmileinpt['dictpboxinpt']['deltlogtdcyc'] = 0.5
+    # epoc steps divided by trial duration
+    dictmileinpt['dictpboxinpt']['factdeltepocdura'] = 0.5
+
     dictlcurtessinpt = dict()
     dictlcurtessinpt['booltpxfonly'] = True
     
     troia.init( \
+               typeinst='TESS', \
                typepopl='tessnomi2min', \
-               typedata='mock', \
+               typedata=typedata, \
                dictmileinpt=dictmileinpt, \
                dictlcurtessinpt=dictlcurtessinpt, \
               )
@@ -110,9 +136,8 @@ def cnfg_cycle3_G03254():
     troia.init( \
                typepopl='cycle3_G03254', \
                listticitarg=listticitarg, \
+               typeinst='TESS', \
               )
 
 
-globals().get(sys.argv[1])()
-
-
+globals().get(sys.argv[1])(*sys.argv[2:])
