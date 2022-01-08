@@ -1,6 +1,9 @@
 import os, sys, datetime, fnmatch, copy
 
-import matplotlib as mpl
+from tqdm import tqdm
+
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
 import astroquery
@@ -16,12 +19,22 @@ import ephesus
 import miletos
 import pergamon
 
-def retr_angleins(masslens, distlenssour, distlens, distsour):
+def retr_angleinscosm(masslens, distlenssour, distlens, distsour):
     '''
-    Return Einstein radius.
+    Return Einstein radius for a cosmological source and lens.
     '''
     
     angleins = np.sqrt(masslens / 10**(11.09) * distlenssour / distlens / distsour)
+    
+    return angleins
+
+
+def retr_angleinssbin(masslens, distlenssour):
+    '''
+    Return Einstein radius for a stellar lens and source in proximity.
+    '''
+    
+    angleins = 0.04273 * np.sqrt(masslens * distlenssour) # [R_S]
     
     return angleins
 
@@ -63,14 +76,9 @@ def mile_work(gdat, i):
     
     for n in gdat.listindxtarg[i]:
         
-        if gdat.typedata == 'toyy' or gdat.typedata == 'mock':
-            print('heeey')
-            print('n')
-            print(n)
+        if gdat.boolsimu:
             for v in gdat.indxtyperele:
-                print('gdat.indxtargrele[v]')
-                print(gdat.indxtargrele[v])
-                if n in gdat.indxtargrele[v]:
+                if n in gdat.dictindxtarg['rele'][v]:
                     gdat.boolreletarg[v][n] = True
                 else:
                     gdat.boolreletarg[v][n] = False
@@ -134,7 +142,7 @@ def mile_work(gdat, i):
         
         if gdat.boolplot and n < gdat.maxmnumbtargplot:
             if gdat.boolplotdvrp:
-                if gdat.typedata == 'toyy' or gdat.typedata == 'mock':
+                if gdat.boolsimu:
                     gdat.numbpagedvrp = gdat.numbpagedvrpmock
                 else:
                     gdat.numbpagedvrp = 0
@@ -151,7 +159,7 @@ def mile_work(gdat, i):
                     gdat.listpathdvrp.append(pathdvrp)
 
             pathtargimag = dictmileoutp['pathtarg'] + 'imag/'
-            if gdat.typedata == 'toyy' or gdat.typedata == 'mock':
+            if gdat.boolsimu:
                 
                 sizefigr = [8., 4.]
 
@@ -161,7 +169,7 @@ def mile_work(gdat, i):
                     liststrglimt = ['']
                     
                 # plot mock relevant (i.e., signal-containing) data with known components
-                if n in gdat.indxtargssys:
+                if n in gdat.dictindxtarg['ssys']:
                     nn = gdat.indxssystarg[n]
                     if gdat.boolcosctrue[n]:
                         nnn = gdat.indxcoscssys[nn]
@@ -173,19 +181,20 @@ def mile_work(gdat, i):
 
                     for a, strglimt in enumerate(liststrglimt):
                         
-                        if strglimt == '_limt' and not np.isfinite(gdat.trueduratrantotl[nn]):
+                        if strglimt == '_limt' and not np.isfinite(gdat.dictfeat['true']['ssys']['duratrantotl'][nn]):
                             continue
 
                         if a == 0:
                             limtxaxi = None
                         else:
-                            limtxaxi = [gdat.trueepoc[nn] - 2. * gdat.trueduratrantotl[nn] / 12. - gdat.timeoffs, gdat.trueepoc[nn] + 2. * gdat.trueduratrantotl[nn] / 12. - gdat.timeoffs]
+                            limtxaxi = [gdat.dictfeat['true']['ssys']['epoc'][nn] - 2. * gdat.dictfeat['true']['ssys']['duratrantotl'][nn] / 12. - gdat.timeoffs, \
+                                        gdat.dictfeat['true']['ssys']['epoc'][nn] + 2. * gdat.dictfeat['true']['ssys']['duratrantotl'][nn] / 12. - gdat.timeoffs]
                         
                             if not np.isfinite(limtxaxi).all():
-                                print('gdat.trueepoc[nn]')
-                                print(gdat.trueepoc[nn])
-                                print('gdat.trueduratrantotl[nn]')
-                                print(gdat.trueduratrantotl[nn])
+                                print('gdat.dictfeat[true][ssys][epoc][nn]')
+                                print(gdat.dictfeat['true']['ssys']['epoc'][nn])
+                                print('gdat.dictfeat[true][ssys][duratrantotl][nn]')
+                                print(gdat.dictfeat['true']['ssys']['duratrantotl'][nn])
                                 raise Exception('')
 
                         maxm = 1e-100
@@ -201,7 +210,7 @@ def mile_work(gdat, i):
                                             print('gdat.indxtarg')
                                             print(gdat.indxtarg)
                                             print('gdat.indxtargssys')
-                                            print(gdat.indxtargssys)
+                                            print(gdat.dictindxtarg['ssys'])
                                             print('gdat.boolcosctrue')
                                             print(gdat.boolcosctrue)
                                             raise Exception('')
@@ -211,7 +220,7 @@ def mile_work(gdat, i):
                                             print('gdat.indxtarg')
                                             print(gdat.indxtarg)
                                             print('gdat.indxtargssys')
-                                            print(gdat.indxtargssys)
+                                            print(gdat.dictindxtarg['ssys'])
                                             print('gdat.boolcosctrue')
                                             print(gdat.boolcosctrue)
                                             raise Exception('')
@@ -236,22 +245,22 @@ def mile_work(gdat, i):
                                     dictmodl['modlslen'] = {'lcur': gdat.truerflxslen[nnn][0][p][y], 'time': gdat.listarrytser['data'][n][0][p][y][:, 0], 'labl': 'SL'}
                                 titlraww = '%s, Tmag=%.3g, $R_*$=%.2g $R_\odot$, $M_*$=%.2g $M_\odot$' % ( \
                                                                                                          gdat.labltarg[n], \
-                                                                                                         gdat.truetmag[n], \
-                                                                                                         gdat.trueradistar[nn], \
-                                                                                                         gdat.truemassstar[nn], \
+                                                                                                         gdat.dictfeat['true']['ssys']['tmag'][n], \
+                                                                                                         gdat.dictfeat['true']['ssys']['radistar'][nn], \
+                                                                                                         gdat.dictfeat['true']['ssys']['massstar'][nn], \
                                                                                                          )
                                 
                                 # plot data after injection with injected model components highlighted
                                 titlinje = titlraww + '\n$M_c$=%.2g $M_\odot$, $P$=%.3f day, $T_0$=%.3f, $i=%.3g^\circ$, Dur=%.2g hr, $q=%.3g$' % ( \
-                                                                                                         gdat.truemasscomp[nn], \
-                                                                                                         gdat.trueperi[nn], \
-                                                                                                         gdat.trueepoc[nn]-gdat.timeoffs, \
-                                                                                                         gdat.trueincl[nn], \
-                                                                                                         gdat.trueduratrantotl[nn], \
-                                                                                                         gdat.truedcyc[nn], \
+                                                                                                         gdat.dictfeat['true']['ssys']['masscomp'][nn], \
+                                                                                                         gdat.dictfeat['true']['ssys']['peri'][nn], \
+                                                                                                         gdat.dictfeat['true']['ssys']['epoc'][nn]-gdat.timeoffs, \
+                                                                                                         gdat.dictfeat['true']['ssys']['incl'][nn], \
+                                                                                                         gdat.dictfeat['true']['ssys']['duratrantotl'][nn], \
+                                                                                                         gdat.dictfeat['true']['ssys']['dcyc'][nn], \
                                                                                                         )
                                 if gdat.boolcosctrue[n]:
-                                    titlinje += ', $A_{SL}$=%.2g ppt' % gdat.trueamplslen[nnn]
+                                    titlinje += ', $A_{SL}$=%.2g ppt' % gdat.dictfeat['true']['cosc']['amplslen'][nnn]
                                 
                                 if gdat.typedata == 'mock':
                                     strgextnraww = '%s_%s_%s%s_raww' % (gdat.typedata, gdat.strgtarg[n], gdat.liststrginst[0][p], strglimt)
@@ -314,9 +323,9 @@ def mile_work(gdat, i):
         
             if gdat.boolplotdvrp:
                 for w in gdat.indxpagedvrp:
-                    os.system('cp %s %s' % (gdat.listpathdvrp[w], gdat.pathimagpopl))
+                    os.system('cp %s %s' % (gdat.listpathdvrp[w], gdat.pathimagpopldvrp))
                 
-        if gdat.typedata == 'mock':
+        if gdat.boolsimu:
             for u in gdat.indxtypeposi:
                 for v in gdat.indxtyperele:
                     if gdat.boolreletarg[v][n]:
@@ -365,7 +374,7 @@ def init( \
         boolplot=True, \
         
         # Boolean flag to make initial plots
-        boolplotinit=False, \
+        boolplotinit=None, \
         
         # Boolean flag to make DV reports
         boolplotdvrp=None, \
@@ -395,6 +404,9 @@ def init( \
     # string for date and time
     gdat.strgtimestmp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
    
+    if gdat.boolplotinit is None:
+        gdat.boolplotinit = gdat.boolplot
+    
     if gdat.boolplotdvrp is None:
         gdat.boolplotdvrp = gdat.boolplot
     
@@ -448,6 +460,7 @@ def init( \
     gdat.pathpopl = gdat.pathbase + gdat.strgextn + '/'
     gdat.pathimagpopl = gdat.pathpopl + 'imag/'
     gdat.pathdatapopl = gdat.pathpopl + 'data/'
+    gdat.pathimagpopldvrp = gdat.pathimagpopl + 'dvrp/'
 
     # make folders
     for attr, valu in gdat.__dict__.items():
@@ -466,13 +479,6 @@ def init( \
     if not gdat.booltarguser and gdat.typedata != 'toyy':
         dicttic8 = ephesus.retr_dictpopltic8(typepopl=gdat.typepopl)
         
-        size = dicttic8['tici'].size
-        size = 10
-
-        indx = np.random.choice(np.arange(dicttic8['tici'].size), replace=False, size=size)
-        for name in dicttic8.keys():
-            dicttic8[name] = dicttic8[name][indx]
-    
     # number of time-series data sets
     gdat.numbdatatser = 2
     gdat.indxdatatser = np.arange(gdat.numbdatatser)
@@ -483,7 +489,7 @@ def init( \
         gdat.liststrginst = [['TESS'], []]
 
     # maximum number of targets to plot
-    gdat.maxmnumbtargplot = 10
+    gdat.maxmnumbtargplot = 50
 
     gdat.numbinst = np.empty(gdat.numbdatatser, dtype=int)
     gdat.indxinst = [[] for b in gdat.indxdatatser]
@@ -491,9 +497,12 @@ def init( \
         gdat.numbinst[b] = len(gdat.liststrginst[b])
         gdat.indxinst[b] = np.arange(gdat.numbinst[b])
     
+    # Boolean flag indicating whether the data are simulated
+    gdat.boolsimu = gdat.typedata == 'toyy' or gdat.typedata == 'mock'
+
     # data validation (DV) report
     ## number of pages in the DV report
-    if gdat.boolplotdvrp and (gdat.typedata == 'toyy' or gdat.typedata == 'mock'):
+    if gdat.boolplotdvrp and gdat.boolsimu:
         gdat.numbpagedvrpmock = 1
         gdat.indxpagedvrpmock = np.arange(gdat.numbpagedvrpmock)
     
@@ -506,16 +515,21 @@ def init( \
             gdat.numbtarg = len(gdat.liststrgmast)
         if gdat.booltargusergaid:
             gdat.numbtarg = len(gdat.listgaidtarg)
-    elif gdat.typedata != 'toyy':
-        gdat.numbtarg = dicttic8['tici'].size
-    if gdat.typedata == 'toyy':
+    else:
+        if gdat.typedata == 'obsd':
+            gdat.numbtarg = dicttic8['tici'].size
+        if gdat.boolsimu:
+            gdat.numbtarg = 30000
         gdat.numbtarg = 30
-
-    if gdat.typedata == 'toyy' or gdat.typedata == 'mock':
-        gdat.numbtarg = min(100, gdat.numbtarg)
-                
+    
     print('Number of targets: %s' % gdat.numbtarg)
     gdat.indxtarg = np.arange(gdat.numbtarg)
+    
+    if not gdat.booltarguser and gdat.typedata != 'toyy':
+        size = dicttic8['tici'].size
+        indx = np.random.choice(np.arange(dicttic8['tici'].size), replace=False, size=size)
+        for name in dicttic8.keys():
+            dicttic8[name] = dicttic8[name][indx]
     
     gdat.timeexectarg = 120.
     print('Expected execution time: %g seconds (%.3g days, %.3g weeks for 20M targets)' % (gdat.numbtarg * gdat.timeexectarg, gdat.numbtarg * gdat.timeexectarg / 3600. / 24., \
@@ -527,23 +541,54 @@ def init( \
     if not gdat.booltarguser and gdat.typedata != 'toyy':
         gdat.listticitarg = dicttic8['tici']
     
+    print('gdat.boolplot')
+    print(gdat.boolplot)
+    print('gdat.boolplotinit')
+    print(gdat.boolplotinit)
     # make initial plots
-    if gdat.boolplot and boolplotinit:
-        path = gdat.pathimag + 'angleins.%s' % (gdat.typefileplot) 
+    if gdat.boolplot and gdat.boolplotinit:
+        path = gdat.pathimag + 'radieinsmass.%s' % (gdat.typefileplot) 
         if not os.path.exists(path):
             # plot Einstein radius vs lens mass
             figr, axis = plt.subplots(figsize=(6, 4))
-            distlens = 1e-7 # Gpc
-            distsour = 1e-7 # Gpc
+            listsmax = [0.1, 1., 10.] # [AU]
             dictfact = ephesus.retr_factconv()
             peri = 10.#np.logspace(-1., 2., 100)
-            masstotl = np.logspace(np.log10(5.), np.log10(200.), 100)
-            smax = ephesus.retr_smaxkepl(peri, masstotl) # AU
-            distlenssour = 1e-9 * smax / dictfact['pcau'] # Gpc
-            angleins = retr_angleins(masstotl, distlenssour, distlens, distsour)
-            axis.plot(masstotl, angleins)
+            masslens = np.logspace(np.log10(0.1), np.log10(100.), 100)
+            radilenswdrf = 0.007 * masslens**(-1. / 3.)
+            #smax = ephesus.retr_smaxkepl(peri, masstotl) # AU
+            for smax in listsmax:
+                angleins = retr_angleinssbin(masslens, smax)
+                axis.plot(masslens, angleins)
+                axis.plot(masslens, radilenswdrf)
             axis.set_xlabel('$M$ [$M_\odot$]')
-            axis.set_ylabel(r'$\theta_E$ [arcsec]')
+            axis.set_ylabel('$R$ [$R_\odot$]')
+            axis.set_xscale('log')
+            axis.set_yscale('log')
+            print('Writing to %s...' % path)
+            plt.savefig(path)
+            plt.close()
+        
+        path = gdat.pathimag + 'radieinssmax.%s' % (gdat.typefileplot) 
+        if not os.path.exists(path):
+            # plot Einstein radius vs lens mass
+            figr, axis = plt.subplots(figsize=(6, 4))
+            listmasslens = [0.1, 1.0, 10., 100.] # [AU]
+            dictfact = ephesus.retr_factconv()
+            peri = 10.#np.logspace(-1., 2., 100)
+            smax = np.logspace(np.log10(0.01), np.log10(10.), 100)
+            listcolr = ['b', 'g', 'r', 'orange']
+            #radilenswdrf = 0.007 * masslens**(-1. / 3.)
+            #smax = ephesus.retr_smaxkepl(peri, masstotl) # AU
+            for k, masslens in enumerate(listmasslens):
+                angleins = retr_angleinssbin(masslens, smax)
+                if masslens < 1.5:
+                    masswdrf = masslens
+                    radiwdrf = 0.007 * masswdrf**(-1. / 3.)
+                    axis.axhline(radiwdrf, ls='--', color=listcolr[k])
+                axis.plot(smax, angleins, color=listcolr[k])
+            axis.set_xlabel('$a$ [AU]')
+            axis.set_ylabel('$R$ [$R_\odot$]')
             axis.set_xscale('log')
             axis.set_yscale('log')
             print('Writing to %s...' % path)
@@ -744,15 +789,15 @@ def init( \
     if gdat.typedata == 'toyy':
         gdat.listarrytser['data'] = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for k in gdat.indxtarg]
     
-    if gdat.typedata == 'toyy' or gdat.typedata == 'mock':
+    if gdat.boolsimu:
         # number of relevant types
         gdat.numbtyperele = 2
         gdat.indxtyperele = np.arange(gdat.numbtyperele)
-        
+        gdat.boolreletarg = [np.empty(gdat.numbtarg, dtype=bool) for v in gdat.indxtyperele]
+    
     # number of analyses
     gdat.numbtypeposi = 4
     gdat.indxtypeposi = np.arange(gdat.numbtypeposi)
-    gdat.boolreletarg = [np.empty(gdat.numbtarg, dtype=bool) for v in gdat.indxtyperele]
     gdat.boolpositarg = [np.empty(gdat.numbtarg, dtype=bool) for u in gdat.indxtypeposi]
     
     if gdat.typedata == 'toyy':
@@ -813,9 +858,19 @@ def init( \
                     gdat.numbchun[k][b][p] = len(listarrylcurtess)
                     gdat.indxchun[k][b][p] = np.arange(gdat.numbchun[k][b][p])
         
+    gdat.dictindxtarg = dict()
+    gdat.dictfeat = dict()
+    
     # generate mock data
-    if gdat.typedata == 'toyy' or gdat.typedata == 'mock':
+    if gdat.boolsimu:
         
+        listnametypetrue = ['totl', 'sbin', 'ssys', 'cosc', 'qstr', 'cosctran']
+        listlabltypetrue = ['All', 'SB', 'SS', 'COSC', 'QS', 'Tr. COSC']
+        
+        gdat.dictfeat['true'] = dict()
+        for namepoplcomm in listnametypetrue:
+            gdat.dictfeat['true'][namepoplcomm] = dict()
+
         # 0: cosc
         # 1: binary star
         # 2: single star
@@ -830,13 +885,14 @@ def init( \
             
         gdat.boolcosctrue = gdat.typetruetarg == 0
         gdat.boolsbintrue = gdat.typetruetarg == 1
-        gdat.indxtargcosc = gdat.indxtypetruetarg[0]
-        gdat.numbtargcosc = gdat.indxtargcosc.size
-        gdat.indxtargsbin = gdat.indxtypetruetarg[1]
-        gdat.numbtargsbin = gdat.indxtargsbin.size
-        gdat.indxtargssys = np.concatenate((gdat.indxtypetruetarg[0], gdat.indxtypetruetarg[1]))
-        gdat.indxtargssys = np.sort(gdat.indxtargssys)
-        gdat.numbtargssys = gdat.indxtargssys.size
+        gdat.dictindxtarg['cosc'] = gdat.indxtypetruetarg[0]
+        gdat.numbtargcosc = gdat.dictindxtarg['cosc'].size
+        gdat.dictindxtarg['sbin'] = gdat.indxtypetruetarg[1]
+        gdat.numbtargsbin = gdat.dictindxtarg['sbin'].size
+        gdat.dictindxtarg['qstr'] = gdat.indxtypetruetarg[2]
+        gdat.dictindxtarg['ssys'] = np.concatenate((gdat.indxtypetruetarg[0], gdat.indxtypetruetarg[1]))
+        gdat.dictindxtarg['ssys'] = np.sort(gdat.dictindxtarg['ssys'])
+        gdat.numbtargssys = gdat.dictindxtarg['ssys'].size
         print('gdat.numbtarg')
         print(gdat.numbtarg)
         print('gdat.numbtargcosc')
@@ -850,13 +906,6 @@ def init( \
         print('gdat.boolsbintrue')
         print(gdat.boolsbintrue)
         
-        print('gdat.indxtypetrue')
-        print(gdat.indxtypetrue)
-        for y in gdat.indxtypetrue:
-            print('y')
-            print(y)
-            print('gdat.indxtypetruetarg[y]')
-            print(gdat.indxtypetruetarg[y])
         gdat.indxssyscosc = np.full(gdat.numbtargcosc, -1, dtype=int)
         gdat.indxssyssbin = np.full(gdat.numbtargsbin, -1, dtype=int)
         gdat.indxcoscssys = np.full(gdat.numbtargssys, -1, dtype=int)
@@ -878,56 +927,63 @@ def init( \
                 gdat.indxssystarg[k] = cntrssys
                 cntrssys += 1
 
-
         gdat.trueminmincl = 89.
         gdat.truemaaxincl = 90.
-        gdat.trueincl = tdpy.icdf_self(np.random.random(gdat.numbtargssys), gdat.trueminmincl, gdat.truemaaxincl)
+        gdat.dictfeat['true']['ssys']['incl'] = tdpy.icdf_self(np.random.random(gdat.numbtargssys), gdat.trueminmincl, gdat.truemaaxincl)
         
         gdat.trueminmperi = 2.
         gdat.truemaxmperi = 100.
-        gdat.trueperi = tdpy.icdf_powr(np.random.random(gdat.numbtargssys), gdat.trueminmperi, 100., 2.)
+        gdat.dictfeat['true']['ssys']['peri'] = tdpy.icdf_powr(np.random.random(gdat.numbtargssys), gdat.trueminmperi, 100., 2.)
         
-        gdat.trueepoc = np.random.rand(gdat.numbtargssys) * 27.3 + gdat.timeoffs
+        gdat.dictfeat['true']['ssys']['epoc'] = np.random.rand(gdat.numbtargssys) * 27.3 + gdat.timeoffs
         
-        gdat.trueradicompsbin = tdpy.icdf_powr(np.random.random(gdat.numbtargsbin), 0.1, 100., 2.)
+        gdat.dictfeat['true']['sbin']['radicomp'] = tdpy.icdf_powr(np.random.random(gdat.numbtargsbin), 0.1, 100., 2.)
 
-        gdat.truemasscompsbin = tdpy.icdf_powr(np.random.random(gdat.numbtargsbin), 0.1, 100., 2.)
-        gdat.truemasscompcosc = tdpy.icdf_powr(np.random.random(gdat.numbtargcosc), 5., 100., 2.)
-        gdat.truemasscomp = np.empty(gdat.numbtargssys)
-        gdat.truemasscomp[gdat.indxssyscosc] = gdat.truemasscompcosc
-        gdat.truemasscomp[gdat.indxssyssbin] = gdat.truemasscompsbin
-
-        gdat.trueduratrantotl = np.empty(gdat.numbtargssys)
-        gdat.truedcyc = np.empty(gdat.numbtargssys)
-        gdat.trueamplslen = np.empty(gdat.numbtargcosc)
+        gdat.dictfeat['true']['sbin']['masscomp'] = tdpy.icdf_powr(np.random.random(gdat.numbtargsbin), 0.1, 100., 2.)
+        gdat.dictfeat['true']['cosc']['masscomp'] = tdpy.icdf_powr(np.random.random(gdat.numbtargcosc), 5., 100., 2.)
+        
+        gdat.dictfeat['true']['ssys']['masscomp'] = np.empty(gdat.numbtargssys)
+        gdat.dictfeat['true']['ssys']['masscomp'][gdat.indxssyscosc] = gdat.dictfeat['true']['cosc']['masscomp']
+        gdat.dictfeat['true']['ssys']['masscomp'][gdat.indxssyssbin] = gdat.dictfeat['true']['sbin']['masscomp']
         
     if gdat.typedata == 'mock':
-        gdat.trueradistar = dicttic8['radistar']
-        gdat.truemassstar = dicttic8['massstar']
-        indx = np.where((~np.isfinite(gdat.truemassstar)) | (~np.isfinite(gdat.trueradistar)))[0]
-        gdat.trueradistar[indx] = 1.
-        gdat.truemassstar[indx] = 1.
-        gdat.truetmag = dicttic8['tmag']
+        gdat.dictfeat['true']['ssys']['radistar'] = dicttic8['radistar']
+        gdat.dictfeat['true']['ssys']['massstar'] = dicttic8['massstar']
+        indx = np.where((~np.isfinite(gdat.dictfeat['true']['ssys']['massstar'])) | (~np.isfinite(gdat.dictfeat['true']['ssys']['radistar'])))[0]
+        gdat.dictfeat['true']['ssys']['radistar'][indx] = 1.
+        gdat.dictfeat['true']['ssys']['massstar'][indx] = 1.
+        gdat.dictfeat['true']['totl']['tmag'] = dicttic8['tmag']
     
     if gdat.typedata == 'toyy':
         gdat.trueminmradistar = 0.7
         gdat.truemaxmradistar = 2.
-        gdat.trueradistar = np.random.random(gdat.numbtargssys) * (gdat.truemaxmradistar - gdat.trueminmradistar) + gdat.trueminmradistar
+        gdat.dictfeat['true']['ssys']['radistar'] = np.random.random(gdat.numbtargssys) * (gdat.truemaxmradistar - gdat.trueminmradistar) + gdat.trueminmradistar
         
         gdat.trueminmmassstar = 1.
         gdat.truemaxmmassstar = 2.
-        gdat.truemassstar = np.random.random(gdat.numbtargssys) * (gdat.truemaxmmassstar - gdat.trueminmmassstar) + gdat.trueminmmassstar
+        gdat.dictfeat['true']['ssys']['massstar'] = np.random.random(gdat.numbtargssys) * (gdat.truemaxmmassstar - gdat.trueminmmassstar) + gdat.trueminmmassstar
         
-        gdat.trueminmtmag = 8.
-        gdat.truemaxmtmag = 14.
-        print('temp make this exponential')
-        gdat.truetmag = tdpy.icdf_self(np.random.random(gdat.numbtarg), 13., 14.)
+        gdat.trueminmtmag = 0.
+        gdat.truemaxmtmag = 10.
+        gdat.dictfeat['true']['totl']['tmag'] = tdpy.icdf_powr(np.random.random(gdat.numbtarg), gdat.trueminmtmag, gdat.truemaxmtmag, -2.)
+   
+    if gdat.boolsimu:
+        gdat.dictfeat['true']['ssys']['masstotl'] = gdat.dictfeat['true']['ssys']['masscomp'] + gdat.dictfeat['true']['ssys']['massstar']
+        gdat.dictfeat['true']['ssys']['ratimass'] = gdat.dictfeat['true']['ssys']['masscomp'] / gdat.dictfeat['true']['ssys']['masstotl']
+
+        gdat.dictfeat['true']['ssys']['duratrantotl'] = np.empty(gdat.numbtargssys)
+        gdat.dictfeat['true']['ssys']['dcyc'] = np.empty(gdat.numbtargssys)
+        gdat.dictfeat['true']['cosc']['amplslen'] = np.empty(gdat.numbtargcosc)
     
-    if gdat.typedata == 'toyy' or gdat.typedata == 'mock':
-        gdat.truerflxtotl = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for n in gdat.indxtargssys]
-        gdat.truerflxelli = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for n in gdat.indxtargssys]
-        gdat.truerflxbeam = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for n in gdat.indxtargssys]
-        gdat.truerflxslen = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for n in gdat.indxtargcosc]
+    if gdat.boolsimu:
+        
+        gdat.truerflxtotl = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for n in gdat.dictindxtarg['ssys']]
+        gdat.truerflxelli = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for n in gdat.dictindxtarg['ssys']]
+        gdat.truerflxbeam = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for n in gdat.dictindxtarg['ssys']]
+        gdat.truerflxslen = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for n in gdat.dictindxtarg['cosc']]
+        
+        if gdat.typedata == 'obsd':
+            gdat.listarrytser['data'] = gdat.listarrytser['obsd']
         
         if gdat.typedata == 'mock':
             gdat.listarrytser['data'] = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for k in gdat.indxtarg]
@@ -936,17 +992,10 @@ def init( \
                     for y in gdat.indxchun[n][0][p]:
                         gdat.listarrytser['data'][n][0][p][y] = np.copy(gdat.listarrytser['obsd'][n][0][p][y])
         
-        if gdat.typedata == 'obsd':
-            gdat.listarrytser['data'] = gdat.listarrytser['obsd']
-        
-        if gdat.typedata == 'mock':
-            for n in gdat.indxtarg:
-                for p in gdat.indxinst[0]:
-                    for y in gdat.indxchun[n][0][p]:
-                        gdat.listarrytser['data'][n][0][p][y] = np.copy(gdat.listarrytser['obsd'][n][0][p][y])
-            
+        print('Simulating the light curves of stellar systems...')
         ## stellar systems
-        for nn, n in enumerate(gdat.indxtargssys):
+        for nn in tqdm(range(len(gdat.dictindxtarg['ssys']))):
+            n = gdat.dictindxtarg['ssys'][nn]
             if gdat.boolcosctrue[n]:
                 nnn = gdat.indxcoscssys[nn]
             else:
@@ -957,17 +1006,19 @@ def init( \
                     ## COSCs
                     if gdat.boolcosctrue[n]:
                         dictoutp = ephesus.retr_rflxtranmodl(gdat.listarrytser['data'][n][0][p][y][:, 0], \
-                                                                 epoccomp=gdat.trueepoc[None, nn], pericomp=gdat.trueperi[None, nn], inclcomp=gdat.trueincl[None, nn], \
-                                                                 radistar=gdat.trueradistar[nn], massstar=gdat.truemassstar[nn], \
-                                                                 masscomp=gdat.truemasscompcosc[None, nnn], \
-                                                                 typesyst='cosc')
+                                                             epoccomp=gdat.dictfeat['true']['ssys']['epoc'][None, nn], pericomp=gdat.dictfeat['true']['ssys']['peri'][None, nn], \
+                                                             inclcomp=gdat.dictfeat['true']['ssys']['incl'][None, nn], \
+                                                             radistar=gdat.dictfeat['true']['ssys']['radistar'][nn], massstar=gdat.dictfeat['true']['ssys']['massstar'][nn], \
+                                                             masscomp=gdat.dictfeat['true']['cosc']['masscomp'][None, nnn], \
+                                                             typesyst='cosc')
                     ## stellar binaries
                     if gdat.boolsbintrue[n]:
                         dictoutp = ephesus.retr_rflxtranmodl(gdat.listarrytser['data'][n][0][p][y][:, 0], \
-                                                                 epoccomp=gdat.trueepoc[None, nn], pericomp=gdat.trueperi[None, nn], inclcomp=gdat.trueincl[None, nn], \
-                                                                 radistar=gdat.trueradistar[nn], massstar=gdat.truemassstar[nn], \
-                                                                 radicomp=gdat.trueradicompsbin[None, nnn], masscomp=gdat.truemasscompsbin[None, nnn], \
-                                                                 typesyst='sbin')
+                                                             epoccomp=gdat.dictfeat['true']['ssys']['epoc'][None, nn], pericomp=gdat.dictfeat['true']['ssys']['peri'][None, nn], \
+                                                             inclcomp=gdat.dictfeat['true']['ssys']['incl'][None, nn], \
+                                                             radistar=gdat.dictfeat['true']['ssys']['radistar'][nn], massstar=gdat.dictfeat['true']['ssys']['massstar'][nn], \
+                                                             radicomp=gdat.dictfeat['true']['sbin']['radicomp'][None, nnn], masscomp=gdat.dictfeat['true']['sbin']['masscomp'][None, nnn], \
+                                                             typesyst='sbin')
                     
                     gdat.truerflxtotl[nn][0][p][y] = dictoutp['rflx']
                     gdat.truerflxelli[nn][0][p][y] = dictoutp['rflxelli']
@@ -980,10 +1031,10 @@ def init( \
                             raise Exception('')
 
                     if p == 0 and y == 0:
-                        gdat.trueduratrantotl[nn] = dictoutp['duratrantotl']
-                        gdat.truedcyc[nn] = dictoutp['duratrantotl'] / gdat.trueperi[nn] / 12.
+                        gdat.dictfeat['true']['ssys']['duratrantotl'][nn] = dictoutp['duratrantotl']
+                        gdat.dictfeat['true']['ssys']['dcyc'][nn] = dictoutp['duratrantotl'] / gdat.dictfeat['true']['ssys']['peri'][nn] / 12.
                         if gdat.boolcosctrue[n]:
-                            gdat.trueamplslen[nnn] = dictoutp['amplslen']
+                            gdat.dictfeat['true']['cosc']['amplslen'][nnn] = dictoutp['amplslen']
                     
                     if gdat.typedata == 'toyy':
                         gdat.listarrytser['data'][n][0][p][y][:, 1] = np.copy(gdat.truerflxtotl[nn][0][p][y])
@@ -991,7 +1042,7 @@ def init( \
                         gdat.listarrytser['data'][n][0][p][y][:, 1] += (gdat.truerflxtotl[nn][0][p][y] - 1.)
         
         if gdat.booldiag:
-            for nn, n in enumerate(gdat.indxtargssys):
+            for nn, n in enumerate(gdat.dictindxtarg['ssys']):
                 for p in gdat.indxinst[0]:
                     for y in gdat.indxchun[n][0][p]:
                         if gdat.listarrytser['data'][n][0][p][y].shape[0] == 1:
@@ -1007,28 +1058,55 @@ def init( \
                         gdat.listarrytser['data'][n][0][p][y][:, 1] = np.ones_like(gdat.listarrytser['data'][n][0][p][y][:, 0])
         
         # relevant targets
-        gdat.indxtargcosctran = gdat.indxtargcosc[np.where(np.isfinite(gdat.trueduratrantotl[gdat.indxssyscosc]))]
-        gdat.indxtargrele = [[] for v in gdat.indxtyperele]
+        gdat.dictindxtarg['cosctran'] = gdat.dictindxtarg['cosc'][np.where(np.isfinite(gdat.dictfeat['true']['ssys']['duratrantotl'][gdat.indxssyscosc]))]
+        gdat.dictindxtarg['rele'] = [[] for v in gdat.indxtyperele]
         # relevants are all COSCs
-        gdat.indxtargrele[0] = gdat.indxtargcosc
+        gdat.dictindxtarg['rele'][0] = gdat.dictindxtarg['cosc']
         # relevants are those transiting COSCs
-        gdat.indxtargrele[1] = gdat.indxtargcosctran
+        gdat.dictindxtarg['rele'][1] = gdat.dictindxtarg['cosctran']
         gdat.numbtargrele = np.empty(gdat.numbtyperele, dtype=int)
         
-        gdat.indxtargirre = [[] for v in gdat.indxtyperele]
+        gdat.dictindxtarg['irre'] = [[] for v in gdat.indxtyperele]
         for v in gdat.indxtyperele:
-            gdat.indxtargirre[v] = np.setdiff1d(gdat.indxtarg, gdat.indxtargrele[v])
-            gdat.numbtargrele[v] = gdat.indxtargrele[v].size
+            gdat.dictindxtarg['irre'][v] = np.setdiff1d(gdat.indxtarg, gdat.dictindxtarg['rele'][v])
+            gdat.numbtargrele[v] = gdat.dictindxtarg['rele'][v].size
         
+        gdat.indxssysrele = [[] for v in gdat.indxtyperele]
         for v in gdat.indxtyperele:
-            print('v')
-            print(v)
-            print('gdat.indxtargrele[v]')
-            print(gdat.indxtargrele[v])
-    
+            cntrssys = 0
+            cntrrele = 0
+            gdat.indxssysrele[v] = np.empty(gdat.numbtargrele[v], dtype=int)
+            for n in gdat.dictindxtarg['rele'][v]:
+                if n in gdat.dictindxtarg['ssys']:
+                    gdat.indxssysrele[v][cntrrele] = cntrssys
+                    cntrssys += 1
+                cntrrele += 1
+
+    if gdat.typedata == 'toyy':
+        for namepoplcomm in listnametypetrue:
+            if namepoplcomm != 'totl':
+                gdat.dictfeat['true'][namepoplcomm]['tmag'] = gdat.dictfeat['true']['totl']['tmag'][gdat.dictindxtarg[namepoplcomm]]
+
+    if gdat.boolsimu:
+        
+        typeanls = 'featrue_%s' % gdat.strgextn
+        pathimag = gdat.pathimagpopl + 'truefeat/'
+        pathdata = gdat.pathdatapopl + 'truefeat/'
+        #listnamepoplcomm = [['totl', 'sbin', 'ssys', 'cosc', 'qstr', 'cosctran']]
+        #listlablpoplcomm = [['All', 'SB', 'SS', 'COSC', 'QS', 'Tr. COSC']]
+        pergamon.init( \
+                      typeanls=typeanls, \
+                      dictpopl=gdat.dictfeat['true'], \
+                      listnamepoplcomm=[listnametypetrue], \
+                      listlablpoplcomm=[listlabltypetrue], \
+                      pathimag=pathimag, \
+                      pathdata=pathdata, \
+                      boolsortpoplsize=False, \
+                     )
+
     if gdat.typedata == 'toyy':
         # add noise
-        stdv = ephesus.retr_noistess(gdat.truetmag) * 1e-3 # [dimensionless]
+        stdv = ephesus.retr_noistess(gdat.dictfeat['true']['totl']['tmag']) * 1e-3 # [dimensionless]
         if not np.isfinite(stdv).all():
             raise Exception('')
 
@@ -1100,7 +1178,7 @@ def init( \
     gdat.dictmileinpt['dictpboxinpt']['boolsrchposi'] = True
     gdat.dictmileinpt['dictpboxinpt']['boolprocmult'] = False
     
-    if gdat.typedata == 'mock':
+    if gdat.boolsimu:
         gdat.boolreleposi = [[[] for v in gdat.indxtyperele] for u in gdat.indxtypeposi]
         gdat.boolposirele = [[[] for v in gdat.indxtyperele] for u in gdat.indxtypeposi]
         
@@ -1130,116 +1208,141 @@ def init( \
         gdat.listindxtarg = [gdat.indxtarg]
         temp = mile_work(gdat, 0)
 
-    if gdat.typedata == 'mock':
+    if gdat.boolsimu:
         for u in gdat.indxtypeposi:
             for v in gdat.indxtyperele:
                 gdat.boolposirele[u][v] = np.array(gdat.boolposirele[u][v], dtype=bool)
                 gdat.boolreleposi[u][v] = np.array(gdat.boolreleposi[u][v], dtype=bool)
-    gdat.indxtargposi = [[] for u in gdat.indxtypeposi]
-    gdat.indxtargnega = [[] for u in gdat.indxtypeposi]
     
-    for v in gdat.indxtyperele:
-        print('v')
-        print(v)
-        print('gdat.boolreletarg[v]')
-        print(gdat.boolreletarg[v])
-    
-    # plot distributions
+    gdat.dictindxtarg['posi'] = [[] for u in gdat.indxtypeposi]
+    gdat.dictindxtarg['nega'] = [[] for u in gdat.indxtypeposi]
     for u in gdat.indxtypeposi:
-        gdat.indxtargposi[u] = np.where(gdat.boolpositarg[u])[0]
-        gdat.indxtargnega[u] = np.setdiff1d(gdat.indxtarg, gdat.indxtargposi[u])
-        print('gdat.indxtargposi[u]')
-        summgene(gdat.indxtargposi[u])
+        gdat.dictindxtarg['posi'][u] = np.where(gdat.boolpositarg[u])[0]
+        gdat.dictindxtarg['nega'][u] = np.setdiff1d(gdat.indxtarg, gdat.dictindxtarg['posi'][u])
+    
+    gdat.listlablposi = ['Strong BLS power', 'Strong LS power', 'Strong BLS or LS power', 'Strong BLS and LS power']
+    gdat.listlablnega = ['Weak BLS power', 'Weak LS power', 'Weak BLS and LS power', 'Weak BLS or LS power']
             
-        print('gdat.boolpositarg[u]')
-        print(gdat.boolpositarg[u])
-        listlablpopl = []
-        
-        #gdat.dictindxtarg['posi'] = gdat.indxtargposi[u]
-        
-        print('gdat.boolpositarg[u]')
-        print(gdat.boolpositarg[u])
-        
-        for v in gdat.indxtyperele:
+    if gdat.boolsimu:
+        gdat.listlablrele = ['Simulated COSC', 'Simulated tr. COSC']
+        gdat.listlablirre = ['Simulated QS or SB', 'Simulated QS, SB or non-tr. COSC']
+    
+    # for each positive and relevant type, estimate the recall and precision
+    gdat.indxtypeposiiter = np.concatenate((np.array([-1]), gdat.indxtypeposi))
+    if gdat.boolsimu:
+        gdat.indxtypereleiter = np.concatenate((np.array([-1]), gdat.indxtyperele))
+    else:
+        gdat.indxtypereleiter = np.array([-1])
+    for u in gdat.indxtypeposiiter:
+        for v in gdat.indxtypereleiter:
             
-            #gdat.dictindxtarg['rele'] = gdat.indxtargrele[v]
-            
-            strguuvv = 'u%dv%d' % (u, v)
-            labluuvv = '(u = %d, v = %d)' % (u, v)
-            
-            gdat.dictindxtarg = dict()
-            gdat.dictfeat = dict()
+            if u == -1 and v == -1:
+                continue
 
-            gdat.dictindxtarg['trpo' + strguuvv] = np.intersect1d(gdat.indxtargposi[u], gdat.indxtargrele[v])
-            gdat.dictindxtarg['trne' + strguuvv] = np.intersect1d(gdat.indxtargnega[u], gdat.indxtargirre[v])
-            gdat.dictindxtarg['flpo' + strguuvv] = np.intersect1d(gdat.indxtargposi[u], gdat.indxtargirre[v])
-            gdat.dictindxtarg['flne' + strguuvv] = np.intersect1d(gdat.indxtargnega[u], gdat.indxtargrele[v])
+            if u == -1:
+                strguuvv = 'v%d' % (v)
+                labluuvv = '(v = %d)' % (v)
+            elif v == -1:
+                strguuvv = 'u%d' % (u)
+                labluuvv = '(u = %d)' % (u)
+            else:
+                strguuvv = 'u%dv%d' % (u, v)
+                labluuvv = '(u = %d, v = %d)' % (u, v)
+
+            gdat.dictindxtargtemp = dict()
+            gdat.dictfeat['temp'] = dict()
+
+            if u == -1:
+                gdat.dictindxtargtemp[strguuvv + 're'] = gdat.dictindxtarg['rele'][v]
+                gdat.dictindxtargtemp[strguuvv + 'ir'] = gdat.dictindxtarg['irre'][v]
+            elif v == -1:
+                gdat.dictindxtargtemp[strguuvv + 'ne'] = gdat.dictindxtarg['nega'][u]
+                gdat.dictindxtargtemp[strguuvv + 'po'] = gdat.dictindxtarg['posi'][u]
+            else:
+                gdat.dictindxtargtemp[strguuvv + 'trpo'] = np.intersect1d(gdat.dictindxtarg['posi'][u], gdat.dictindxtarg['rele'][v])
+                gdat.dictindxtargtemp[strguuvv + 'trne'] = np.intersect1d(gdat.dictindxtarg['nega'][u], gdat.dictindxtarg['irre'][v])
+                gdat.dictindxtargtemp[strguuvv + 'flpo'] = np.intersect1d(gdat.dictindxtarg['posi'][u], gdat.dictindxtarg['irre'][v])
+                gdat.dictindxtargtemp[strguuvv + 'flne'] = np.intersect1d(gdat.dictindxtarg['nega'][u], gdat.dictindxtarg['rele'][v])
             
-            for strg in ['trpo', 'trne', 'flpo', 'flne']:
-                strgkeyy = strg + strguuvv
-                if gdat.dictindxtarg[strgkeyy].size > 0:
-                    gdat.dictfeat['stat' + strgkeyy] = dict()
+            for strgkeyy in gdat.dictindxtargtemp:
+                print('strgkeyy')
+                print(strgkeyy)
+                if len(gdat.dictindxtargtemp[strgkeyy]) > 0:
+                    gdat.dictfeat['temp']['stat' + strgkeyy] = dict()
                     for namefeat in gdat.listnamefeat:
-                        gdat.dictfeat['stat' + strgkeyy][namefeat] = gdat.dictstat[namefeat][gdat.dictindxtarg[strgkeyy]]
+                        gdat.dictfeat['temp']['stat' + strgkeyy][namefeat] = gdat.dictstat[namefeat][gdat.dictindxtargtemp[strgkeyy]]
             
-            listnamepoplcomm = [list(gdat.dictfeat.keys())]
+            dictcolrpopl = dict()
+            listnamepoplcomm = [list(gdat.dictfeat['temp'].keys())]
             listlablpoplcomm = [[]]
             for namepoplcomm in listnamepoplcomm[0]:
-                if 'trpo' in namepoplcomm:
-                    listlablpoplcomm[0].append('TP')
-                if 'trne' in namepoplcomm:
-                    listlablpoplcomm[0].append('TN')
-                if 'flpo' in namepoplcomm:
-                    listlablpoplcomm[0].append('FP')
-                if 'flne' in namepoplcomm:
-                    listlablpoplcomm[0].append('FN')
-                if namepoplcomm == 'stattrpo' or namepoplcomm == 'stattrne' or namepoplcomm == 'statflpo' or namepoplcomm == 'statflne':
-                    listlablpoplcomm[0][-1] += ' ' + labluuvv
+                strgtemp = 'stat' + strguuvv
+                if strgtemp + 're' in namepoplcomm:
+                    listlablpoplcomm[0].append(gdat.listlablrele[v])
+                    dictcolrpopl[namepoplcomm] = 'purple'
+                if strgtemp + 'ir' in namepoplcomm:
+                    listlablpoplcomm[0].append(gdat.listlablirre[v])
+                    dictcolrpopl[namepoplcomm] = 'orange'
+                if strgtemp + 'po' in namepoplcomm:
+                    listlablpoplcomm[0].append(gdat.listlablposi[u])
+                    dictcolrpopl[namepoplcomm] = 'violet'
+                if strgtemp + 'ne' in namepoplcomm:
+                    listlablpoplcomm[0].append(gdat.listlablnega[u])
+                    dictcolrpopl[namepoplcomm] = 'brown'
+                if strgtemp + 'trpo' in namepoplcomm:
+                    listlablpoplcomm[0].append(gdat.listlablrele[v] + ', ' + gdat.listlablposi[u])
+                    dictcolrpopl[namepoplcomm] = 'green'
+                if strgtemp + 'trne' in namepoplcomm:
+                    listlablpoplcomm[0].append(gdat.listlablirre[v] + ', ' + gdat.listlablnega[u])
+                    dictcolrpopl[namepoplcomm] = 'blue'
+                if strgtemp + 'flpo' in namepoplcomm:
+                    listlablpoplcomm[0].append(gdat.listlablirre[v] + ', ' + gdat.listlablposi[u])
+                    dictcolrpopl[namepoplcomm] = 'red'
+                if strgtemp + 'flne' in namepoplcomm:
+                    listlablpoplcomm[0].append(gdat.listlablrele[v] + ', ' + gdat.listlablnega[u])
+                    dictcolrpopl[namepoplcomm] = 'orange'
             
-            print('listlablpoplcomm')
-            print(listlablpoplcomm)
-            print('listnamepoplcomm')
-            print(listnamepoplcomm)
-            
-            typeanls = 'bhol_%s' % gdat.strgextn
+            typeanls = 'cosc_%s' % gdat.strgextn
             pergamon.init( \
                           typeanls=typeanls, \
-                          dictpopl=gdat.dictfeat, \
+                          dictpopl=gdat.dictfeat['temp'], \
+                          dictcolrpopl=dictcolrpopl, \
                           listnamepoplcomm=listnamepoplcomm, \
                           listlablpoplcomm=listlablpoplcomm, \
-                          listlablpopl=listlablpopl, \
                           pathimag=gdat.pathimagpopl, \
                           pathdata=gdat.pathdatapopl, \
                           boolsortpoplsize=False, \
                          )
                 
-            if gdat.boolplot and typedata == 'mock':
-                listvarbreca = np.vstack([gdat.trueperi, gdat.truemasscomp, gdat.truetmag[gdat.indxtruerele[v]]]).T
-                print('listvarbreca')
-                summgene(listvarbreca)
-                listlablvarbreca = [['$P$', 'day'], ['$M_c$', '$M_\odot$'], ['Tmag', '']]
+            if gdat.boolplot and gdat.boolsimu and u != -1 and v != -1:
+                listvarbreca = np.vstack([gdat.dictfeat['true']['ssys']['peri'][gdat.indxssysrele[v]], gdat.dictfeat['true']['ssys']['masscomp'][gdat.indxssysrele[v]], \
+                                                                                                   gdat.dictfeat['true']['totl']['tmag'][gdat.dictindxtarg['rele'][v]]]).T
                 liststrgvarbreca = ['trueperi', 'truemasscomp', 'truetmag']
+                #listlablvarbreca, listscalvarbreca = tdpy.retr_listlablscalpara(liststrgvarbreca)
+                listlablvarbreca = [['$P$', 'day'], ['$M_c$', '$M_\odot$'], ['Tmag', '']]
                 
                 listtemp = []
                 for namefeat in gdat.listnamefeat:
-                    listtemp.append(gdat.dictstat[namefeat])
+                    listtemp.append(gdat.dictstat[namefeat][gdat.dictindxtarg['posi'][u]])
                 listvarbprec = np.vstack(listtemp).T
                 #listvarbprec = np.vstack([gdat.listsdee, gdat.listpowrlspe]).T
                 #listlablvarbprec = [['SDE', ''], ['$P_{LS}$', '']]
                 liststrgvarbprec = gdat.listnamefeat#['sdee', 'powrlspe']
-                listlablvarbprec = tdpy.retr_listlablscalpara(gdat.listnamefeat)
-                print('listvarbreca')
-                print(listvarbreca)
-                print('listvarbprec')
-                print(listvarbprec)
-                print('gdat.boolreletarg[v]')
-                print(gdat.boolreletarg[v])
-                print('gdat.boolposirele[u][v]')
-                print(gdat.boolposirele[u][v])
-                print('gdat.boolreleposi[u][v]')
-                print(gdat.boolreleposi[u][v])
+                listlablvarbprec, listscalvarbprec = tdpy.retr_listlablscalpara(gdat.listnamefeat)
+                #print('listvarbreca')
+                #print(listvarbreca)
+                #print('listvarbprec')
+                #print(listvarbprec)
+                #print('gdat.boolreletarg[v]')
+                #print(gdat.boolreletarg[v])
+                #print('gdat.boolpositarg[u]')
+                #print(gdat.boolpositarg[u])
+                #print('gdat.boolposirele[u][v]')
+                #print(gdat.boolposirele[u][v])
+                #print('gdat.boolreleposi[u][v]')
+                #print(gdat.boolreleposi[u][v])
 
-                strgextn = '%s' % (gdat.typepopl)
+                strgextn = '%s_%s' % (gdat.typepopl, strguuvv)
                 tdpy.plot_recaprec(gdat.pathimagpopl, strgextn, listvarbreca, listvarbprec, liststrgvarbreca, liststrgvarbprec, \
                                         listlablvarbreca, listlablvarbprec, gdat.boolposirele[u][v], gdat.boolreleposi[u][v])
 
