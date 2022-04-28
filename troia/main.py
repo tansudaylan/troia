@@ -143,7 +143,7 @@ def mile_work(gdat, i):
         if gdat.boolplot and n < gdat.maxmnumbtargplot:
             if gdat.boolplotdvrp:
                 if gdat.boolsimu:
-                    gdat.numbpagedvrp = gdat.numbpagedvrpmock
+                    gdat.numbpagedvrp = gdat.numbpagedvrpsimu
                 else:
                     gdat.numbpagedvrp = 0
         
@@ -168,7 +168,7 @@ def mile_work(gdat, i):
                 else:
                     liststrglimt = ['']
                     
-                # plot mock relevant (i.e., signal-containing) data with known components
+                # plot relevant (i.e., signal-containing) simulated data with known components
                 if n in gdat.dictindxtarg['ssys']:
                     nn = gdat.indxssystarg[n]
                     if gdat.boolcosctrue[n]:
@@ -245,7 +245,7 @@ def mile_work(gdat, i):
                                     dictmodl['modlslen'] = {'lcur': gdat.truerflxslen[nnn][0][p][y], 'time': gdat.listarrytser['data'][n][0][p][y][:, 0], 'labl': 'SL'}
                                 titlraww = '%s, Tmag=%.3g, $R_*$=%.2g $R_\odot$, $M_*$=%.2g $M_\odot$' % ( \
                                                                                                          gdat.labltarg[n], \
-                                                                                                         gdat.dictfeat['true']['ssys']['tmag'][n], \
+                                                                                                         gdat.dictfeat['true']['ssys']['tmag'][nn], \
                                                                                                          gdat.dictfeat['true']['ssys']['radistar'][nn], \
                                                                                                          gdat.dictfeat['true']['ssys']['massstar'][nn], \
                                                                                                          )
@@ -262,7 +262,7 @@ def mile_work(gdat, i):
                                 if gdat.boolcosctrue[n]:
                                     titlinje += ', $A_{SL}$=%.2g ppt' % gdat.dictfeat['true']['cosc']['amplslen'][nnn]
                                 
-                                if gdat.typedata == 'mock':
+                                if gdat.typedata == 'simuinje':
                                     strgextnraww = '%s_%s_%s%s_raww' % (gdat.typedata, gdat.strgtarg[n], gdat.liststrginst[0][p], strglimt)
                                     pathplot = ephesus.plot_lcur(pathtargimag, titl=titlraww, timeoffs=gdat.timeoffs, limtyaxi=limtyaxi, limtxaxi=limtxaxi, \
                                                                                     timedata=gdat.listarrytser['obsd'][n][0][p][y][:, 0], \
@@ -291,7 +291,7 @@ def mile_work(gdat, i):
                                     if gdat.boolplotdvrp:
                                         gdat.listdictdvrp[0].append({'path': pathplot, 'limt':[0., 0.1, 1., 0.2]})
                                 
-                                if gdat.typedata == 'toyy':
+                                if gdat.typedata == 'simugene':
                                     strgextninje = '%s_%s_%s%s_inje' % (gdat.typedata, gdat.strgtarg[n], gdat.liststrginst[0][p], strglimt)
                                     
                                     pathplot = ephesus.plot_lcur(pathtargimag, \
@@ -305,7 +305,7 @@ def mile_work(gdat, i):
                                     
                 if gdat.boolplotdvrp:
                     # make a simulation summary plot
-                    for w in gdat.indxpagedvrpmock:
+                    for w in gdat.indxpagedvrpsimu:
                         # path of DV report
                         gdat.listpathdvrp[w] = pathtargimag + '%s_dvrp_pag%d.png' % (gdat.strgtarg[n], w)
                         if not os.path.exists(gdat.listpathdvrp[w]):
@@ -358,7 +358,7 @@ def init( \
         # list of GAIA IDs
         listgaid=None, \
 
-        # type of data: 'toyy', 'mock', or 'obsd'
+        # type of data: 'simugene', 'simuinje', or 'obsd'
         typedata='obsd', \
         
         # Boolean flag to turn on multiprocessing
@@ -427,7 +427,7 @@ def init( \
     gdat.booltargusergaid = gdat.listgaid is not None
     gdat.booltarguser = gdat.booltargusertici or gdat.booltargusermast or gdat.booltargusergaid
     
-    if gdat.typedata == 'toyy' and gdat.booltarguser or gdat.typedata != 'toyy' and not gdat.booltarguser and gdat.typepopl is None:
+    if gdat.typedata == 'simugene' and gdat.booltarguser or gdat.typedata != 'simugene' and not gdat.booltarguser and gdat.typepopl is None:
         print('gdat.typedata')
         print(gdat.typedata)
         print('gdat.booltarguser')
@@ -476,7 +476,7 @@ def init( \
     gdat.timeoffs = 2457000.
     gdat.boolanimtmpt = False
     
-    if not gdat.booltarguser and gdat.typedata != 'toyy':
+    if not gdat.booltarguser and gdat.typedata != 'simugene':
         dicttic8 = ephesus.retr_dictpopltic8(typepopl=gdat.typepopl)
         
     # number of time-series data sets
@@ -498,13 +498,13 @@ def init( \
         gdat.indxinst[b] = np.arange(gdat.numbinst[b])
     
     # Boolean flag indicating whether the data are simulated
-    gdat.boolsimu = gdat.typedata == 'toyy' or gdat.typedata == 'mock'
+    gdat.boolsimu = gdat.typedata == 'simugene' or gdat.typedata == 'simuinje'
 
     # data validation (DV) report
     ## number of pages in the DV report
     if gdat.boolplotdvrp and gdat.boolsimu:
-        gdat.numbpagedvrpmock = 1
-        gdat.indxpagedvrpmock = np.arange(gdat.numbpagedvrpmock)
+        gdat.numbpagedvrpsimu = 1
+        gdat.indxpagedvrpsimu = np.arange(gdat.numbpagedvrpsimu)
     
     # determine number of targets
     ## number of targets
@@ -525,7 +525,7 @@ def init( \
     print('Number of targets: %s' % gdat.numbtarg)
     gdat.indxtarg = np.arange(gdat.numbtarg)
     
-    if not gdat.booltarguser and gdat.typedata != 'toyy':
+    if not gdat.booltarguser and gdat.typedata != 'simugene':
         size = dicttic8['tici'].size
         indx = np.random.choice(np.arange(dicttic8['tici'].size), replace=False, size=size)
         for name in dicttic8.keys():
@@ -538,7 +538,7 @@ def init( \
     if gdat.listticitarg is None:
         gdat.listticitarg = [[] for k in gdat.indxtarg]
     
-    if not gdat.booltarguser and gdat.typedata != 'toyy':
+    if not gdat.booltarguser and gdat.typedata != 'simugene':
         gdat.listticitarg = dicttic8['tici']
     
     print('gdat.boolplot')
@@ -756,8 +756,8 @@ def init( \
         gdat.liststrgmast = [[] for n in gdat.indxtarg]
     gdat.labltarg = [[] for n in gdat.indxtarg]
     for n in gdat.indxtarg:
-        if gdat.typedata == 'toyy':
-            gdat.strgtarg[n] = 'mock%04d' % n
+        if gdat.typedata == 'simugene':
+            gdat.strgtarg[n] = 'simugene%04d' % n
             gdat.labltarg[n] = 'Mock target %08d' % n
         else:
             if gdat.typepopl[4:12] == 'nomi2min':
@@ -777,16 +777,16 @@ def init( \
     gdat.listarrytser = dict()
     gdat.indxchun = [[[[] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for k in gdat.indxtarg]
     gdat.numbchun = [[np.empty(gdat.numbinst[b], dtype=int) for b in gdat.indxdatatser] for k in gdat.indxtarg]
-    if gdat.typedata == 'toyy':
+    if gdat.typedata == 'simugene':
         for n in gdat.indxtarg:
             for b in gdat.indxdatatser:
                 for p in gdat.indxinst[b]:
                     gdat.numbchun[n][b][p] = 1
                     gdat.indxchun[n][b][p] = np.arange(gdat.numbchun[n][b][p], dtype=int)
         
-        if gdat.typedata == 'mock' or gdat.typedata == 'obsd':
+        if gdat.typedata == 'simuinje' or gdat.typedata == 'obsd':
             gdat.listarrytser['obsd'] = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for k in gdat.indxtarg]
-    if gdat.typedata == 'toyy':
+    if gdat.typedata == 'simugene':
         gdat.listarrytser['data'] = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for k in gdat.indxtarg]
     
     if gdat.boolsimu:
@@ -800,11 +800,11 @@ def init( \
     gdat.indxtypeposi = np.arange(gdat.numbtypeposi)
     gdat.boolpositarg = [np.empty(gdat.numbtarg, dtype=bool) for u in gdat.indxtypeposi]
     
-    if gdat.typedata == 'toyy':
+    if gdat.typedata == 'simugene':
         
-        print('Making toy simulated data...')
+        print('Making simulated data using a generative model...')
         
-        # mock data setup 
+        # simulated data setup 
         ## cadence
         gdat.cade = 10. / 60. / 24. # days
         ## minimum time
@@ -851,6 +851,7 @@ def init( \
             if len(arrylcurtess) > 0:
                 gdat.listarrytser['obsd'][k][0][0] = listarrylcurtess
             else:
+                print('No data on the target!')
                 raise Exception('')
 
             for b in gdat.indxdatatser:
@@ -861,11 +862,12 @@ def init( \
     gdat.dictindxtarg = dict()
     gdat.dictfeat = dict()
     
-    # generate mock data
+    # generate simulated data
     if gdat.boolsimu:
         
         listnametypetrue = ['totl', 'sbin', 'ssys', 'cosc', 'qstr', 'cosctran']
         listlabltypetrue = ['All', 'SB', 'SS', 'COSC', 'QS', 'Tr. COSC']
+        listcolrtypetrue = ['black', 'g', 'b', 'orange', 'yellow', 'olive']
         
         gdat.dictfeat['true'] = dict()
         for namepoplcomm in listnametypetrue:
@@ -946,7 +948,7 @@ def init( \
         gdat.dictfeat['true']['ssys']['masscomp'][gdat.indxssyscosc] = gdat.dictfeat['true']['cosc']['masscomp']
         gdat.dictfeat['true']['ssys']['masscomp'][gdat.indxssyssbin] = gdat.dictfeat['true']['sbin']['masscomp']
         
-    if gdat.typedata == 'mock':
+    if gdat.typedata == 'simuinje':
         gdat.dictfeat['true']['ssys']['radistar'] = dicttic8['radistar']
         gdat.dictfeat['true']['ssys']['massstar'] = dicttic8['massstar']
         indx = np.where((~np.isfinite(gdat.dictfeat['true']['ssys']['massstar'])) | (~np.isfinite(gdat.dictfeat['true']['ssys']['radistar'])))[0]
@@ -954,7 +956,7 @@ def init( \
         gdat.dictfeat['true']['ssys']['massstar'][indx] = 1.
         gdat.dictfeat['true']['totl']['tmag'] = dicttic8['tmag']
     
-    if gdat.typedata == 'toyy':
+    if gdat.typedata == 'simugene':
         gdat.trueminmradistar = 0.7
         gdat.truemaxmradistar = 2.
         gdat.dictfeat['true']['ssys']['radistar'] = np.random.random(gdat.numbtargssys) * (gdat.truemaxmradistar - gdat.trueminmradistar) + gdat.trueminmradistar
@@ -985,7 +987,7 @@ def init( \
         if gdat.typedata == 'obsd':
             gdat.listarrytser['data'] = gdat.listarrytser['obsd']
         
-        if gdat.typedata == 'mock':
+        if gdat.typedata == 'simuinje':
             gdat.listarrytser['data'] = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for k in gdat.indxtarg]
             for n in gdat.indxtarg:
                 for p in gdat.indxinst[0]:
@@ -1036,9 +1038,9 @@ def init( \
                         if gdat.boolcosctrue[n]:
                             gdat.dictfeat['true']['cosc']['amplslen'][nnn] = dictoutp['amplslen']
                     
-                    if gdat.typedata == 'toyy':
+                    if gdat.typedata == 'simugene':
                         gdat.listarrytser['data'][n][0][p][y][:, 1] = np.copy(gdat.truerflxtotl[nn][0][p][y])
-                    if gdat.typedata == 'mock':
+                    if gdat.typedata == 'simuinje':
                         gdat.listarrytser['data'][n][0][p][y][:, 1] += (gdat.truerflxtotl[nn][0][p][y] - 1.)
         
         if gdat.booldiag:
@@ -1050,7 +1052,7 @@ def init( \
                         if not np.isfinite(gdat.truerflxtotl[nn][0][p][y]).all():
                             raise Exception('')
         
-        if gdat.typedata == 'toyy':
+        if gdat.typedata == 'simugene':
             ## single star targets with flat light curves
             for nn, n in enumerate(gdat.indxtypetruetarg[2]):
                 for p in gdat.indxinst[0]:
@@ -1082,29 +1084,35 @@ def init( \
                     cntrssys += 1
                 cntrrele += 1
 
-    if gdat.typedata == 'toyy':
+    if gdat.typedata == 'simugene':
         for namepoplcomm in listnametypetrue:
             if namepoplcomm != 'totl':
                 gdat.dictfeat['true'][namepoplcomm]['tmag'] = gdat.dictfeat['true']['totl']['tmag'][gdat.dictindxtarg[namepoplcomm]]
 
     if gdat.boolsimu:
         
+        print('Visualizing the simulated population...')
+
         typeanls = 'featrue_%s' % gdat.strgextn
         pathimag = gdat.pathimagpopl + 'truefeat/'
         pathdata = gdat.pathdatapopl + 'truefeat/'
         #listnamepoplcomm = [['totl', 'sbin', 'ssys', 'cosc', 'qstr', 'cosctran']]
         #listlablpoplcomm = [['All', 'SB', 'SS', 'COSC', 'QS', 'Tr. COSC']]
+        listdictlablcolrpopl = [dict()]
+        for k in range(len(listnametypetrue)):
+            listdictlablcolrpopl[0][listnametypetrue[k]] = [listlabltypetrue[k], listcolrtypetrue[k]]
         pergamon.init( \
                       typeanls=typeanls, \
                       dictpopl=gdat.dictfeat['true'], \
                       listnamepoplcomm=[listnametypetrue], \
                       listlablpoplcomm=[listlabltypetrue], \
+                      listdictlablcolrpopl=listdictlablcolrpopl, \
                       pathimag=pathimag, \
                       pathdata=pathdata, \
                       boolsortpoplsize=False, \
                      )
 
-    if gdat.typedata == 'toyy':
+    if gdat.typedata == 'simugene':
         # add noise
         stdv = ephesus.retr_noistess(gdat.dictfeat['true']['totl']['tmag']) * 1e-3 # [dimensionless]
         if not np.isfinite(stdv).all():

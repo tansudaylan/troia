@@ -59,15 +59,12 @@ def cnfg_XRB():
               )
 
 
-def cnfg_Rafael():
-    '''
-    Targets from Rafael
-    '''
+def cnfg_TargetsOfInterest():
     
-    troia.init( \
-               liststrgmast=['TIC 356069146'], \
-               typepopl='Rafael', \
-              )
+    # black hole candidate from Eli's list
+    listticitarg = [281562429]
+    # Rafael
+    listticitarg = [356069146]
 
 
 def cnfg_rvel():
@@ -80,7 +77,7 @@ def cnfg_rvel():
               )
 
 
-def cnfg_tessnomi2min(typedata='mock'):
+def cnfg_tessnomi2min(typedata='simugene'):
     '''
     2-minute targets from the nominal mission
     '''
