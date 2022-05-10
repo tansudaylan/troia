@@ -694,7 +694,7 @@ def init( \
                     data = occufielintp
                 if k == 1:
                     data = occucoenintp
-                c = plt.pcolor(peri, masscomp, data(peri, masscomp), norm=mpl.colors.LogNorm(), cmap ='Greens')#, vmin = z_min, vmax = z_max)
+                c = plt.pcolor(peri, masscomp, data(peri, masscomp), norm=matplotlib.colors.LogNorm(), cmap ='Greens')#, vmin = z_min, vmax = z_max)
                 plt.colorbar(c)
                 axis.set_xlabel('Orbital Period [days]')
                 axis.set_xlabel('CO mass')
