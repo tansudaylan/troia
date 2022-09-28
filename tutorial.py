@@ -16,22 +16,23 @@ def cnfg_prev():
     dictmileinpt['dictpboxinpt']['factosam'] = 0.1
 
     troia.init( \
-               liststrgmast=['V723 Mon'], \
+               liststrgmast=['V723 Mon', 'VFTS 243', 'HR 6819', 'A0620-00'], \
                typeinst='TESS', \
                typepopl='prev', \
                dictmileinpt=dictmileinpt, \
               )
 
     
-def cnfg_TTL5():
+def cnfg_TESLA():
     '''
     Simulated analysis for simulatenaous data collected by TESS EM2 and TESS L5
     '''
     
     troia.init( \
-               typeinst='TTL5', \
-               typepopl='nomi', \
-               typedata='toyy', \
+               typeinst='TESLA', \
+               typepopl='tessnomi2min', \
+               typedata='simugene', \
+               #booldiag=True, \
               )
 
 
@@ -40,10 +41,14 @@ def cnfg_candidates_Rom():
     Targets from Rom's RNN
     '''
     
+    dictmileinpt = dict()
+    dictmileinpt['dictlcurtessinpt'] = {'typelcurtpxftess': 'SPOC'}
+    
     listticitarg = [21266729, 14397653, 12967420, 3892500, 3664978, 1008024, 1066665, 2761086, 3542993]
     troia.init( \
                listticitarg=listticitarg, \
                typepopl='candidates_Rom', \
+               dictmileinpt=dictmileinpt, \
                typeinst='TESS', \
               )
 
@@ -107,6 +112,7 @@ def cnfg_tessnomi2min(typedata='simugene'):
                typepopl='tessnomi2min', \
                typedata=typedata, \
                dictmileinpt=dictmileinpt, \
+               booldiag=True, \
                dictlcurtessinpt=dictlcurtessinpt, \
               )
 
