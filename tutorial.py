@@ -31,8 +31,8 @@ def cnfg_TESLA():
     troia.init( \
                typeinst='TESLA', \
                typepopl='tessnomi2min', \
-               typedata='simugene', \
-               #booldiag=True, \
+               typedata='simutoyy', \
+               booldiag=True, \
               )
 
 
@@ -82,7 +82,7 @@ def cnfg_rvel():
               )
 
 
-def cnfg_tessnomi2min(typedata='simugene'):
+def cnfg_tessnomi2min(typedata='simutoyy'):
     '''
     2-minute targets from the nominal mission
     '''
