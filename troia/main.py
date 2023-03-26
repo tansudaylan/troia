@@ -18,6 +18,9 @@ import tdpy
 import ephesos
 import miletos
 import pergamon
+import nicomedia
+import chalcedon
+
 
 def retr_dictderi_effe(para, gdat):
     
@@ -140,7 +143,7 @@ def mile_work(gdat, i):
                 for pathdvrp in dictmileoutp['listpathdvrp']:
                     gdat.listpathdvrp.append(pathdvrp)
 
-            pathtargimag = dictmileoutp['pathtarg'] + 'imag/'
+            pathtargvisu = dictmileoutp['pathtarg'] + 'visuals/'
             if gdat.boolsimu:
                 
                 sizefigr = [8., 4.]
@@ -247,7 +250,7 @@ def mile_work(gdat, i):
                                 
                                 if gdat.typedata == 'simuinje':
                                     strgextnraww = '%s_%s_%s%s_raww' % (gdat.typedata, gdat.strgtarg[n], gdat.liststrginst[0][p], strglimt)
-                                    pathplot = ephesos.plot_lcur(pathtargimag, strgtitl=titlraww, timeoffs=gdat.timeoffs, limtyaxi=limtyaxi, limtxaxi=limtxaxi, \
+                                    pathplot = ephesos.plot_lcur(pathtargvisu, strgtitl=titlraww, timeoffs=gdat.timeoffs, limtyaxi=limtyaxi, limtxaxi=limtxaxi, \
                                                                                     timedata=gdat.listarrytser['obsd'][n][0][p][y][:, 0, 0], \
                                                                                     lcurdata=gdat.listarrytser['obsd'][n][0][p][y][:, 0, 1], \
                                                                                     typefileplot=gdat.typefileplot, \
@@ -257,7 +260,7 @@ def mile_work(gdat, i):
                                         gdat.listdictdvrp[0].append({'path': pathplot, 'limt':[0., 0.5, 1., 0.2]})
                                     
                                     strgextnover = '%s_%s_%s%s_over' % (gdat.typedata, gdat.strgtarg[n], gdat.liststrginst[0][p], strglimt)
-                                    pathplot = ephesos.plot_lcur(pathtargimag, dictmodl=dictmodl, strgtitl=titlinje, timeoffs=gdat.timeoffs, limtyaxi=limtyaxi, \
+                                    pathplot = ephesos.plot_lcur(pathtargvisu, dictmodl=dictmodl, strgtitl=titlinje, timeoffs=gdat.timeoffs, limtyaxi=limtyaxi, \
                                                                                     timedata=gdat.listarrytser['obsd'][n][0][p][y][:, :, 0], \
                                                                                     lcurdata=gdat.listarrytser['obsd'][n][0][p][y][:, 0, 1], \
                                                                                     typefileplot=gdat.typefileplot, \
@@ -266,7 +269,7 @@ def mile_work(gdat, i):
                                         gdat.listdictdvrp[0].append({'path': pathplot, 'limt':[0., 0.3, 1., 0.2]})
                                 
                                     strgextninje = '%s_%s_%s%s_inje' % (gdat.typedata, gdat.strgtarg[n], gdat.liststrginst[0][p], strglimt)
-                                    pathplot = ephesos.plot_lcur(pathtargimag, strgtitl=titlinje, timeoffs=gdat.timeoffs, limtyaxi=limtyaxi, \
+                                    pathplot = ephesos.plot_lcur(pathtargvisu, strgtitl=titlinje, timeoffs=gdat.timeoffs, limtyaxi=limtyaxi, \
                                                                                     timedata=gdat.listarrytser['data'][n][0][p][y][:, 0, 0], \
                                                                                     lcurdata=gdat.listarrytser['data'][n][0][p][y][:, 0, 1], \
                                                                                     typefileplot=gdat.typefileplot, \
@@ -277,7 +280,7 @@ def mile_work(gdat, i):
                                 if gdat.typedata == 'simutoyy':
                                     strgextninje = '%s_%s_%s%s_toyy' % (gdat.typedata, gdat.strgtarg[n], gdat.liststrginst[0][p], strglimt)
                                     
-                                    pathplot = ephesos.plot_lcur(pathtargimag, \
+                                    pathplot = ephesos.plot_lcur(pathtargvisu, \
                                                                                     timedata=gdat.listarrytser['data'][n][0][p][y][:, 0, 0], \
                                                                                     lcurdata=gdat.listarrytser['data'][n][0][p][y][:, 0, 1], \
                                                                                     strgtitl=titlinje, timeoffs=gdat.timeoffs, limtyaxi=limtyaxi, dictmodl=dictmodl, \
@@ -290,7 +293,7 @@ def mile_work(gdat, i):
                     # make a simulation summary plot
                     for w in gdat.indxpagedvrpsimu:
                         # path of DV report
-                        gdat.listpathdvrp[w] = pathtargimag + '%s_dvrp_pag%d.png' % (gdat.strgtarg[n], w)
+                        gdat.listpathdvrp[w] = pathtargvisu + '%s_dvrp_pag%d.png' % (gdat.strgtarg[n], w)
                         if not os.path.exists(gdat.listpathdvrp[w]):
                             figr = plt.figure(figsize=(8.25, 11.75))
                             numbplot = len(gdat.listdictdvrp[w])
@@ -306,7 +309,7 @@ def mile_work(gdat, i):
         
             if gdat.boolplotdvrp:
                 for w in gdat.indxpagedvrp:
-                    os.system('cp %s %s' % (gdat.listpathdvrp[w], gdat.pathimagpopldvrp))
+                    os.system('cp %s %s' % (gdat.listpathdvrp[w], gdat.pathvisupopldvrp))
                 
         if gdat.boolsimu:
             for u in gdat.indxtypeposi:
@@ -437,13 +440,13 @@ def init( \
     gdat.pathdata = gdat.pathbase + 'data/'
     gdat.pathdatatess = os.environ['TESS_DATA_PATH'] + '/'
     gdat.pathdatalcur = gdat.pathdata + 'lcur/'
-    gdat.pathimag = gdat.pathbase + 'imag/'
+    gdat.pathvisu = gdat.pathbase + 'visuals/'
     gdat.pathtsec = gdat.pathdata + 'logg/tsec/'
     gdat.strgextn = '%s_%s_%s' % (gdat.typeinst, gdat.typepopl, gdat.typedata)
     gdat.pathpopl = gdat.pathbase + gdat.strgextn + '/'
-    gdat.pathimagpopl = gdat.pathpopl + 'imag/'
+    gdat.pathvisupopl = gdat.pathpopl + 'visuals/'
     gdat.pathdatapopl = gdat.pathpopl + 'data/'
-    gdat.pathimagpopldvrp = gdat.pathimagpopl + 'dvrp/'
+    gdat.pathvisupopldvrp = gdat.pathvisupopl + 'dvrp/'
 
     # make folders
     for attr, valu in gdat.__dict__.items():
@@ -531,18 +534,18 @@ def init( \
     print(gdat.boolplotinit)
     # make initial plots
     if gdat.boolplot and gdat.boolplotinit:
-        path = gdat.pathimag + 'radieinsmass.%s' % (gdat.typefileplot) 
+        path = gdat.pathvisu + 'radieinsmass.%s' % (gdat.typefileplot) 
         if not os.path.exists(path):
             # plot Einstein radius vs lens mass
             figr, axis = plt.subplots(figsize=(6, 4))
             listsmax = [0.1, 1., 10.] # [AU]
-            dictfact = ephesos.retr_factconv()
+            dictfact = tdpy.retr_factconv()
             peri = 10.#np.logspace(-1., 2., 100)
             masslens = np.logspace(np.log10(0.1), np.log10(100.), 100)
             radilenswdrf = 0.007 * masslens**(-1. / 3.)
             #smax = ephesos.retr_smaxkepl(peri, masstotl) # AU
             for smax in listsmax:
-                radieins = retr_radieinssbin(masslens, smax)
+                radieins = chalcedon.retr_radieinssbin(masslens, smax)
                 axis.plot(masslens, radieins)
                 axis.plot(masslens, radilenswdrf)
             axis.set_xlabel('$M$ [$M_\odot$]')
@@ -553,19 +556,19 @@ def init( \
             plt.savefig(path)
             plt.close()
         
-        path = gdat.pathimag + 'radieinssmax.%s' % (gdat.typefileplot) 
+        path = gdat.pathvisu + 'radieinssmax.%s' % (gdat.typefileplot) 
         if not os.path.exists(path):
             # plot Einstein radius vs lens mass
             figr, axis = plt.subplots(figsize=(6, 4))
             listmasslens = [0.1, 1.0, 10., 100.] # [AU]
-            dictfact = ephesos.retr_factconv()
+            dictfact = tdpy.retr_factconv()
             peri = 10.#np.logspace(-1., 2., 100)
             smax = np.logspace(np.log10(0.01), np.log10(10.), 100)
             listcolr = ['b', 'g', 'r', 'orange']
             #radilenswdrf = 0.007 * masslens**(-1. / 3.)
             #smax = ephesos.retr_smaxkepl(peri, masstotl) # AU
             for k, masslens in enumerate(listmasslens):
-                radieins = retr_radieinssbin(masslens, smax)
+                radieins = chalcedon.retr_radieinssbin(masslens, smax)
                 if masslens < 1.5:
                     masswdrf = masslens
                     radiwdrf = 0.007 * masswdrf**(-1. / 3.)
@@ -580,7 +583,7 @@ def init( \
             plt.close()
         
         # plot amplitude vs. orbital period for three components of the light curve of a COSC
-        path = gdat.pathimag + 'amplslen.%s' % gdat.typefileplot
+        path = gdat.pathvisu + 'amplslen.%s' % gdat.typefileplot
         if not os.path.exists(path):
             radistar = 1.
             massstar = 1.
@@ -595,9 +598,9 @@ def init( \
             indxmasscomp = np.arange(numbmasscomp)
             for k in indxmasscomp:
 
-                amplbeam = ephesos.retr_deptbeam(arryperi, massstar, listmasscomp[k])
-                amplelli = ephesos.retr_deptelli(arryperi, densstar, massstar, listmasscomp[k])
-                amplslen = ephesos.retr_amplslen(arryperi, radistar, listmasscomp[k], massstar)
+                amplbeam = nicomedia.retr_deptbeam(arryperi, massstar, listmasscomp[k])
+                amplelli = nicomedia.retr_deptelli(arryperi, densstar, massstar, listmasscomp[k])
+                amplslen = chalcedon.retr_amplslen(arryperi, radistar, listmasscomp[k], massstar)
                 
                 lablmass= 'M=%.3g $M_\odot$' % listmasscomp[k]
                 labl = 'DB, %s' % lablmass
@@ -628,7 +631,7 @@ def init( \
         indxperi = np.arange(numbperi)
         para = np.empty(6)
         for k in indxperi:
-            path = gdat.pathimag + 'fig%d.%s' % (k + 1, gdat.typefileplot)
+            path = gdat.pathvisu + 'fig%d.%s' % (k + 1, gdat.typefileplot)
             if not os.path.exists(path):
                 figr, axis = plt.subplots(figsize=(10, 4.5))
                 
@@ -675,7 +678,7 @@ def init( \
                 strg = 'fiel'
             if k == 1:
                 strg = 'coen'
-            path = gdat.pathimag + 'occ_%s.%s' % (strg, gdat.typefileplot)
+            path = gdat.pathvisu + 'occ_%s.%s' % (strg, gdat.typefileplot)
             if not os.path.exists(path):
                 figr, axis = plt.subplots(figsize=(6, 4.5))
                 if k == 0:
@@ -690,12 +693,12 @@ def init( \
                 plt.close()
     
         ## plot TESS photometric precision
-        path = gdat.pathimag + 'sigmtmag.%s' % (gdat.typefileplot) 
+        path = gdat.pathvisu + 'sigmtmag.%s' % (gdat.typefileplot) 
         if not os.path.exists(path):
             dictpoplticim110 = ephesos.retr_dictpopltic8(typepopl='ticim110')
        
             ## interpolate TESS photometric precision
-            dictpoplticim110['nois'] = ephesos.retr_noistess(dictpoplticim110['tmag'])
+            dictpoplticim110['nois'] = nicomedia.retr_noistess(dictpoplticim110['tmag'])
 
             figr, axis = plt.subplots(figsize=(6, 4))
             print('dictpoplticim110[nois]')
@@ -711,7 +714,7 @@ def init( \
             plt.close()
         
         # plot SNR
-        path = gdat.pathimag + 'sigm.%s' % (gdat.typefileplot) 
+        path = gdat.pathvisu + 'sigm.%s' % (gdat.typefileplot) 
         if not os.path.exists(path):
             figr, axis = plt.subplots(figsize=(5, 3))
             peri = np.logspace(-1, 2, 100)
@@ -723,7 +726,7 @@ def init( \
                 amplslentmag = ephesos.retr_amplslen(peri, radistar, masscomp, massstar)
                 axis.plot(peri, amplslentmag, label=r'M = %.3g M$_\odot$' % masscomp)
             for tmag in listtmag:
-                noistess = ephesos.retr_noistess(tmag)
+                noistess = nicomedia.retr_noistess(tmag)
                 if tmag == 16:
                     axis.text(0.1, noistess * 1.6, ('Tmag = %.3g' % tmag),  color='black')
                 else:
@@ -959,8 +962,8 @@ def init( \
                 gdat.indxssystarg[k] = cntrssys
                 cntrssys += 1
 
-        dictpoplstar, gdat.dictfeat['true']['cosc'], _, _, _, indxcompsyst, indxmooncompsyst = ephesos.retr_dictpoplstarcomp('cosc', typepoplsyst)
-        dictpoplstar, gdat.dictfeat['true']['sbin'], _, _, _, indxcompsyst, indxmooncompsyst = ephesos.retr_dictpoplstarcomp('sbin', typepoplsyst)
+        dictpoplstar, gdat.dictfeat['true']['cosc'], _, _, _, indxcompsyst, indxmooncompsyst = nicomedia.retr_dictpoplstarcomp('cosc', typepoplsyst)
+        dictpoplstar, gdat.dictfeat['true']['sbin'], _, _, _, indxcompsyst, indxmooncompsyst = nicomedia.retr_dictpoplstarcomp('sbin', typepoplsyst)
         
         gdat.namepoplcomptotl = 'compstar' + typepoplsyst + 'totl'
         gdat.namepoplcomptran = 'compstar' + typepoplsyst + 'tran'
@@ -994,7 +997,7 @@ def init( \
 
         # grab the photometric noise of TESS as a function of TESS magnitude
         if gdat.typedata == 'simutoyy':
-            gdat.stdvphot = ephesos.retr_noistess(gdat.dictfeat['true']['totl']['tmag']) * 1e-3 # [dimensionless]
+            gdat.stdvphot = nicomedia.retr_noistess(gdat.dictfeat['true']['totl']['tmag']) * 1e-3 # [dimensionless]
             
             if not np.isfinite(gdat.stdvphot).all():
                 raise Exception('')
@@ -1002,7 +1005,7 @@ def init( \
         
         print('Visualizing the features of the simulated population...')
 
-        pathimag = gdat.pathimagpopl + 'truefeat/'
+        pathvisu = gdat.pathvisupopl + 'truefeat/'
         pathdata = gdat.pathdatapopl + 'truefeat/'
         listdictlablcolrpopl = [dict()]
         for k in range(len(listnametypetrue)):
@@ -1026,7 +1029,7 @@ def init( \
                       lablnumbsamp='Number of binaries', \
                       listboolcompexcl=listboolcompexcl, \
                       listtitlcomp=listtitlcomp, \
-                      pathimag=pathimag, \
+                      pathvisu=pathvisu, \
                       pathdata=pathdata, \
                       boolsortpoplsize=False, \
                      )
@@ -1281,7 +1284,7 @@ def init( \
         gdat.dictstat[namefeat] = np.empty(gdat.numbtarg)
     
     ## fill miletos input dictionary
-    ### path to put target data and images
+    ### path to put target data and visuals
     gdat.dictmileinpt['booldiag'] = gdat.booldiag
     gdat.dictmileinpt['typeverb'] = gdat.typeverb
     gdat.dictmileinpt['pathbase'] = gdat.pathpopl
@@ -1486,7 +1489,7 @@ def init( \
                           listdictlablcolrpopl=listdictlablcolrpopl, \
                           listboolcompexcl=listboolcompexcl, \
                           listtitlcomp=listtitlcomp, \
-                          pathimag=gdat.pathimagpopl, \
+                          pathvisu=gdat.pathvisupopl, \
                           pathdata=gdat.pathdatapopl, \
                           boolsortpoplsize=False, \
                          )
@@ -1521,7 +1524,7 @@ def init( \
                 #print(gdat.boolreleposi[u][v])
 
                 strgextn = '%s_%s' % (gdat.typepopl, strguuvv)
-                tdpy.plot_recaprec(gdat.pathimagpopl, strgextn, listvarbreca, listvarbprec, liststrgvarbreca, liststrgvarbprec, \
+                tdpy.plot_recaprec(gdat.pathvisupopl, strgextn, listvarbreca, listvarbprec, liststrgvarbreca, liststrgvarbprec, \
                                         listlablvarbreca, listlablvarbprec, gdat.boolposirele[u][v], gdat.boolreleposi[u][v])
 
 
