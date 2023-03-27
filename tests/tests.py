@@ -23,14 +23,14 @@ def cnfg_prev():
               )
 
     
-def cnfg_TESLA():
+def cnfg_TESSGEO():
     '''
     Simulated analysis for simulatenaous data collected by TESS EM2 and TESS L5
     '''
     
     troia.init( \
-               typeinst='TESLA', \
-               typepopl='tessnomi2min', \
+               typeinst='TESS-GEO', \
+               typepopl='targtess_prms_2min', \
                typedata='simutoyy', \
                booldiag=True, \
               )
@@ -109,7 +109,7 @@ def cnfg_tessnomi2min(typedata='simutoyy'):
     
     troia.init( \
                typeinst='TESS', \
-               typepopl='tessnomi2min', \
+               typepopl='targtessprms2min', \
                typedata=typedata, \
                dictmileinpt=dictmileinpt, \
                booldiag=True, \
