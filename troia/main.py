@@ -329,6 +329,9 @@ def mile_work(gdat, i):
 
 
 def init( \
+        
+        typesyst, \
+
         # population type
         typepopl=None, \
 

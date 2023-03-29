@@ -16,6 +16,7 @@ def cnfg_prev():
     dictmileinpt['dictpboxinpt']['factosam'] = 0.1
 
     troia.init( \
+               typesyst='cosc', \
                liststrgmast=['V723 Mon', 'VFTS 243', 'HR 6819', 'A0620-00'], \
                typeinst='TESS', \
                typepopl='prev', \
@@ -29,6 +30,7 @@ def cnfg_TESSGEO():
     '''
     
     troia.init( \
+               typesyst='cosc', \
                typeinst='TESS-GEO', \
                typepopl='targtess_prms_2min', \
                typedata='simutoyy', \
@@ -46,6 +48,7 @@ def cnfg_candidates_Rom():
     
     listticitarg = [21266729, 14397653, 12967420, 3892500, 3664978, 1008024, 1066665, 2761086, 3542993]
     troia.init( \
+               typesyst='cosc', \
                listticitarg=listticitarg, \
                typepopl='candidates_Rom', \
                dictmileinpt=dictmileinpt, \
@@ -59,6 +62,7 @@ def cnfg_XRB():
     '''
 
     troia.init( \
+               typesyst='cosc', \
                liststrgmast=['HR6819', 'Vela X-1'], \
                typepopl='XRB', \
               )
@@ -78,6 +82,7 @@ def cnfg_rvel():
     '''   
     
     troia.init( \
+               typesyst='cosc', \
                typepopl='rvel', \
               )
 
@@ -108,8 +113,9 @@ def cnfg_tessnomi2min(typedata='simutoyy'):
     dictlcurtessinpt['booltpxfonly'] = True
     
     troia.init( \
+               typesyst='cosc', \
                typeinst='TESS', \
-               typepopl='targtessprms2min', \
+               typepopl='targtess_prms_2min', \
                typedata=typedata, \
                dictmileinpt=dictmileinpt, \
                booldiag=True, \
@@ -137,6 +143,7 @@ def cnfg_cycle3_G03254():
     listticitarg = listticitarg.astype(int)
     listticitarg = np.unique(listticitarg)
     troia.init( \
+               typesyst='cosc', \
                typepopl='cycle3_G03254', \
                listticitarg=listticitarg, \
                typeinst='TESS', \
