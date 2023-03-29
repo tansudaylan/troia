@@ -30,7 +30,7 @@ def retr_dictderi_effe(para, gdat):
     massstar = para[3]
     masstotl = massstar + masscomp
 
-    amplslenmodl = ephesos.retr_amplslen(peri, radistar, masscomp, massstar)
+    amplslenmodl = chalcedon.retr_amplslen(peri, radistar, masscomp, massstar)
     duratrantotlmodl = ephesos.retr_duratrantotl(peri, radistar, masscomp, massstar, incl)
     smax = ephesos.retr_smaxkepl(peri, masstotl) * 215. # [R_S]
     radischw = 4.24e-6 * masscomp # [R_S]
@@ -647,9 +647,9 @@ def init( \
                                                                                      masscomp=[10.], inclcomp=[90.], typesyst='cosc', typemodllens=gdat.typemodllens)
                     rflxmodl = dictoutp['rflx']
                     axis.plot(time, rflxmodl, color='k', lw=2, label='Total')
-                    axis.plot(time, dictoutp['rflxelli'], color='b', ls='--', label='Ellipsoidal variation')
-                    axis.plot(time, dictoutp['rflxbeam'], color='g', ls='--', label='Beaming')
-                    axis.plot(time, dictoutp['rflxslen'], color='r', ls='--', label='Self-lensing')
+                    axis.plot(time, dictoutp['rflxelli'][0], color='b', ls='--', label='Ellipsoidal variation')
+                    axis.plot(time, dictoutp['rflxbeam'][0], color='g', ls='--', label='Beaming')
+                    axis.plot(time, dictoutp['rflxslen'][0], color='r', ls='--', label='Self-lensing')
                     axis.set_title('Orbital period = %.3g days' % listperi[k])
                     axis.legend()
                     axis.set_ylabel('Relative flux')
@@ -731,7 +731,7 @@ def init( \
                 massstar = 1.
                 radistar = 1.
                 for masscomp in listmasscomp:
-                    amplslentmag = ephesos.retr_amplslen(peri, radistar, masscomp, massstar)
+                    amplslentmag = chalcedon.retr_amplslen(peri, radistar, masscomp, massstar)
                     axis.plot(peri, amplslentmag, label=r'M = %.3g M$_\odot$' % masscomp)
                 for tmag in listtmag:
                     noistess = nicomedia.retr_noistess(tmag)
