@@ -277,7 +277,7 @@ def mile_work(gdat, i):
                                     if gdat.boolplotdvrp:
                                         gdat.listdictdvrp[0].append({'path': pathplot, 'limt':[0., 0.1, 1., 0.2]})
                                 
-                                if gdat.typedata == 'simutargsyntgend':
+                                if gdat.typedata == 'simutargsynt' or gdat.typedata == 'simutargpartsynt':
                                     strgextninje = '%s_%s_%s%s_toyy' % (gdat.typedata, gdat.strgtarg[n], gdat.liststrginst[0][p], strglimt)
                                     
                                     pathplot = ephesos.plot_lcur(pathtargvisu, \
@@ -348,8 +348,8 @@ def init( \
         listgaid=None, \
 
         # type of data
-        ## 'simutargsyntgend': simulated data of a synthetic target, obtained by generating the data from stracth
-        ## 'simutargpartgend': simulated data of a particular (named) target, obtained by generating the data from stracth
+        ## 'simutargsynt': simulated data of a synthetic target, obtained by generating the data from stracth
+        ## 'simutargpartsynt': simulated data of a particular (named) target, obtained by generating the data from stracth
         ## 'simutargpartinje': simulated data of a particular (named) target, obtained by injecting the signal to real data
         ## 'obsd': observed data
         typedata='obsd', \
@@ -361,7 +361,7 @@ def init( \
         dictmileinpt=dict(), \
 
         # input dictionary to retr_lcurtess()
-        dictlcurtessinpt=None, \
+        #dictlcurtessinpt=None, \
 
         # Boolean flag to make plots
         boolplot=True, \
@@ -755,7 +755,10 @@ def init( \
         gdat.liststrgmast = [[] for n in gdat.indxtarg]
     gdat.labltarg = [[] for n in gdat.indxtarg]
     for n in gdat.indxtarg:
-        if gdat.typedata == 'simutargsyntgend':
+        if gdat.typedata == 'simutargsynt':
+            gdat.strgtarg[n] = 'simugene%04d' % n
+            gdat.labltarg[n] = 'Simulated target'
+        elif gdat.typedata == 'simutargpartsynt':
             gdat.strgtarg[n] = 'simugene%04d' % n
             gdat.labltarg[n] = 'Simulated target'
         else:
@@ -774,19 +777,20 @@ def init( \
                 gdat.strgtarg[n] = 'R%.4gDEC%.4g' % (dictcatlrvel['rasc'][n], dictcatlrvel['decl'][n])
     
     gdat.listarrytser = dict()
-    gdat.indxchun = [[[[] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for k in gdat.indxtarg]
-    gdat.numbchun = [[np.empty(gdat.numbinst[b], dtype=int) for b in gdat.indxdatatser] for k in gdat.indxtarg]
-    if gdat.typedata == 'simutargsyntgend':
-        for n in gdat.indxtarg:
-            for b in gdat.indxdatatser:
-                for p in gdat.indxinst[b]:
-                    gdat.numbchun[n][b][p] = 1
-                    gdat.indxchun[n][b][p] = np.arange(gdat.numbchun[n][b][p], dtype=int)
-        
-        if gdat.typedata == 'simutargpartinje' or gdat.typedata == 'obsd':
-            gdat.listarrytser['obsd'] = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for k in gdat.indxtarg]
-    if gdat.typedata == 'simutargsyntgend':
-        gdat.listarrytser['data'] = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for k in gdat.indxtarg]
+    
+    #gdat.indxchun = [[[[] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for k in gdat.indxtarg]
+    #gdat.numbchun = [[np.empty(gdat.numbinst[b], dtype=int) for b in gdat.indxdatatser] for k in gdat.indxtarg]
+    #if gdat.typedata == 'simutargsyntgend':
+    #    for n in gdat.indxtarg:
+    #        for b in gdat.indxdatatser:
+    #            for p in gdat.indxinst[b]:
+    #                gdat.numbchun[n][b][p] = 1
+    #                gdat.indxchun[n][b][p] = np.arange(gdat.numbchun[n][b][p], dtype=int)
+    #    
+    #    if gdat.typedata == 'simutargpartinje' or gdat.typedata == 'obsd':
+    #        gdat.listarrytser['obsd'] = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for k in gdat.indxtarg]
+    #if gdat.typedata == 'simutargsyntgend':
+    #    gdat.listarrytser['data'] = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for k in gdat.indxtarg]
     
     if gdat.boolsimu:
         # number of relevant types
@@ -828,62 +832,62 @@ def init( \
     else:
         gdat.listarrytser['obsd'] = [[[[] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for k in gdat.indxtarg]
         
-        if dictlcurtessinpt is None:
-            dictlcurtessinpt = dict()
+        #if dictlcurtessinpt is None:
+        #    dictlcurtessinpt = dict()
         
-        for k in gdat.indxtarg:
+        #for k in gdat.indxtarg:
             
             # get TIC ID
-            if gdat.booltarguser:
-                if gdat.booltargusertici:
-                    dictlcurtessinpt['strgmast'] = None
-                    dictlcurtessinpt['ticitarg'] = gdat.listticitarg[k]
-                elif gdat.booltargusermast:
-                    dictlcurtessinpt['strgmast'] = gdat.liststrgmast[k]
-                    dictlcurtessinpt['ticitarg'] = None
-            else:
-                dictlcurtessinpt['strgmast'] = None
-                dictlcurtessinpt['ticitarg'] = gdat.listticitarg[k]
-            
-            dictlcurtessinpt['typelcurtpxftess'] = 'SPOC'
-            
-            arrylcurtess, gdat.arrytsersapp, gdat.arrytserpdcc, listarrylcurtess, gdat.listarrytsersapp, gdat.listarrytserpdcc, \
-                                  gdat.listtsec, gdat.listtcam, gdat.listtccd, listpathdownspoclcur, dictlygooutp = \
-                                  miletos.retr_lcurtess( \
-                                                        **dictlcurtessinpt, \
-                                                       )
+            #if gdat.booltarguser:
+            #    if gdat.booltargusertici:
+            #        dictlcurtessinpt['strgmast'] = None
+            #        dictlcurtessinpt['ticitarg'] = gdat.listticitarg[k]
+            #    elif gdat.booltargusermast:
+            #        dictlcurtessinpt['strgmast'] = gdat.liststrgmast[k]
+            #        dictlcurtessinpt['ticitarg'] = None
+            #else:
+            #    dictlcurtessinpt['strgmast'] = None
+            #    dictlcurtessinpt['ticitarg'] = gdat.listticitarg[k]
+            #
+            #dictlcurtessinpt['typelcurtpxftess'] = 'SPOC'
+            #
+            #arrylcurtess, gdat.arrytsersapp, gdat.arrytserpdcc, listarrylcurtess, gdat.listarrytsersapp, gdat.listarrytserpdcc, \
+            #                      gdat.listtsec, gdat.listtcam, gdat.listtccd, listpathdownspoclcur, dictlygooutp = \
+            #                      miletos.retr_lcurtess( \
+            #                                            **dictlcurtessinpt, \
+            #                                           )
 
-            # load data
-            if len(arrylcurtess) > 0:
-                gdat.listarrytser['obsd'][k][0][0] = [[] for y in range(len(listarrylcurtess))]
-                for y in range(len(listarrylcurtess)):
-                    gdat.listarrytser['obsd'][k][0][0][y] = listarrylcurtess[y][:, None, :]
-            else:
-                print('No data on the target!')
-                raise Exception('')
+            ## load data
+            #if len(arrylcurtess) > 0:
+            #    gdat.listarrytser['obsd'][k][0][0] = [[] for y in range(len(listarrylcurtess))]
+            #    for y in range(len(listarrylcurtess)):
+            #        gdat.listarrytser['obsd'][k][0][0][y] = listarrylcurtess[y][:, None, :]
+            #else:
+            #    print('No data on the target!')
+            #    raise Exception('')
 
-            for b in gdat.indxdatatser:
-                for p in gdat.indxinst[b]:
-                    gdat.numbchun[k][b][p] = len(listarrylcurtess)
-                    gdat.indxchun[k][b][p] = np.arange(gdat.numbchun[k][b][p])
+            #for b in gdat.indxdatatser:
+            #    for p in gdat.indxinst[b]:
+            #        gdat.numbchun[k][b][p] = len(listarrylcurtess)
+            #        gdat.indxchun[k][b][p] = np.arange(gdat.numbchun[k][b][p])
         
-        if gdat.booldiag:
-            for k in gdat.indxtarg:
-                for b in gdat.indxdatatser:
-                    for p in gdat.indxinst[b]:
-                        for y in gdat.indxchun[k][b][p]:
-                            for a in range(3):
-                                if not np.isfinite(gdat.listarrytser['data'][k][b][p][y][:, 0, a]).all():
-                                    print('')
-                                    print('')
-                                    print('gdat.typedata')
-                                    print(gdat.typedata)
-                                    print('kbpya')
-                                    print(k, b, p, y, a)
-                                    print('gdat.listarrytser[data][k][b][p][y][:, a]')
-                                    print(gdat.listarrytser['data'][k][b][p][y][:, a])
-                                    summgene(gdat.listarrytser['data'][k][b][p][y][:, a])
-                                    raise Exception('')
+        #if gdat.booldiag:
+        #    for k in gdat.indxtarg:
+        #        for b in gdat.indxdatatser:
+        #            for p in gdat.indxinst[b]:
+        #                for y in gdat.indxchun[k][b][p]:
+        #                    for a in range(3):
+        #                        if not np.isfinite(gdat.listarrytser['data'][k][b][p][y][:, 0, a]).all():
+        #                            print('')
+        #                            print('')
+        #                            print('gdat.typedata')
+        #                            print(gdat.typedata)
+        #                            print('kbpya')
+        #                            print(k, b, p, y, a)
+        #                            print('gdat.listarrytser[data][k][b][p][y][:, a]')
+        #                            print(gdat.listarrytser['data'][k][b][p][y][:, a])
+        #                            summgene(gdat.listarrytser['data'][k][b][p][y][:, a])
+        #                            raise Exception('')
 
     gdat.dictindxtarg = dict()
     gdat.dictfeat = dict()
@@ -891,11 +895,17 @@ def init( \
     # generate simulated data
     if gdat.boolsimu:
         
-        if gdat.typedata == 'simutargsyntgend':
-            typepoplsyst = 'gene'
-        if gdat.typedata == 'simutargpartinje':
+        if gdat.typedata == 'simutargsynt':
+            typepoplsyst = 'synt'
+        elif gdat.typedata == 'simutargpartsynt':
             typepoplsyst = 'targtessprms2min'
-        
+        elif gdat.typedata == 'simutargpartinje':
+            typepoplsyst = 'targtessprms2min'
+        else:
+            print('gdat.typedata')
+            print(gdat.typedata)
+            raise Exception('gdat.typedata is undefined.')
+
         listcolrtypetrue = np.array(['g', 'b', 'orange', 'olive'])
         # types of systems
         #listnametypetrue = ['totl', 'sbin', 'ssys', 'cosc', 'qstr', 'cosctran']
@@ -1011,11 +1021,11 @@ def init( \
                                                                                         gdat.dictfeat['true']['sbin'][gdat.namepoplcomptotl][namefeat]])
 
         # grab the photometric noise of TESS as a function of TESS magnitude
-        if gdat.typedata == 'simutargsyntgend':
-            gdat.stdvphot = nicomedia.retr_noistess(gdat.dictfeat['true']['totl']['tmag']) * 1e-3 # [dimensionless]
-            
-            if not np.isfinite(gdat.stdvphot).all():
-                raise Exception('')
+        #if gdat.typedata == 'simutargsyntgend':
+        #    gdat.stdvphot = nicomedia.retr_noistess(gdat.dictfeat['true']['totl']['tmag']) * 1e-3 # [dimensionless]
+        #    
+        #    if not np.isfinite(gdat.stdvphot).all():
+        #        raise Exception('')
         
         
         print('Visualizing the features of the simulated population...')
@@ -1067,11 +1077,11 @@ def init( \
         print('Simulating the light curves of stellar systems...')
         
         # assign uncertainty to the simulated light curves
-        if gdat.typedata == 'simutargsyntgend':
-            for nn in tqdm(range(gdat.numbtarg)):
-                for p in gdat.indxinst[0]:
-                    for y in gdat.indxchun[nn][0][p]:
-                        gdat.listarrytser['data'][nn][0][p][y][:, 0, 2] = np.full_like(gdat.listarrytser['data'][n][0][p][y][:, 0, 0], gdat.stdvphot[nn])
+        #if gdat.typedata == 'simutargsyntgend':
+        #    for nn in tqdm(range(gdat.numbtarg)):
+        #        for p in gdat.indxinst[0]:
+        #            for y in gdat.indxchun[nn][0][p]:
+        #                gdat.listarrytser['data'][nn][0][p][y][:, 0, 2] = np.full_like(gdat.listarrytser['data'][n][0][p][y][:, 0, 0], gdat.stdvphot[nn])
         
         ## stellar systems
         for nn in tqdm(range(len(gdat.dictindxtarg['ssys']))):
@@ -1151,18 +1161,18 @@ def init( \
                         if gdat.boolcosctrue[n]:
                             gdat.dictfeat['true']['cosc'][gdat.namepoplcomptran]['amplslen'][nnn] = dictoutp['amplslen']
                     
-                    if gdat.typedata == 'simutargsyntgend':
-                        print('Loading nn=%d, n=%d...' % (nn, n))
-                        gdat.listarrytser['data'][n][0][p][y][:, 0, 1] = gdat.truerflxtotl[nn][0][p][y]
-                    if gdat.typedata == 'simutargpartinje':
-                        gdat.listarrytser['data'][n][0][p][y][:, 0, 1] += (gdat.truerflxtotl[nn][0][p][y] - 1.)
+                    #if gdat.typedata == 'simutargsyntgend':
+                    #    print('Loading nn=%d, n=%d...' % (nn, n))
+                    #    gdat.listarrytser['data'][n][0][p][y][:, 0, 1] = gdat.truerflxtotl[nn][0][p][y]
+                    #if gdat.typedata == 'simutargpartinje':
+                    #    gdat.listarrytser['data'][n][0][p][y][:, 0, 1] += (gdat.truerflxtotl[nn][0][p][y] - 1.)
         
-        if gdat.typedata == 'simutargsyntgend':
-            ## single star targets with flat light curves (qstr)
-            for nn, n in enumerate(gdat.indxtypetruetarg[2]):
-                for p in gdat.indxinst[0]:
-                    for y in gdat.indxchun[n][0][p]:
-                        gdat.listarrytser['data'][n][0][p][y][:, 0, 1] = np.ones_like(gdat.listarrytser['data'][n][0][p][y][:, 0, 0])
+        #if gdat.typedata == 'simutargsyntgend':
+        #    ## single star targets with flat light curves (qstr)
+        #    for nn, n in enumerate(gdat.indxtypetruetarg[2]):
+        #        for p in gdat.indxinst[0]:
+        #            for y in gdat.indxchun[n][0][p]:
+        #                gdat.listarrytser['data'][n][0][p][y][:, 0, 1] = np.ones_like(gdat.listarrytser['data'][n][0][p][y][:, 0, 0])
         
         if gdat.booldiag:
             for nn, n in enumerate(gdat.dictindxtarg['ssys']):
@@ -1220,44 +1230,42 @@ def init( \
     #    for namepoplcomm in listnametypetrue:
     #        if namepoplcomm != 'totl':
     #            gdat.dictfeat['true'][namepoplcomm]['tmag'] = gdat.dictfeat['true']['totl']['tmag'][gdat.dictindxtarg[namepoplcomm]]
+    #if gdat.typedata == 'simutargsyntgend':
+    #    if gdat.typeverb > 0:
+    #        print('Generating simulated data...')
+    #    
+    #    # add noise
+    #    for n in gdat.indxtarg:
+    #        for p in gdat.indxinst[0]:
+    #            for y in gdat.indxchun[n][0][p]:
+    #                
+    #                if gdat.booldiag:
+    #                    if not np.isfinite(gdat.listarrytser['data'][n][0][p][y]).all():
+    #                        raise Exception('')
 
-    if gdat.typedata == 'simutargsyntgend':
+    #                gdat.listarrytser['data'][n][0][p][y][:, 0, 1] += gdat.listarrytser['data'][n][0][p][y][:, 0, 2] * \
+    #                                                                                    np.random.randn(gdat.listarrytser['data'][n][0][p][y].shape[0])
+    #
+    #    if gdat.booldiag:
+    #        for k in gdat.indxtarg:
+    #            for b in gdat.indxdatatser:
+    #                for p in gdat.indxinst[b]:
+    #                    for y in gdat.indxchun[k][b][p]:
+    #                        for a in range(3):
+    #                            if not np.isfinite(gdat.listarrytser['data'][k][b][p][y][:, 0, a]).all():
+    #                                print('')
+    #                                print('')
+    #                                print('gdat.typedata')
+    #                                print(gdat.typedata)
+    #                                print('kbpya')
+    #                                print(k, b, p, y, a)
+    #                                print('gdat.listarrytser[data][k][b][p][y][:, 0, a]')
+    #                                print(gdat.listarrytser['data'][k][b][p][y][:, 0, a])
+    #                                summgene(gdat.listarrytser['data'][k][b][p][y][:, 0, a])
+    #                                raise Exception('')
 
-        if gdat.typeverb > 0:
-            print('Generating simulated data...')
-        
-        # add noise
-        for n in gdat.indxtarg:
-            for p in gdat.indxinst[0]:
-                for y in gdat.indxchun[n][0][p]:
-                    
-                    if gdat.booldiag:
-                        if not np.isfinite(gdat.listarrytser['data'][n][0][p][y]).all():
-                            raise Exception('')
-
-                    gdat.listarrytser['data'][n][0][p][y][:, 0, 1] += gdat.listarrytser['data'][n][0][p][y][:, 0, 2] * \
-                                                                                        np.random.randn(gdat.listarrytser['data'][n][0][p][y].shape[0])
-    
-        if gdat.booldiag:
-            for k in gdat.indxtarg:
-                for b in gdat.indxdatatser:
-                    for p in gdat.indxinst[b]:
-                        for y in gdat.indxchun[k][b][p]:
-                            for a in range(3):
-                                if not np.isfinite(gdat.listarrytser['data'][k][b][p][y][:, 0, a]).all():
-                                    print('')
-                                    print('')
-                                    print('gdat.typedata')
-                                    print(gdat.typedata)
-                                    print('kbpya')
-                                    print(k, b, p, y, a)
-                                    print('gdat.listarrytser[data][k][b][p][y][:, 0, a]')
-                                    print(gdat.listarrytser['data'][k][b][p][y][:, 0, a])
-                                    summgene(gdat.listarrytser['data'][k][b][p][y][:, 0, a])
-                                    raise Exception('')
-
-    if gdat.typedata == 'obsd':
-        gdat.listarrytser['data'] = gdat.listarrytser['obsd']
+    #if gdat.typedata == 'obsd':
+    #    gdat.listarrytser['data'] = gdat.listarrytser['obsd']
     
     if gdat.booldiag:
         for k in gdat.indxtarg:

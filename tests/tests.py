@@ -44,7 +44,7 @@ def cnfg_candidates_Rom():
     '''
     
     dictmileinpt = dict()
-    dictmileinpt['dictlcurtessinpt'] = {'typelcurtpxftess': 'SPOC'}
+    dictmileinpt['typelcurtpxftess'] = 'SPOC'
     
     listticitarg = [21266729, 14397653, 12967420, 3892500, 3664978, 1008024, 1066665, 2761086, 3542993]
     troia.init( \
@@ -109,8 +109,7 @@ def cnfg_tessnomi2min(typedata='simutoyy'):
     # epoc steps divided by trial duration
     dictmileinpt['dictpboxinpt']['factdeltepocdura'] = 0.5
 
-    dictlcurtessinpt = dict()
-    dictlcurtessinpt['booltpxfonly'] = True
+    dictmileinpt['booltpxfonly'] = True
     
     troia.init( \
                typesyst='cosc', \
@@ -119,7 +118,6 @@ def cnfg_tessnomi2min(typedata='simutoyy'):
                typedata=typedata, \
                dictmileinpt=dictmileinpt, \
                booldiag=True, \
-               dictlcurtessinpt=dictlcurtessinpt, \
               )
 
 
