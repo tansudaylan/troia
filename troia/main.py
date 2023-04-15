@@ -430,17 +430,25 @@ def init( \
     if (liststrgmast is not None or listticitarg is not None) and gdat.typepopl is None:
         raise Exception('The type of population, typepopl, must be defined by the user when the target list is provided by the user')
     
-    # ticim135: all TIC targets brighter than magnitude 13.5
-    # ticim110: all TIC targets brighter than magnitude 11
-    # xbin: X-ray binaries
-    # tsec: a particular TESS Sector
+    if gdat.typepopl is None:
+        if gdat.typedata == 'simutargsynt':
+            gdat.typepopl = 'synt'
+        elif gdat.typedata == 'simutargpartsynt':
+            gdat.typepopl = 'targtessprms2min'
+        elif gdat.typedata == 'simutargpartinje':
+            gdat.typepopl = 'targtessprms2min'
+        else:
+            print('gdat.typedata')
+            print(gdat.typedata)
+            raise Exception('gdat.typedata is undefined.')
+    
     print('gdat.typedata')
     print(gdat.typedata)
     print('gdat.typepopl')
     print(gdat.typepopl)
     print('gdat.typeinst')
     print(gdat.typeinst)
-    
+
     # paths
     ## read environment variable
     gdat.pathbase = os.environ['TROIA_DATA_PATH'] + '/'
@@ -895,17 +903,6 @@ def init( \
     # generate simulated data
     if gdat.boolsimu:
         
-        if gdat.typedata == 'simutargsynt':
-            typepoplsyst = 'synt'
-        elif gdat.typedata == 'simutargpartsynt':
-            typepoplsyst = 'targtessprms2min'
-        elif gdat.typedata == 'simutargpartinje':
-            typepoplsyst = 'targtessprms2min'
-        else:
-            print('gdat.typedata')
-            print(gdat.typedata)
-            raise Exception('gdat.typedata is undefined.')
-
         listcolrtypetrue = np.array(['g', 'b', 'orange', 'olive'])
         # types of systems
         #listnametypetrue = ['totl', 'sbin', 'ssys', 'cosc', 'qstr', 'cosctran']
@@ -925,7 +922,7 @@ def init( \
                 strgtemp = 'totl'
             else:
                 strgtemp = 'tran'
-            listnametypetrue[k] = listnametypetrue[k] + typepoplsyst + strgtemp
+            listnametypetrue[k] = listnametypetrue[k] + gdat.typepopl + strgtemp
         
         gdat.dictfeat['true'] = dict()
         #for namepoplcomm in listnametypetrue:
@@ -987,15 +984,15 @@ def init( \
                 gdat.indxssystarg[k] = cntrssys
                 cntrssys += 1
 
-        dictpoplstar, gdat.dictfeat['true']['cosc'], _, _, _, indxcompsyst, indxmooncompsyst = nicomedia.retr_dictpoplstarcomp('cosc', typepoplsyst)
-        dictpoplstar, gdat.dictfeat['true']['sbin'], _, _, _, indxcompsyst, indxmooncompsyst = nicomedia.retr_dictpoplstarcomp('sbin', typepoplsyst)
+        dictpoplstar, gdat.dictfeat['true']['cosc'], _, _, _, indxcompsyst, indxmooncompsyst = nicomedia.retr_dictpoplstarcomp('cosc', gdat.typepopl)
+        dictpoplstar, gdat.dictfeat['true']['sbin'], _, _, _, indxcompsyst, indxmooncompsyst = nicomedia.retr_dictpoplstarcomp('sbin', gdat.typepopl)
         
-        gdat.namepoplcomptotl = 'compstar' + typepoplsyst + 'totl'
-        gdat.namepoplcomptran = 'compstar' + typepoplsyst + 'tran'
+        gdat.namepoplcomptotl = 'compstar' + gdat.typepopl + 'totl'
+        gdat.namepoplcomptran = 'compstar' + gdat.typepopl + 'tran'
         gdat.dictfeat['true']['ssys'] = dict()
 
         for namepoplextn in ['totl', 'tran']:
-            gdat.namepoplcomp = 'compstar' + typepoplsyst + namepoplextn
+            gdat.namepoplcomp = 'compstar' + gdat.typepopl + namepoplextn
 
             listname = np.intersect1d(np.array(list(gdat.dictfeat['true']['cosc'][gdat.namepoplcomp].keys())), \
                                                                 np.array(list(gdat.dictfeat['true']['sbin'][gdat.namepoplcomp].keys())))
@@ -1040,10 +1037,10 @@ def init( \
         listtitlcomp = ['Binaries']
         
         dictpopltemp = dict()
-        dictpopltemp['cosc' + typepoplsyst + 'totl'] = gdat.dictfeat['true']['cosc'][gdat.namepoplcomptotl]
-        dictpopltemp['sbin' + typepoplsyst + 'totl'] = gdat.dictfeat['true']['sbin'][gdat.namepoplcomptotl]
-        dictpopltemp['cosc' + typepoplsyst + 'tran'] = gdat.dictfeat['true']['cosc'][gdat.namepoplcomptran]
-        dictpopltemp['sbin' + typepoplsyst + 'tran'] = gdat.dictfeat['true']['sbin'][gdat.namepoplcomptran]
+        dictpopltemp['cosc' + gdat.typepopl + 'totl'] = gdat.dictfeat['true']['cosc'][gdat.namepoplcomptotl]
+        dictpopltemp['sbin' + gdat.typepopl + 'totl'] = gdat.dictfeat['true']['sbin'][gdat.namepoplcomptotl]
+        dictpopltemp['cosc' + gdat.typepopl + 'tran'] = gdat.dictfeat['true']['cosc'][gdat.namepoplcomptran]
+        dictpopltemp['sbin' + gdat.typepopl + 'tran'] = gdat.dictfeat['true']['sbin'][gdat.namepoplcomptran]
         typeanls = 'cosc_%s_%s_%s' % (gdat.typedata, gdat.typeinst, gdat.typepopl)
         print('typeanls')
         print(typeanls)
@@ -1059,23 +1056,21 @@ def init( \
                       boolsortpoplsize=False, \
                      )
         
-        gdat.truerflxtotl = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for n in gdat.dictindxtarg['ssys']]
-        gdat.truerflxelli = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for n in gdat.dictindxtarg['ssys']]
-        gdat.truerflxbeam = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for n in gdat.dictindxtarg['ssys']]
-        gdat.truerflxslen = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for n in gdat.dictindxtarg['cosc']]
-        
-        if gdat.typedata == 'simutargpartinje':
-            gdat.listarrytser['data'] = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for k in gdat.indxtarg]
-            for n in gdat.indxtarg:
-                for p in gdat.indxinst[0]:
-                    for y in gdat.indxchun[n][0][p]:
-                        gdat.listarrytser['data'][n][0][p][y] = np.copy(gdat.listarrytser['obsd'][n][0][p][y])
+        #gdat.truerflxtotl = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for n in gdat.dictindxtarg['ssys']]
+        #gdat.truerflxelli = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for n in gdat.dictindxtarg['ssys']]
+        #gdat.truerflxbeam = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for n in gdat.dictindxtarg['ssys']]
+        #gdat.truerflxslen = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for n in gdat.dictindxtarg['cosc']]
+       
+        #if gdat.typedata == 'simutargpartinje':
+        #    gdat.listarrytser['data'] = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for k in gdat.indxtarg]
+        #    for n in gdat.indxtarg:
+        #        for p in gdat.indxinst[0]:
+        #            for y in gdat.indxchun[n][0][p]:
+        #                gdat.listarrytser['data'][n][0][p][y] = np.copy(gdat.listarrytser['obsd'][n][0][p][y])
         
         print('gdat.dictindxtarg')
         print(gdat.dictindxtarg)
 
-        print('Simulating the light curves of stellar systems...')
-        
         # assign uncertainty to the simulated light curves
         #if gdat.typedata == 'simutargsyntgend':
         #    for nn in tqdm(range(gdat.numbtarg)):
@@ -1084,88 +1079,88 @@ def init( \
         #                gdat.listarrytser['data'][nn][0][p][y][:, 0, 2] = np.full_like(gdat.listarrytser['data'][n][0][p][y][:, 0, 0], gdat.stdvphot[nn])
         
         ## stellar systems
-        for nn in tqdm(range(len(gdat.dictindxtarg['ssys']))):
-            n = gdat.dictindxtarg['ssys'][nn]
-            if gdat.boolcosctrue[n]:
-                nnn = gdat.indxcoscssys[nn]
-            else:
-                nnn = gdat.indxsbinssys[nn]
-                    
-            for p in gdat.indxinst[0]:
-                for y in gdat.indxchun[n][0][p]:
-                    
-                    
-                    ## COSCs
-                    if gdat.boolcosctrue[n]:
-                        dictoutp = ephesos.eval_modl(gdat.listarrytser['data'][n][0][p][y][:, 0, 0], \
-                                                             epocmtracomp=gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['epocmtracomp'][None, nn], \
-                                                             pericomp=gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['pericomp'][None, nn], \
-                                                             rsmacomp=gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['rsmacomp'][None, nn], \
-                                                             inclcomp=gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['inclcomp'][None, nn], \
-                                                             radistar=gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['radistar'][nn], \
-                                                             massstar=gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['massstar'][nn], \
-                                                             masscomp=gdat.dictfeat['true']['cosc'][gdat.namepoplcomptotl]['masscomp'][None, nnn], \
-                                                             # temp
-                                                             typeverb=-1, \
-                                                             typesyst='cosc', \
-                                                             booldiag=gdat.booldiag, \
-                                                             typemodllens=gdat.typemodllens, \
-                                                             )
-                    ## stellar binaries
-                    elif gdat.boolsbintrue[n]:
-                        dictoutp = ephesos.eval_modl(gdat.listarrytser['data'][n][0][p][y][:, 0, 0], \
-                                                             epocmtracomp=gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['epocmtracomp'][None, nn], \
-                                                             pericomp=gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['pericomp'][None, nn], \
-                                                             rsmacomp=gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['rsmacomp'][None, nn], \
-                                                             inclcomp=gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['inclcomp'][None, nn], \
-                                                             radistar=gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['radistar'][nn], \
-                                                             massstar=gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['massstar'][nn], \
-                                                             radicomp=gdat.dictfeat['true']['sbin'][gdat.namepoplcomptotl]['radicomp'][None, nnn], \
-                                                             masscomp=gdat.dictfeat['true']['sbin'][gdat.namepoplcomptotl]['masscomp'][None, nnn], \
-                                                             # temp
-                                                             typeverb=-1, \
-                                                             typesyst='sbin', \
-                                                             booldiag=gdat.booldiag, \
-                                                             typemodllens=gdat.typemodllens, \
-                                                             )
-                    
-                    else:
-                        raise Exception('')
-                    gdat.truerflxtotl[nn][0][p][y] = dictoutp['rflx']
-                    gdat.truerflxelli[nn][0][p][y] = dictoutp['rflxelli'][0]
-                    gdat.truerflxbeam[nn][0][p][y] = dictoutp['rflxbeam'][0]
-                    
-                    if gdat.booldiag:
-                        if not np.isfinite(gdat.truerflxtotl[nn][0][p][y]).all():
-                            raise Exception('')
-                    
-                    if len(gdat.truerflxelli[nn][0][p][y]) == 1:
-                        print('dictoutp[rflx]')
-                        summgene(dictoutp['rflx'])
-                        print('dictoutp[rflxelli]')
-                        summgene(dictoutp['rflxelli'])
-                        print('dictoutp[rflxbeam]')
-                        summgene(dictoutp['rflxbeam'])
-                        raise Exception('')
-                    
-                    if gdat.boolcosctrue[n]:
-                        gdat.truerflxslen[nnn][0][p][y] = dictoutp['rflxslen']
-                    
-                        if len(gdat.truerflxslen[nnn][0][p][y]) == 0:
-                            raise Exception('')
+        #for nn in tqdm(range(len(gdat.dictindxtarg['ssys']))):
+        #    n = gdat.dictindxtarg['ssys'][nn]
+        #    if gdat.boolcosctrue[n]:
+        #        nnn = gdat.indxcoscssys[nn]
+        #    else:
+        #        nnn = gdat.indxsbinssys[nn]
+        #            
+        #    for p in gdat.indxinst[0]:
+        #        for y in gdat.indxchun[n][0][p]:
+        #            
+        #            
+        #            ## COSCs
+        #            if gdat.boolcosctrue[n]:
+        #                dictoutp = ephesos.eval_modl(gdat.listarrytser['data'][n][0][p][y][:, 0, 0], \
+        #                                                     epocmtracomp=gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['epocmtracomp'][None, nn], \
+        #                                                     pericomp=gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['pericomp'][None, nn], \
+        #                                                     rsmacomp=gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['rsmacomp'][None, nn], \
+        #                                                     inclcomp=gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['inclcomp'][None, nn], \
+        #                                                     radistar=gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['radistar'][nn], \
+        #                                                     massstar=gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['massstar'][nn], \
+        #                                                     masscomp=gdat.dictfeat['true']['cosc'][gdat.namepoplcomptotl]['masscomp'][None, nnn], \
+        #                                                     # temp
+        #                                                     typeverb=-1, \
+        #                                                     typesyst='cosc', \
+        #                                                     booldiag=gdat.booldiag, \
+        #                                                     typemodllens=gdat.typemodllens, \
+        #                                                     )
+        #            ## stellar binaries
+        #            elif gdat.boolsbintrue[n]:
+        #                dictoutp = ephesos.eval_modl(gdat.listarrytser['data'][n][0][p][y][:, 0, 0], \
+        #                                                     epocmtracomp=gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['epocmtracomp'][None, nn], \
+        #                                                     pericomp=gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['pericomp'][None, nn], \
+        #                                                     rsmacomp=gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['rsmacomp'][None, nn], \
+        #                                                     inclcomp=gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['inclcomp'][None, nn], \
+        #                                                     radistar=gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['radistar'][nn], \
+        #                                                     massstar=gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['massstar'][nn], \
+        #                                                     radicomp=gdat.dictfeat['true']['sbin'][gdat.namepoplcomptotl]['radicomp'][None, nnn], \
+        #                                                     masscomp=gdat.dictfeat['true']['sbin'][gdat.namepoplcomptotl]['masscomp'][None, nnn], \
+        #                                                     # temp
+        #                                                     typeverb=-1, \
+        #                                                     typesyst='sbin', \
+        #                                                     booldiag=gdat.booldiag, \
+        #                                                     typemodllens=gdat.typemodllens, \
+        #                                                     )
+        #            
+        #            else:
+        #                raise Exception('')
+        #            gdat.truerflxtotl[nn][0][p][y] = dictoutp['rflx']
+        #            gdat.truerflxelli[nn][0][p][y] = dictoutp['rflxelli'][0]
+        #            gdat.truerflxbeam[nn][0][p][y] = dictoutp['rflxbeam'][0]
+        #            
+        #            if gdat.booldiag:
+        #                if not np.isfinite(gdat.truerflxtotl[nn][0][p][y]).all():
+        #                    raise Exception('')
+        #            
+        #            if len(gdat.truerflxelli[nn][0][p][y]) == 1:
+        #                print('dictoutp[rflx]')
+        #                summgene(dictoutp['rflx'])
+        #                print('dictoutp[rflxelli]')
+        #                summgene(dictoutp['rflxelli'])
+        #                print('dictoutp[rflxbeam]')
+        #                summgene(dictoutp['rflxbeam'])
+        #                raise Exception('')
+        #            
+        #            if gdat.boolcosctrue[n]:
+        #                gdat.truerflxslen[nnn][0][p][y] = dictoutp['rflxslen']
+        #            
+        #                if len(gdat.truerflxslen[nnn][0][p][y]) == 0:
+        #                    raise Exception('')
 
-                    if p == 0 and y == 0:
-                        gdat.dictfeat['true']['ssys'][gdat.namepoplcomptran]['duratrantotl'][nn] = dictoutp['duratrantotl']
-                        gdat.dictfeat['true']['ssys'][gdat.namepoplcomptran]['dcyc'][nn] = dictoutp['duratrantotl'] / \
-                                                                gdat.dictfeat['true']['ssys'][gdat.namepoplcomptran]['pericomp'][nn] / 12.
-                        if gdat.boolcosctrue[n]:
-                            gdat.dictfeat['true']['cosc'][gdat.namepoplcomptran]['amplslen'][nnn] = dictoutp['amplslen']
-                    
-                    #if gdat.typedata == 'simutargsyntgend':
-                    #    print('Loading nn=%d, n=%d...' % (nn, n))
-                    #    gdat.listarrytser['data'][n][0][p][y][:, 0, 1] = gdat.truerflxtotl[nn][0][p][y]
-                    #if gdat.typedata == 'simutargpartinje':
-                    #    gdat.listarrytser['data'][n][0][p][y][:, 0, 1] += (gdat.truerflxtotl[nn][0][p][y] - 1.)
+        #            if p == 0 and y == 0:
+        #                gdat.dictfeat['true']['ssys'][gdat.namepoplcomptran]['duratrantotl'][nn] = dictoutp['duratrantotl']
+        #                gdat.dictfeat['true']['ssys'][gdat.namepoplcomptran]['dcyc'][nn] = dictoutp['duratrantotl'] / \
+        #                                                        gdat.dictfeat['true']['ssys'][gdat.namepoplcomptran]['pericomp'][nn] / 12.
+        #                if gdat.boolcosctrue[n]:
+        #                    gdat.dictfeat['true']['cosc'][gdat.namepoplcomptran]['amplslen'][nnn] = dictoutp['amplslen']
+        #            
+        #            #if gdat.typedata == 'simutargsyntgend':
+        #            #    print('Loading nn=%d, n=%d...' % (nn, n))
+        #            #    gdat.listarrytser['data'][n][0][p][y][:, 0, 1] = gdat.truerflxtotl[nn][0][p][y]
+        #            #if gdat.typedata == 'simutargpartinje':
+        #            #    gdat.listarrytser['data'][n][0][p][y][:, 0, 1] += (gdat.truerflxtotl[nn][0][p][y] - 1.)
         
         #if gdat.typedata == 'simutargsyntgend':
         #    ## single star targets with flat light curves (qstr)
