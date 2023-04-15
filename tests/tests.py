@@ -33,7 +33,7 @@ def cnfg_TESSGEO():
                typesyst='cosc', \
                typeinst='TESS-GEO', \
                typepopl='targtess_prms_2min', \
-               typedata='simutoyy', \
+               typedata='simutargpartsynt', \
                booldiag=True, \
               )
 
@@ -87,16 +87,19 @@ def cnfg_rvel():
               )
 
 
-def cnfg_tessnomi2min(typedata='simutoyy'):
+def cnfg_gene( \
+              typesyst='cosc', \
+              typeinst='TESS', \
+              typepopl='targtess_prms_2min', \
+              typedata='simutargpartinje', \
+             ):
     '''
-    2-minute targets from the nominal mission
+    generic function to call troia
     '''
     
     dictmileinpt = dict()
     dictmileinpt['dictpboxinpt'] = dict()
     #dictmileinpt['dictpboxinpt']['factosam'] = 1.
-    #dictmileinpt['dictpboxinpt']['minmperi'] = 5.394
-    #dictmileinpt['dictpboxinpt']['maxmperi'] = 5.402
     
     # oversampling factor (wrt to transit duration) when rebinning data to decrease the time resolution
     dictmileinpt['dictpboxinpt']['factduracade'] = 2.
@@ -112,9 +115,9 @@ def cnfg_tessnomi2min(typedata='simutoyy'):
     dictmileinpt['booltpxfonly'] = True
     
     troia.init( \
-               typesyst='cosc', \
-               typeinst='TESS', \
-               typepopl='targtess_prms_2min', \
+               typesyst=typesyst, \
+               typeinst=typeinst, \
+               typepopl=typepopl, \
                typedata=typedata, \
                dictmileinpt=dictmileinpt, \
                booldiag=True, \
