@@ -1288,9 +1288,12 @@ def init( \
             for p in gdat.indxinst[b]:
                 gdat.arrytser['data'][n][b][p] = np.concatenate(gdat.listarrytser['data'][n][b][p], axis=0)
                 if gdat.arrytser['data'][n][b][p].ndim != 3:
+                    print('')
+                    print('')
+                    print('')
                     print('gdat.arrytser[data][n][b][p]')
                     summgene(gdat.arrytser['data'][n][b][p])
-                    raise Exception('')
+                    raise Exception('gdat.arrytser[data][n][b][p].ndim != 3')
 
     gdat.pathlogg = gdat.pathdata + 'logg/'
     
