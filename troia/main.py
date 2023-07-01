@@ -923,22 +923,33 @@ def init( \
         #listlabltypetrue = ['All', 'Stellar binary', 'Stellar System', 'Compact object with Stellar Companion', 'QS', 'Tr. COSC']
         #listcolrtypetrue = ['black', 'g', 'b', 'orange', 'yellow', 'olive']
         if gdat.typesyst == 'cosc':
-            listnametypetrue = ['sbin', 'sbin', 'cosc', 'cosc']
             listlabltypetrue = ['Stellar binary', 'Eclipsing Binary', 'Compact object with Stellar Companion', 'Transiting Compact object with Stellar Companion']
         elif gdat.typesyst == 'PlanetarySystem':
-            listnametypetrue = ['ebin', 'psys']
-            listlabltypetrue = ['Eclipsing binary', 'Planetary System']
+            listlabltypetrue = ['Planetary System', 'Eclipsing Binary']
         else:
             raise Exception('')
-        numblabltypetrue = len(listlabltypetrue)
-        indxlabltypetrue = np.arange(numblabltypetrue)
-        listcolrtypetrue = listcolrtypetrue[indxlabltypetrue]
-        for k, nametypetrue in enumerate(listnametypetrue):
-            if k == 1 or k == 3:
-                strgtemp = 'totl'
-            else:
-                strgtemp = 'tran'
-            listnametypetrue[k] = listnametypetrue[k] + gdat.typepopl + strgtemp
+        
+        numbtypetrue = len(listlabltypetrue)
+        indxtypetrue = np.arange(numbtypetrue)
+        
+        listnametypetrue = []
+        for k in indxtypetrue:
+            nametypetrue = ''.join(listlabltruetype[k].split(' '))
+            listnametypetrue.append(nametypetrue)
+        
+        listcolrtypetrue = listcolrtypetrue[indxtypetrue]
+        
+        listnameincl = ['All', 'Transiting']
+        numbnameincl = len(listnameincl)
+        indxnameincl = np.arange(numbnameincl)
+        for k in indxtypetrue: 
+            for oi in indxnameincl:
+                rh = k * numbnameincl + oi
+                listname[rh] = '%s_%s_%s' % (listnametypetrue[k], gdat.typepopl, listnameincl[k])
+        
+        listdictlablcolrpopl = [dict()]
+        for k in range(len(listnametypetrue)):
+            listdictlablcolrpopl[0][listnametypetrue[k]] = [listlabltypetrue[k], listcolrtypetrue[k]]
         
         gdat.dictfeat['true'] = dict()
         #for namepoplcomm in listnametypetrue:
@@ -1003,7 +1014,9 @@ def init( \
         if gdat.typesyst == 'cosc':
             dictpoplstar, gdat.dictfeat['true']['cosc'], _, _, _, indxcompsyst, indxmooncompsyst = nicomedia.retr_dictpoplstarcomp('cosc', gdat.typepopl)
             dictpoplstar, gdat.dictfeat['true']['sbin'], _, _, _, indxcompsyst, indxmooncompsyst = nicomedia.retr_dictpoplstarcomp('sbin', gdat.typepopl)
-        
+        elif gdat.typesyst == 'PlanetarySystem':
+            dictpoplstar, gdat.dictfeat['true']['PlanetarySystem'], _, _, _, indxcompsyst, indxmooncompsyst = nicomedia.retr_dictpoplstarcomp('PlanetarySystem', gdat.typepopl)
+
         gdat.namepoplcomptotl = 'compstar' + gdat.typepopl + 'totl'
         gdat.namepoplcomptran = 'compstar' + gdat.typepopl + 'tran'
         gdat.dictfeat['true']['ssys'] = dict()
@@ -1046,28 +1059,33 @@ def init( \
         
         print('Visualizing the features of the simulated population...')
 
-        pathvisu = gdat.pathvisupopl + 'truefeat/'
-        pathdata = gdat.pathdatapopl + 'truefeat/'
-        listdictlablcolrpopl = [dict()]
-        for k in range(len(listnametypetrue)):
-            listdictlablcolrpopl[0][listnametypetrue[k]] = [listlabltypetrue[k], listcolrtypetrue[k]]
-        
         listboolcompexcl = [False]
         listtitlcomp = ['Binaries']
         
         dictpopltemp = dict()
-        dictpopltemp['cosc' + gdat.typepopl + 'totl'] = gdat.dictfeat['true']['cosc'][gdat.namepoplcomptotl]
-        dictpopltemp['sbin' + gdat.typepopl + 'totl'] = gdat.dictfeat['true']['sbin'][gdat.namepoplcomptotl]
-        dictpopltemp['cosc' + gdat.typepopl + 'tran'] = gdat.dictfeat['true']['cosc'][gdat.namepoplcomptran]
-        dictpopltemp['sbin' + gdat.typepopl + 'tran'] = gdat.dictfeat['true']['sbin'][gdat.namepoplcomptran]
-        typeanls = 'cosc_%s_%s_%s' % (gdat.typedata, gdat.typeinst, gdat.typepopl)
-        print('typeanls')
-        print(typeanls)
+        if gdat.typesyst == 'cosc':
+            dictpopltemp['cosc' + gdat.typepopl + 'totl'] = gdat.dictfeat['true']['cosc'][gdat.namepoplcomptotl]
+            dictpopltemp['sbin' + gdat.typepopl + 'totl'] = gdat.dictfeat['true']['sbin'][gdat.namepoplcomptotl]
+            dictpopltemp['cosc' + gdat.typepopl + 'tran'] = gdat.dictfeat['true']['cosc'][gdat.namepoplcomptran]
+            dictpopltemp['sbin' + gdat.typepopl + 'tran'] = gdat.dictfeat['true']['sbin'][gdat.namepoplcomptran]
+        elif gdat.typesyst == 'PlanetarySystem':
+            namepopl = 'PlanetarySystem_%s_All' % gdat.typepopl
+            dictpopltemp[namepopl] = gdat.dictfeat['true']['PlanetarySystem'][gdat.namepoplcomptotl]
+        else:
+            raise Exception('')
+        
+        typeanls = '%s_%s_%s_%s' % (gdat.typesyst, gdat.typedata, gdat.typeinst, gdat.typepopl)
+
+        pathvisu = gdat.pathvisupopl + 'True_Features/'
+        pathdata = gdat.pathdatapopl + 'True_Features/'
+        
+        lablnumbsamp = 'Number of binaries'
+
         pergamon.init( \
                       typeanls, \
                       dictpopl=dictpopltemp, \
                       listdictlablcolrpopl=listdictlablcolrpopl, \
-                      lablnumbsamp='Number of binaries', \
+                      lablnumbsamp=lablnumbsamp, \
                       listboolcompexcl=listboolcompexcl, \
                       listtitlcomp=listtitlcomp, \
                       pathvisu=pathvisu, \
