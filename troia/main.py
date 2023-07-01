@@ -348,10 +348,11 @@ def init( \
         listgaid=None, \
 
         # type of data
-        ## 'simutargsynt': simulated data of a synthetic target, obtained by generating the data from stracth
-        ## 'simutargpartsynt': simulated data of a particular (named) target, obtained by generating the data from stracth
-        ## 'simutargpartinje': simulated data of a particular (named) target, obtained by injecting the signal to real data
-        ## 'obsd': observed data
+        ## 'simutargsynt': simulated data on synthetic targets
+        ## 'simutargpartsynt': simulated data on particular targets over synthetic temporal footprints
+        ## 'simutargpartfprt': simulated data on particular targets over their observed temporal footprints
+        ## 'simutargpartinje': simulated data obtained by injecting a synthetic signal on observed data on particular targets with a particular observational baseline 
+        ## 'obsd': observed data on particular targets
         typedata='obsd', \
         
         # Boolean flag to turn on multiprocessing
@@ -381,7 +382,11 @@ def init( \
         # Boolean flag to force rerun and overwrite previous data and plots 
         boolwritover=True, \
         
-        # verbosity type
+        # type of verbosity
+        ## -1: absolutely no text
+        ##  0: no text output except critical warnings
+        ##  1: minimal description of the execution
+        ##  2: detailed description of the execution
         typeverb=1, \
 
         ):
@@ -420,7 +425,7 @@ def init( \
     gdat.booltargusergaid = gdat.listgaid is not None
     gdat.booltarguser = gdat.booltargusertici or gdat.booltargusermast or gdat.booltargusergaid
     
-    if gdat.typedata == 'simutargsyntgend' and gdat.booltarguser or gdat.typedata != 'simutargsyntgend' and not gdat.booltarguser and gdat.typepopl is None:
+    if gdat.typedata == 'simutargsynt' and gdat.booltarguser or gdat.typedata != 'simutargsynt' and not gdat.booltarguser and gdat.typepopl is None:
         print('gdat.typedata')
         print(gdat.typedata)
         print('gdat.booltarguser')
@@ -477,7 +482,16 @@ def init( \
     gdat.timeoffs = 2457000.
     gdat.boolanimtmpt = False
     
-    if not gdat.booltarguser and gdat.typedata != 'simutargsyntgend':
+    if gdat.typeverb > 1:
+        print('gdat.typedata')
+        print(gdat.typedata)
+
+    if not gdat.typedata in ['simutargsynt', 'simutargpartsynt', 'simutargpartfprt', 'simutargpartinje', 'obsd']:
+        print('gdat.typedata')
+        print(gdat.typedata)
+        raise Exception('')
+
+    if not gdat.booltarguser and (gdat.typedata == 'simutargpartsynt' or gdat.typedata == 'simutargpartfprt' or gdat.typedata == 'simutargpartinje' or gdat.typedata == 'obsd'):
         dicttic8 = nicomedia.retr_dictpopltic8(typepopl=gdat.typepopl)
         
     # number of time-series data sets
@@ -527,7 +541,7 @@ def init( \
     print('Number of targets: %s' % gdat.numbtarg)
     gdat.indxtarg = np.arange(gdat.numbtarg)
     
-    if not gdat.booltarguser and gdat.typedata != 'simutargsyntgend':
+    if not gdat.booltarguser and gdat.typedata != 'simutargsynt':
         size = dicttic8['tici'].size
         indx = np.random.choice(np.arange(dicttic8['tici'].size), replace=False, size=size)
         for name in dicttic8.keys():
@@ -540,7 +554,7 @@ def init( \
     if gdat.listticitarg is None:
         gdat.listticitarg = [[] for k in gdat.indxtarg]
     
-    if not gdat.booltarguser and gdat.typedata != 'simutargsyntgend':
+    if not gdat.booltarguser and gdat.typedata != 'simutargsynt':
         gdat.listticitarg = dicttic8['tici']
     
     print('gdat.boolplot')
@@ -549,7 +563,7 @@ def init( \
     print(gdat.boolplotinit)
     # make initial plots
     if gdat.boolplot and gdat.boolplotinit:
-        if typesyst == 'cosc':
+        if gdat.typesyst == 'cosc':
             path = gdat.pathvisu + 'radieinsmass.%s' % (gdat.typefileplot) 
             if not os.path.exists(path):
                 # plot Einstein radius vs lens mass
@@ -788,7 +802,7 @@ def init( \
     
     #gdat.indxchun = [[[[] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for k in gdat.indxtarg]
     #gdat.numbchun = [[np.empty(gdat.numbinst[b], dtype=int) for b in gdat.indxdatatser] for k in gdat.indxtarg]
-    #if gdat.typedata == 'simutargsyntgend':
+    #if gdat.typedata == 'simutargsynt':
     #    for n in gdat.indxtarg:
     #        for b in gdat.indxdatatser:
     #            for p in gdat.indxinst[b]:
@@ -797,7 +811,7 @@ def init( \
     #    
     #    if gdat.typedata == 'simutargpartinje' or gdat.typedata == 'obsd':
     #        gdat.listarrytser['obsd'] = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for k in gdat.indxtarg]
-    #if gdat.typedata == 'simutargsyntgend':
+    #if gdat.typedata == 'simutargsynt':
     #    gdat.listarrytser['data'] = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for k in gdat.indxtarg]
     
     if gdat.boolsimu:
@@ -811,32 +825,32 @@ def init( \
     gdat.indxtypeposi = np.arange(gdat.numbtypeposi)
     gdat.boolpositarg = [np.empty(gdat.numbtarg, dtype=bool) for u in gdat.indxtypeposi]
     
-    if gdat.typedata == 'simutargsyntgend':
-        
-        print('Making simulated data using a generative model...')
-        
-        # simulated data setup 
-        ## cadence
-        gdat.cade = 10. / 60. / 24. # days
-        ## minimum time
-        gdat.minmtime = 0.
-        ## maximum time
-        gdat.maxmtime = 30.
-        ## time axis for each target
-        
-        numbener = 1
+    if gdat.typedata == 'simutargsynt':
+        pass    
+        #print('Making simulated data using a generative model...')
+        #
+        ## simulated data setup 
+        ### cadence
+        #gdat.cade = 10. / 60. / 24. # days
+        ### minimum time
+        #gdat.minmtime = 0.
+        ### maximum time
+        #gdat.maxmtime = 30.
+        ### time axis for each target
+        #
+        #numbener = 1
 
-        time = np.concatenate((np.arange(0., 27.3 / 2. - 1., gdat.cade), np.arange(27.3 / 2. + 1., 27.3, gdat.cade)))
-        numbtime = time.size
-        for k in gdat.indxtarg: 
-            for b in gdat.indxdatatser:
-                for p in gdat.indxinst[b]:
-                    for y in gdat.indxchun[k][0][0]:
-                        gdat.listarrytser['data'][k][b][p][y] = np.empty((numbtime, numbener, 3))
-                        if p == 0:
-                            gdat.listarrytser['data'][k][b][p][y][:, 0, 0] = gdat.timeoffs + time
-                        if p == 1:
-                            gdat.listarrytser['data'][k][b][p][y][:, 0, 0] = gdat.timeoffs + time + 8. / 60. / 24.
+        #time = np.concatenate((np.arange(0., 27.3 / 2. - 1., gdat.cade), np.arange(27.3 / 2. + 1., 27.3, gdat.cade)))
+        #numbtime = time.size
+        #for k in gdat.indxtarg: 
+        #    for b in gdat.indxdatatser:
+        #        for p in gdat.indxinst[b]:
+        #            for y in gdat.indxchun[k][0][0]:
+        #                gdat.listarrytser['data'][k][b][p][y] = np.empty((numbtime, numbener, 3))
+        #                if p == 0:
+        #                    gdat.listarrytser['data'][k][b][p][y][:, 0, 0] = gdat.timeoffs + time
+        #                if p == 1:
+        #                    gdat.listarrytser['data'][k][b][p][y][:, 0, 0] = gdat.timeoffs + time + 8. / 60. / 24.
     else:
         gdat.listarrytser['obsd'] = [[[[] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for k in gdat.indxtarg]
         
@@ -908,12 +922,14 @@ def init( \
         #listnametypetrue = ['totl', 'sbin', 'ssys', 'cosc', 'qstr', 'cosctran']
         #listlabltypetrue = ['All', 'Stellar binary', 'Stellar System', 'Compact object with Stellar Companion', 'QS', 'Tr. COSC']
         #listcolrtypetrue = ['black', 'g', 'b', 'orange', 'yellow', 'olive']
-        if typesyst == 'cosc':
+        if gdat.typesyst == 'cosc':
             listnametypetrue = ['sbin', 'sbin', 'cosc', 'cosc']
             listlabltypetrue = ['Stellar binary', 'Eclipsing Binary', 'Compact object with Stellar Companion', 'Transiting Compact object with Stellar Companion']
-        if typesyst == 'psys':
+        elif gdat.typesyst == 'PlanetarySystem':
             listnametypetrue = ['ebin', 'psys']
             listlabltypetrue = ['Eclipsing binary', 'Planetary System']
+        else:
+            raise Exception('')
         numblabltypetrue = len(listlabltypetrue)
         indxlabltypetrue = np.arange(numblabltypetrue)
         listcolrtypetrue = listcolrtypetrue[indxlabltypetrue]
@@ -983,42 +999,45 @@ def init( \
                     cntrsbin += 1
                 gdat.indxssystarg[k] = cntrssys
                 cntrssys += 1
-
-        dictpoplstar, gdat.dictfeat['true']['cosc'], _, _, _, indxcompsyst, indxmooncompsyst = nicomedia.retr_dictpoplstarcomp('cosc', gdat.typepopl)
-        dictpoplstar, gdat.dictfeat['true']['sbin'], _, _, _, indxcompsyst, indxmooncompsyst = nicomedia.retr_dictpoplstarcomp('sbin', gdat.typepopl)
+        
+        if gdat.typesyst == 'cosc':
+            dictpoplstar, gdat.dictfeat['true']['cosc'], _, _, _, indxcompsyst, indxmooncompsyst = nicomedia.retr_dictpoplstarcomp('cosc', gdat.typepopl)
+            dictpoplstar, gdat.dictfeat['true']['sbin'], _, _, _, indxcompsyst, indxmooncompsyst = nicomedia.retr_dictpoplstarcomp('sbin', gdat.typepopl)
         
         gdat.namepoplcomptotl = 'compstar' + gdat.typepopl + 'totl'
         gdat.namepoplcomptran = 'compstar' + gdat.typepopl + 'tran'
         gdat.dictfeat['true']['ssys'] = dict()
-
-        for namepoplextn in ['totl', 'tran']:
-            gdat.namepoplcomp = 'compstar' + gdat.typepopl + namepoplextn
-
-            listname = np.intersect1d(np.array(list(gdat.dictfeat['true']['cosc'][gdat.namepoplcomp].keys())), \
-                                                                np.array(list(gdat.dictfeat['true']['sbin'][gdat.namepoplcomp].keys())))
         
-            gdat.dictfeat['true']['ssys'][gdat.namepoplcomp] = dict()
-            for name in listname:
-                gdat.dictfeat['true']['ssys'][gdat.namepoplcomp][name] = np.concatenate([gdat.dictfeat['true']['cosc'][gdat.namepoplcomp][name], \
-                                                                                                gdat.dictfeat['true']['sbin'][gdat.namepoplcomp][name]])
+        if gdat.typesyst == 'cosc':
+            for namepoplextn in ['totl', 'tran']:
+                gdat.namepoplcomp = 'compstar' + gdat.typepopl + namepoplextn
+                
+                # list of features for stellar systems
+                listname = np.intersect1d(np.array(list(gdat.dictfeat['true']['cosc'][gdat.namepoplcomp].keys())), \
+                                                                    np.array(list(gdat.dictfeat['true']['sbin'][gdat.namepoplcomp].keys())))
+            
+                gdat.dictfeat['true']['ssys'][gdat.namepoplcomp] = dict()
+                for name in listname:
+                    gdat.dictfeat['true']['ssys'][gdat.namepoplcomp][name] = np.concatenate([gdat.dictfeat['true']['cosc'][gdat.namepoplcomp][name], \
+                                                                                                    gdat.dictfeat['true']['sbin'][gdat.namepoplcomp][name]])
         
-        #if gdat.typedata == 'simutargpartinje':
-        #    boolsampstar = False
-        #    gdat.dictfeat['true']['ssys']['radistar'] = dicttic8['radistar']
-        #    gdat.dictfeat['true']['ssys']['massstar'] = dicttic8['massstar']
-        #    indx = np.where((~np.isfinite(gdat.dictfeat['true']['ssys']['massstar'])) | (~np.isfinite(gdat.dictfeat['true']['ssys']['radistar'])))[0]
-        #    gdat.dictfeat['true']['ssys']['radistar'][indx] = 1.
-        #    gdat.dictfeat['true']['ssys']['massstar'][indx] = 1.
-        #    gdat.dictfeat['true']['totl']['tmag'] = dicttic8['tmag']
-        
-        # merge the features of the simulated COSCs and SBs
-        gdat.dictfeat['true']['totl'] = dict()
-        for namefeat in ['tmag']:
-            gdat.dictfeat['true']['totl']['tmag'] = np.concatenate([gdat.dictfeat['true']['cosc'][gdat.namepoplcomptotl][namefeat], \
-                                                                                        gdat.dictfeat['true']['sbin'][gdat.namepoplcomptotl][namefeat]])
+            #if gdat.typedata == 'simutargpartinje':
+            #    boolsampstar = False
+            #    gdat.dictfeat['true']['ssys']['radistar'] = dicttic8['radistar']
+            #    gdat.dictfeat['true']['ssys']['massstar'] = dicttic8['massstar']
+            #    indx = np.where((~np.isfinite(gdat.dictfeat['true']['ssys']['massstar'])) | (~np.isfinite(gdat.dictfeat['true']['ssys']['radistar'])))[0]
+            #    gdat.dictfeat['true']['ssys']['radistar'][indx] = 1.
+            #    gdat.dictfeat['true']['ssys']['massstar'][indx] = 1.
+            #    gdat.dictfeat['true']['totl']['tmag'] = dicttic8['tmag']
+            
+            # merge the features of the simulated COSCs and SBs
+            gdat.dictfeat['true']['totl'] = dict()
+            for namefeat in ['tmag']:
+                gdat.dictfeat['true']['totl']['tmag'] = np.concatenate([gdat.dictfeat['true']['cosc'][gdat.namepoplcomptotl][namefeat], \
+                                                                                            gdat.dictfeat['true']['sbin'][gdat.namepoplcomptotl][namefeat]])
 
         # grab the photometric noise of TESS as a function of TESS magnitude
-        #if gdat.typedata == 'simutargsyntgend':
+        #if gdat.typedata == 'simutargsynt':
         #    gdat.stdvphot = nicomedia.retr_noistess(gdat.dictfeat['true']['totl']['tmag']) * 1e-3 # [dimensionless]
         #    
         #    if not np.isfinite(gdat.stdvphot).all():
@@ -1072,7 +1091,7 @@ def init( \
         print(gdat.dictindxtarg)
 
         # assign uncertainty to the simulated light curves
-        #if gdat.typedata == 'simutargsyntgend':
+        #if gdat.typedata == 'simutargsynt':
         #    for nn in tqdm(range(gdat.numbtarg)):
         #        for p in gdat.indxinst[0]:
         #            for y in gdat.indxchun[nn][0][p]:
@@ -1156,13 +1175,13 @@ def init( \
         #                if gdat.boolcosctrue[n]:
         #                    gdat.dictfeat['true']['cosc'][gdat.namepoplcomptran]['amplslen'][nnn] = dictoutp['amplslen']
         #            
-        #            #if gdat.typedata == 'simutargsyntgend':
+        #            #if gdat.typedata == 'simutargsynt':
         #            #    print('Loading nn=%d, n=%d...' % (nn, n))
         #            #    gdat.listarrytser['data'][n][0][p][y][:, 0, 1] = gdat.truerflxtotl[nn][0][p][y]
         #            #if gdat.typedata == 'simutargpartinje':
         #            #    gdat.listarrytser['data'][n][0][p][y][:, 0, 1] += (gdat.truerflxtotl[nn][0][p][y] - 1.)
         
-        #if gdat.typedata == 'simutargsyntgend':
+        #if gdat.typedata == 'simutargsynt':
         #    ## single star targets with flat light curves (qstr)
         #    for nn, n in enumerate(gdat.indxtypetruetarg[2]):
         #        for p in gdat.indxinst[0]:
@@ -1221,11 +1240,11 @@ def init( \
                     cntrssys += 1
                 cntrrele += 1
 
-    #if gdat.typedata == 'simutargsyntgend':
+    #if gdat.typedata == 'simutargsynt':
     #    for namepoplcomm in listnametypetrue:
     #        if namepoplcomm != 'totl':
     #            gdat.dictfeat['true'][namepoplcomm]['tmag'] = gdat.dictfeat['true']['totl']['tmag'][gdat.dictindxtarg[namepoplcomm]]
-    #if gdat.typedata == 'simutargsyntgend':
+    #if gdat.typedata == 'simutargsynt':
     #    if gdat.typeverb > 0:
     #        print('Generating simulated data...')
     #    

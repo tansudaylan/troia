@@ -124,6 +124,35 @@ def cnfg_gene( \
               )
 
 
+def cnfg_LSST():
+    '''
+    LSST transiting exoplanet survey
+    '''
+    
+    typepopl = 'synthetic'
+    if typepopl == 'TIC':
+        listticitarg = []
+        k = 0
+        for line in objtfile:
+            if k != 0 and not line.startswith('#') and line != '\n':
+                strgtici = line.split(',')[0]
+                listticitarg.append(strgtici)
+            k += 1
+            if len(listticitarg) == 10:
+                break
+        listticitarg = np.array(listticitarg)
+        listticitarg = listticitarg.astype(int)
+        listticitarg = np.unique(listticitarg)
+    
+    troia.init( \
+               typesyst='PlanetarySystem', \
+               typedata='simutargsynt', \
+               typepopl=typepopl, \
+               #listticitarg=listticitarg, \
+               typeinst='LSST', \
+              )
+
+
 def cnfg_cycle3_G03254():
     '''
     Targets in TESS GI Cycle 3 proposal (PI: Tansu Daylan, G03254)
