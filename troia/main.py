@@ -50,7 +50,7 @@ def mile_work(gdat, i):
     
     for n in gdat.listindxtarg[i]:
         
-        if gdat.boolsimu:
+        if gdat.boolsimusome:
             for v in gdat.indxtyperele:
                 if n in gdat.dictindxtarg['rele'][v]:
                     gdat.boolreletarg[v][n] = True
@@ -121,7 +121,7 @@ def mile_work(gdat, i):
         
         if gdat.boolplot and n < gdat.maxmnumbtargplot:
             if gdat.boolplotdvrp:
-                if gdat.boolsimu:
+                if gdat.boolsimusome:
                     gdat.numbpagedvrp = gdat.numbpagedvrpsimu
                 else:
                     gdat.numbpagedvrp = 0
@@ -138,7 +138,7 @@ def mile_work(gdat, i):
                     gdat.listpathdvrp.append(pathdvrp)
 
             pathtargvisu = dictmileoutp['pathtarg'] + 'visuals/'
-            if gdat.boolsimu:
+            if gdat.boolsimusome:
                 
                 sizefigr = [8., 4.]
 
@@ -302,7 +302,7 @@ def mile_work(gdat, i):
                 for w in gdat.indxpagedvrp:
                     os.system('cp %s %s' % (gdat.listpathdvrp[w], gdat.pathvisupopldvrp))
                 
-        if gdat.boolsimu:
+        if gdat.boolsimusome:
             for u in gdat.indxtypeposi:
                 for v in gdat.indxtyperele:
                     if gdat.boolreletarg[v][n]:
@@ -344,10 +344,6 @@ def init( \
         ## 'obsd': observed data on a particular target
         liststrgtypedata=None, \
             
-        # Boolean flag to default into boolsimutargpartfprt for all data types and instruments
-        #boolsimutargpartfprt=False, \
-
-
         # list of GAIA IDs
         listgaid=None, \
 
@@ -421,7 +417,9 @@ def init( \
     gdat.booltargusergaid = gdat.listgaid is not None
     gdat.booltarguser = gdat.booltargusertici or gdat.booltargusermast or gdat.booltargusergaid
     
-    if gdat.typedata == 'simutargsynt' and gdat.booltarguser or gdat.typedata != 'simutargsynt' and not gdat.booltarguser and gdat.typepopl is None:
+    miletos.setup1_miletos(gdat)
+    
+    if gdat.booltargsynt and gdat.booltarguser or not gdat.booltargsynt and not gdat.booltarguser and gdat.typepopl is None:
         print('gdat.typedata')
         print(gdat.typedata)
         print('gdat.booltarguser')
@@ -443,8 +441,6 @@ def init( \
             print(gdat.typedata)
             raise Exception('gdat.typedata is undefined.')
     
-    print('gdat.typedata')
-    print(gdat.typedata)
     print('gdat.typepopl')
     print(gdat.typepopl)
 
@@ -457,7 +453,6 @@ def init( \
     gdat.pathvisu = gdat.pathbase + 'visuals/'
     gdat.pathtsec = gdat.pathdata + 'logg/tsec/'
     
-    miletos.setup1_miletos(gdat)
     gdat.listlablinst = miletos.retr_strginst(gdat, gdat.listlablinst)
 
     gdat.strginstconc = ''
@@ -469,7 +464,10 @@ def init( \
             gdat.strginstconc += '%s' % gdat.listlablinst[b][p]
             k += 1
     
-    gdat.strgextn = '%s_%s_%s' % (gdat.typepopl, gdat.typedata, gdat.strginstconc)
+    strgtypedata = ''
+    if gdat.booltargsynt:
+        strgtypedata = 'simutargsynt'
+    gdat.strgextn = '%s_%s_%s' % (gdat.typepopl, strgtypedata, gdat.strginstconc)
     
     gdat.pathpopl = gdat.pathbase + gdat.strgextn + '/'
     gdat.pathvisupopl = gdat.pathpopl + 'visuals/'
@@ -494,7 +492,7 @@ def init( \
         print('gdat.typedata')
         print(gdat.typedata)
 
-    if not gdat.booltarguser and (gdat.typedata == 'simutargpartsynt' or gdat.typedata == 'simutargpartfprt' or gdat.typedata == 'simutargpartinje' or gdat.typedata == 'obsd'):
+    if not gdat.booltarguser and not gdat.booltargsynt:
         dicttic8 = nicomedia.retr_dictpopltic8(typepopl=gdat.typepopl)
         
     # number of time-series data sets
@@ -510,12 +508,9 @@ def init( \
         gdat.numbinst[b] = len(gdat.listlablinst[b])
         gdat.indxinst[b] = np.arange(gdat.numbinst[b])
     
-    # Boolean flag indicating whether the data are simulated
-    gdat.boolsimu = gdat.typedata.startswith('simu')
-
     # data validation (DV) report
     ## number of pages in the DV report
-    if gdat.boolplotdvrp and gdat.boolsimu:
+    if gdat.boolplotdvrp:
         gdat.numbpagedvrpsimu = 1
         gdat.indxpagedvrpsimu = np.arange(gdat.numbpagedvrpsimu)
     
@@ -529,16 +524,17 @@ def init( \
         if gdat.booltargusergaid:
             gdat.numbtarg = len(gdat.listgaidtarg)
     else:
-        if gdat.typedata == 'obsd':
-            gdat.numbtarg = dicttic8['tici'].size
-        if gdat.boolsimu:
+        if gdat.boolsimusome:
             gdat.numbtarg = 30000
+        else:
+            gdat.numbtarg = dicttic8['tici'].size
+            
         gdat.numbtarg = 30
     
     print('Number of targets: %s' % gdat.numbtarg)
     gdat.indxtarg = np.arange(gdat.numbtarg)
     
-    if not gdat.booltarguser and gdat.typedata != 'simutargsynt':
+    if not gdat.booltarguser and not gdat.booltargsynt:
         size = dicttic8['tici'].size
         indx = np.random.choice(np.arange(dicttic8['tici'].size), replace=False, size=size)
         for name in dicttic8.keys():
@@ -797,21 +793,7 @@ def init( \
     
     gdat.listarrytser = dict()
     
-    #gdat.indxchun = [[[[] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for k in gdat.indxtarg]
-    #gdat.numbchun = [[np.empty(gdat.numbinst[b], dtype=int) for b in gdat.indxdatatser] for k in gdat.indxtarg]
-    #if gdat.typedata == 'simutargsynt':
-    #    for n in gdat.indxtarg:
-    #        for b in gdat.indxdatatser:
-    #            for p in gdat.indxinst[b]:
-    #                gdat.numbchun[n][b][p] = 1
-    #                gdat.indxchun[n][b][p] = np.arange(gdat.numbchun[n][b][p], dtype=int)
-    #    
-    #    if gdat.typedata == 'simutargpartinje' or gdat.typedata == 'obsd':
-    #        gdat.listarrytser['obsd'] = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for k in gdat.indxtarg]
-    #if gdat.typedata == 'simutargsynt':
-    #    gdat.listarrytser['data'] = [[[[[] for y in gdat.indxchun[k][b][p]] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for k in gdat.indxtarg]
-    
-    if gdat.boolsimu:
+    if gdat.boolsimusome:
         # number of relevant types
         gdat.numbtyperele = 2
         gdat.indxtyperele = np.arange(gdat.numbtyperele)
@@ -822,79 +804,10 @@ def init( \
     gdat.indxtypeposi = np.arange(gdat.numbtypeposi)
     gdat.boolpositarg = [np.empty(gdat.numbtarg, dtype=bool) for u in gdat.indxtypeposi]
     
-    if gdat.typedata == 'simutargsynt':
-        pass    
-        #print('Making simulated data using a generative model...')
-        #
-        ## simulated data setup 
-        ### cadence
-        #gdat.cade = 10. / 60. / 24. # days
-        ### minimum time
-        #gdat.minmtime = 0.
-        ### maximum time
-        #gdat.maxmtime = 30.
-        ### time axis for each target
-        #
-        #numbener = 1
-
-        #time = np.concatenate((np.arange(0., 27.3 / 2. - 1., gdat.cade), np.arange(27.3 / 2. + 1., 27.3, gdat.cade)))
-        #numbtime = time.size
-        #for k in gdat.indxtarg: 
-        #    for b in gdat.indxdatatser:
-        #        for p in gdat.indxinst[b]:
-        #            for y in gdat.indxchun[k][0][0]:
-        #                gdat.listarrytser['data'][k][b][p][y] = np.empty((numbtime, numbener, 3))
-        #                if p == 0:
-        #                    gdat.listarrytser['data'][k][b][p][y][:, 0, 0] = gdat.timeoffs + time
-        #                if p == 1:
-        #                    gdat.listarrytser['data'][k][b][p][y][:, 0, 0] = gdat.timeoffs + time + 8. / 60. / 24.
-    else:
-        gdat.listarrytser['obsd'] = [[[[] for p in gdat.indxinst[b]] for b in gdat.indxdatatser] for k in gdat.indxtarg]
-        
-        #if dictlcurtessinpt is None:
-        #    dictlcurtessinpt = dict()
-        
-        #for k in gdat.indxtarg:
-            
-            # get TIC ID
-            #if gdat.booltarguser:
-            #    if gdat.booltargusertici:
-            #        dictlcurtessinpt['strgmast'] = None
-            #        dictlcurtessinpt['ticitarg'] = gdat.listticitarg[k]
-            #    elif gdat.booltargusermast:
-            #        dictlcurtessinpt['strgmast'] = gdat.liststrgmast[k]
-            #        dictlcurtessinpt['ticitarg'] = None
-            #else:
-            #    dictlcurtessinpt['strgmast'] = None
-            #    dictlcurtessinpt['ticitarg'] = gdat.listticitarg[k]
-            #
-            #dictlcurtessinpt['typelcurtpxftess'] = 'SPOC'
-            #
-            #arrylcurtess, gdat.arrytsersapp, gdat.arrytserpdcc, listarrylcurtess, gdat.listarrytsersapp, gdat.listarrytserpdcc, \
-            #                      gdat.listtsec, gdat.listtcam, gdat.listtccd, listpathdownspoclcur, dictlygooutp = \
-            #                      miletos.retr_lcurtess( \
-            #                                            **dictlcurtessinpt, \
-            #                                           )
-
-            ## load data
-            #if len(arrylcurtess) > 0:
-            #    gdat.listarrytser['obsd'][k][0][0] = [[] for y in range(len(listarrylcurtess))]
-            #    for y in range(len(listarrylcurtess)):
-            #        gdat.listarrytser['obsd'][k][0][0][y] = listarrylcurtess[y][:, None, :]
-            #else:
-            #    print('No data on the target!')
-            #    raise Exception('')
-
-            #for b in gdat.indxdatatser:
-            #    for p in gdat.indxinst[b]:
-            #        gdat.numbchun[k][b][p] = len(listarrylcurtess)
-            #        gdat.indxchun[k][b][p] = np.arange(gdat.numbchun[k][b][p])
-        
     gdat.dictindxtarg = dict()
     gdat.dictfeat = dict()
     
-    # generate simulated data
-    if gdat.boolsimu:
+    if gdat.boolsimusome:
         
         listcolrtypetrue = np.array(['g', 'b', 'orange', 'olive'])
         # types of systems
@@ -1124,20 +1037,13 @@ def init( \
 
     #miletos.setup_miletos(gdat)
 
-    if gdat.typedata == 'simutargsynt':
-
+    #if gdat.boolsimusome:
         # move TESS magnitudes from the dictinary of all systems to the dictionaries of each types of system
         #for namepoplcomm in listnametypetrue:
         #    if namepoplcomm != 'totl':
         #        print('gdat.dictfeat[true].keys()')
         #        print(gdat.dictfeat['true'].keys())
         #        gdat.dictfeat['true'][namepoplcomm]['tmag'] = gdat.dictfeat['true']['totl']['tmag'][gdat.dictindxtarg[namepoplcomm]]
-    
-        if gdat.typeverb > 0:
-            print('Generating simulated data...')
-        
-    if gdat.typedata == 'obsd':
-        gdat.listarrytser['data'] = gdat.listarrytser['obsd']
     
     gdat.pathlogg = gdat.pathdata + 'logg/'
     
@@ -1178,7 +1084,7 @@ def init( \
     gdat.dictmileinptglob['dictpboxinpt']['boolsrchposi'] = True
     gdat.dictmileinptglob['dictpboxinpt']['boolprocmult'] = False
     
-    if gdat.boolsimu:
+    if gdat.boolsimusome:
         gdat.boolreleposi = [[[] for v in gdat.indxtyperele] for u in gdat.indxtypeposi]
         gdat.boolposirele = [[[] for v in gdat.indxtyperele] for u in gdat.indxtypeposi]
         
@@ -1208,7 +1114,7 @@ def init( \
         gdat.listindxtarg = [gdat.indxtarg]
         temp = mile_work(gdat, 0)
 
-    if gdat.boolsimu:
+    if gdat.boolsimusome:
         for u in gdat.indxtypeposi:
             for v in gdat.indxtyperele:
                 gdat.boolposirele[u][v] = np.array(gdat.boolposirele[u][v], dtype=bool)
@@ -1223,13 +1129,13 @@ def init( \
     gdat.listlablposi = ['Strong BLS power', 'Strong LS power', 'Strong BLS or LS power', 'Strong BLS and LS power']
     gdat.listlablnega = ['Weak BLS power', 'Weak LS power', 'Weak BLS and LS power', 'Weak BLS or LS power']
             
-    if gdat.boolsimu:
+    if gdat.boolsimusome:
         gdat.listlablrele = ['Simulated COSC', 'Simulated tr. COSC']
         gdat.listlablirre = ['Simulated QS or SB', 'Simulated QS, SB or non-tr. COSC']
     
     # for each positive and relevant type, estimate the recall and precision
     gdat.indxtypeposiiter = np.concatenate((np.array([-1]), gdat.indxtypeposi))
-    if gdat.boolsimu:
+    if gdat.boolsimusome:
         gdat.indxtypereleiter = np.concatenate((np.array([-1]), gdat.indxtyperele))
     else:
         gdat.indxtypereleiter = np.array([-1])
@@ -1366,7 +1272,7 @@ def init( \
                           boolsortpoplsize=False, \
                          )
                 
-            if gdat.boolplot and gdat.boolsimu and u != -1 and v != -1:
+            if gdat.boolplot and gdat.boolsimusome and u != -1 and v != -1:
                 listvarbreca = np.vstack([gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['pericomp'][gdat.indxssysrele[v]], \
                                           gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['masscomp'][gdat.indxssysrele[v]], \
                                           gdat.dictfeat['true']['totl']['tmag'][gdat.dictindxtarg['rele'][v]]]).T
