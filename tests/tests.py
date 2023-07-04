@@ -11,19 +11,32 @@ def cnfg_prev():
     Previous discoveries
     '''    
     
-    dictmileinpt = dict()
-    dictmileinpt['dictpboxinpt'] = dict()
-    dictmileinpt['dictpboxinpt']['factosam'] = 0.1
+    dictmileinptglob = dict()
+    dictmileinptglob['dictpboxinpt'] = dict()
+    dictmileinptglob['dictpboxinpt']['factosam'] = 0.1
 
     troia.init( \
                typesyst='cosc', \
                liststrgmast=['V723 Mon', 'VFTS 243', 'HR 6819', 'A0620-00'], \
                typeinst='TESS', \
                typepopl='prev', \
-               dictmileinpt=dictmileinpt, \
+               dictmileinptglob=dictmileinptglob, \
               )
 
     
+def cnfg_Flares():
+    '''
+    Simulated flaring stars observed by ULTRASAT
+    '''
+    
+    troia.init( \
+               typesyst='StarFlaring', \
+               typeinst='ULTRASAT', \
+               typepopl='targtess_prms_2min', \
+               typedata='simutargpartsynt', \
+              )
+
+
 def cnfg_TESSGEO():
     '''
     Simulated analysis for simulatenaous data collected by TESS EM2 and TESS L5
@@ -34,7 +47,6 @@ def cnfg_TESSGEO():
                typeinst='TESS-GEO', \
                typepopl='targtess_prms_2min', \
                typedata='simutargpartsynt', \
-               booldiag=True, \
               )
 
 
@@ -43,15 +55,15 @@ def cnfg_candidates_Rom():
     Targets from Rom's RNN
     '''
     
-    dictmileinpt = dict()
-    dictmileinpt['typelcurtpxftess'] = 'SPOC'
+    dictmileinptglob = dict()
+    dictmileinptglob['typelcurtpxftess'] = 'SPOC'
     
     listticitarg = [21266729, 14397653, 12967420, 3892500, 3664978, 1008024, 1066665, 2761086, 3542993]
     troia.init( \
                typesyst='cosc', \
                listticitarg=listticitarg, \
                typepopl='candidates_Rom', \
-               dictmileinpt=dictmileinpt, \
+               dictmileinptglob=dictmileinptglob, \
                typeinst='TESS', \
               )
 
@@ -97,30 +109,29 @@ def cnfg_gene( \
     generic function to call troia
     '''
     
-    dictmileinpt = dict()
-    dictmileinpt['dictpboxinpt'] = dict()
-    #dictmileinpt['dictpboxinpt']['factosam'] = 1.
+    dictmileinptglob = dict()
+    dictmileinptglob['dictpboxinpt'] = dict()
+    #dictmileinptglob['dictpboxinpt']['factosam'] = 1.
     
     # oversampling factor (wrt to transit duration) when rebinning data to decrease the time resolution
-    dictmileinpt['dictpboxinpt']['factduracade'] = 2.
+    dictmileinptglob['dictpboxinpt']['factduracade'] = 2.
     # factor by which to oversample the frequency grid
-    dictmileinpt['dictpboxinpt']['factosam'] = 10.
+    dictmileinptglob['dictpboxinpt']['factosam'] = 10.
     # number of duty cycle samples  
-    dictmileinpt['dictpboxinpt']['numbdcyc'] = 3
+    dictmileinptglob['dictpboxinpt']['numbdcyc'] = 3
     # spread in the logarithm of duty cycle
-    dictmileinpt['dictpboxinpt']['deltlogtdcyc'] = 0.5
+    dictmileinptglob['dictpboxinpt']['deltlogtdcyc'] = 0.5
     # epoc steps divided by trial duration
-    dictmileinpt['dictpboxinpt']['factdeltepocdura'] = 0.5
+    dictmileinptglob['dictpboxinpt']['factdeltepocdura'] = 0.5
 
-    dictmileinpt['booltpxfonly'] = True
+    dictmileinptglob['booltpxfonly'] = True
     
     troia.init( \
                typesyst=typesyst, \
                typeinst=typeinst, \
                typepopl=typepopl, \
                typedata=typedata, \
-               dictmileinpt=dictmileinpt, \
-               booldiag=True, \
+               dictmileinptglob=dictmileinptglob, \
               )
 
 
@@ -146,10 +157,11 @@ def cnfg_LSST():
     
     troia.init( \
                typesyst='PlanetarySystem', \
-               typedata='simutargsynt', \
+               #typedata='simutargsynt', \
                typepopl=typepopl, \
                #listticitarg=listticitarg, \
-               typeinst='LSST', \
+               liststrgtypedata=[['simutargsynt'], []], \
+               listlablinst=[['LSST'], []], \
               )
 
 
