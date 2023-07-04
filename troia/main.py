@@ -57,16 +57,7 @@ def mile_work(gdat, i):
                 else:
                     gdat.boolreletarg[v][n] = False
 
-        #cntr = 0
-        #for p in gdat.indxinst[0]:
-        #    for y in gdat.indxchun[n][0][p]:
-        #        cntr += gdat.listarrytser['data'][n][0][p][y].shape[0]
-        #if cntr == 0:
-        #    print('No data on %s! Skipping...' % gdat.labltarg[n])
-        #    raise Exception('')
-        #    continue
-
-        if gdat.typedata == 'obsd' and gdat.typepopl == 'list':
+        if gdat.booldataobsv and gdat.typepopl == 'list':
             #listarrytser = None
             rasctarg = None
             decltarg = None
@@ -100,8 +91,9 @@ def mile_work(gdat, i):
         #gdat.dictmileinpttarg['listarrytser'] = listarrytser
         
         dicttrue = dict()
+        dicttrue['numbyearlsst'] = 5
         dicttrue['typemodl'] = 'PlanetarySystem'
-        dicttrue['epocmtracomp'] = gdat.dictfeat['true']['PlanetarySystem'][gdat.namepoplcomptran]['epocmtracomp'][n]
+        dicttrue['epocmtracomp'] = gdat.dictfeat['true']['PlanetarySystem'][gdat.namepoplcomptran]['epocmtracomp'][gdat.indxcompsyst[n]]
         gdat.dictmileinpttarg['dicttrue'] = dicttrue
 
         # call miletos to analyze data
@@ -119,189 +111,6 @@ def mile_work(gdat, i):
         for u in gdat.indxtypeposi:
             gdat.boolpositarg[u][n] = dictmileoutp['boolposianls'][u]
         
-        if gdat.boolplot and n < gdat.maxmnumbtargplot:
-            if gdat.boolplotdvrp:
-                if gdat.boolsimusome:
-                    gdat.numbpagedvrp = gdat.numbpagedvrpsimu
-                else:
-                    gdat.numbpagedvrp = 0
-        
-                gdat.listpathdvrp = [[] for k in range(gdat.numbpagedvrp)]
-        
-                gdat.numbpagedvrp += len(dictmileoutp['listpathdvrp'])
-                gdat.indxpagedvrp = np.arange(gdat.numbpagedvrp)
-                
-                ## list of dictionaries holding the paths and DV report positions of plots
-                gdat.listdictdvrp = [[] for k in gdat.indxpagedvrp]
-                
-                for pathdvrp in dictmileoutp['listpathdvrp']:
-                    gdat.listpathdvrp.append(pathdvrp)
-
-            pathtargvisu = dictmileoutp['pathtarg'] + 'visuals/'
-            if gdat.boolsimusome:
-                
-                sizefigr = [8., 4.]
-
-                liststrglimt = ['', '_limt']
-                    
-                # plot relevant (i.e., signal-containing) simulated data with known components
-                if n in gdat.dictindxtarg['ssys']:
-                    nn = gdat.indxssystarg[n]
-                    if gdat.boolcosctrue[n]:
-                        nnn = gdat.indxcoscssys[nn]
-                    else:
-                        nnn = gdat.indxsbinssys[nn]
-                    
-                    ## light curves
-                    dictmodl = dict()
-
-                    for a, strglimt in enumerate(liststrglimt):
-                        
-                        if strglimt == '_limt' and not np.isfinite(gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['duratrantotl'][nn]):
-                            continue
-
-                        if a == 0:
-                            limtxaxi = None
-                        else:
-                            limtxaxi = [gdat.dictfeat['true']['ssys']['epocmtracomp'][nn] - 2. * gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['duratrantotl'][nn] / 12. - gdat.timeoffs, \
-                                        gdat.dictfeat['true']['ssys']['epocmtracomp'][nn] + 2. * gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['duratrantotl'][nn] / 12. - gdat.timeoffs]
-                        
-                            if not np.isfinite(limtxaxi).all():
-                                print('gdat.dictfeat[true][ssys][epoc][nn]')
-                                print(gdat.dictfeat['true']['ssys']['epocmtracomp'][nn])
-                                print('gdat.dictfeat[true][ssys][duratrantotl][nn]')
-                                print(gdat.dictfeat['true']['ssys']['duratrantotl'][nn])
-                                raise Exception('')
-
-                        maxm = 1e-100
-                        minm = 1e100
-                        for p in gdat.indxinst[0]:
-                            for y in gdat.indxchun[n][0][p]:
-                                
-                                if gdat.booldiag:
-                                    if gdat.boolcosctrue[n]:
-                                        if nnn >= len(gdat.truerflxslen):
-                                            print('n, nn, nnn')
-                                            print(n, nn, nnn)
-                                            print('gdat.indxtarg')
-                                            print(gdat.indxtarg)
-                                            print('gdat.indxtargssys')
-                                            print(gdat.dictindxtarg['ssys'])
-                                            print('gdat.boolcosctrue')
-                                            print(gdat.boolcosctrue)
-                                            raise Exception('')
-                                        if len(gdat.truerflxslen[nnn][0][p][y]) == 0:
-                                            print('n, nn, nnn')
-                                            print(n, nn, nnn)
-                                            print('gdat.indxtarg')
-                                            print(gdat.indxtarg)
-                                            print('gdat.indxtargssys')
-                                            print(gdat.dictindxtarg['ssys'])
-                                            print('gdat.boolcosctrue')
-                                            print(gdat.boolcosctrue)
-                                            raise Exception('')
-
-                                maxm = max(maxm, np.amax(np.concatenate([gdat.truerflxtotl[nn][0][p][y], gdat.truerflxelli[nn][0][p][y], gdat.truerflxbeam[nn][0][p][y], \
-                                                                                                             gdat.listarrytser['data'][n][0][p][y][:, 0, 1]])))
-                                
-                                minm = min(minm, np.amin(np.concatenate([gdat.truerflxtotl[nn][0][p][y], gdat.truerflxelli[nn][0][p][y], gdat.truerflxbeam[nn][0][p][y], \
-                                                                                                             gdat.listarrytser['data'][n][0][p][y][:, 0, 1]])))
-                                
-                                if gdat.boolcosctrue[n]:
-                                    maxm = max(maxm, np.amax(gdat.truerflxslen[nnn][0][p][y]))
-                                    minm = min(minm, np.amin(gdat.truerflxslen[nnn][0][p][y]))
-                        
-                        limtyaxi = [minm, maxm]
-                        for p in gdat.indxinst[0]:
-                            for y in gdat.indxchun[n][0][p]:
-                                dictmodl['modltotl'] = {'lcur': gdat.truerflxtotl[nn][0][p][y], 'time': gdat.listarrytser['data'][n][0][p][y][:, 0, 0], 'labl': 'Model'}
-                                dictmodl['modlelli'] = {'lcur': gdat.truerflxelli[nn][0][p][y], 'time': gdat.listarrytser['data'][n][0][p][y][:, 0, 0], 'labl': 'EV'}
-                                dictmodl['modlbeam'] = {'lcur': gdat.truerflxbeam[nn][0][p][y], 'time': gdat.listarrytser['data'][n][0][p][y][:, 0, 0], 'labl': 'Beaming'}
-                                if gdat.boolcosctrue[n]:
-                                    dictmodl['modlslen'] = {'lcur': gdat.truerflxslen[nnn][0][p][y], 'time': gdat.listarrytser['data'][n][0][p][y][:, 0, 0], 'labl': 'SL'}
-                                
-                                titlraww = '%s, Tmag=%.3g, $R_*$=%.2g $R_\odot$, $M_*$=%.2g $M_\odot$' % ( \
-                                                                                                 gdat.labltarg[n], \
-                                                                                                 gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['tmag'][nn], \
-                                                                                                 gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['radistar'][nn], \
-                                                                                                 gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['massstar'][nn], \
-                                                                                                 )
-                                
-                                # plot data after injection with injected model components highlighted
-                                titlinje = titlraww + '\n$M_c$=%.2g $M_\odot$, $P$=%.3f day, $T_0$=%.3f, $i=%.3g^\circ$, Dur=%.2g hr, $q=%.3g$' % ( \
-                                                                               gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['masscomp'][nn], \
-                                                                               gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['pericomp'][nn], \
-                                                                               gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['epocmtracomp'][nn]-gdat.timeoffs, \
-                                                                               gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['inclcomp'][nn], \
-                                                                               gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['duratrantotl'][nn], \
-                                                                               gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['dcyc'][nn], \
-                                                                              )
-                                if gdat.boolcosctrue[n]:
-                                    titlinje += ', $A_{SL}$=%.2g ppt' % gdat.dictfeat['true']['cosc'][gdat.namepoplcomptotl]['amplslen'][nnn]
-                                
-                                if gdat.typedata == 'simutargpartinje':
-                                    strgextnraww = '%s_%s_%s%s_raww' % (gdat.typedata, gdat.strgtarg[n], gdat.listlablinst[0][p], strglimt)
-                                    pathplot = ephesos.plot_lcur(pathtargvisu, strgtitl=titlraww, timeoffs=gdat.timeoffs, limtyaxi=limtyaxi, limtxaxi=limtxaxi, \
-                                                                                    timedata=gdat.listarrytser['obsd'][n][0][p][y][:, 0, 0], \
-                                                                                    lcurdata=gdat.listarrytser['obsd'][n][0][p][y][:, 0, 1], \
-                                                                                    typefileplot=gdat.typefileplot, \
-                                                                                    strgextn=strgextnraww, sizefigr=sizefigr, \
-                                                                                    )
-                                    if gdat.boolplotdvrp:
-                                        gdat.listdictdvrp[0].append({'path': pathplot, 'limt':[0., 0.5, 1., 0.2]})
-                                    
-                                    strgextnover = '%s_%s_%s%s_over' % (gdat.typedata, gdat.strgtarg[n], gdat.listlablinst[0][p], strglimt)
-                                    pathplot = ephesos.plot_lcur(pathtargvisu, dictmodl=dictmodl, strgtitl=titlinje, timeoffs=gdat.timeoffs, limtyaxi=limtyaxi, \
-                                                                                    timedata=gdat.listarrytser['obsd'][n][0][p][y][:, :, 0], \
-                                                                                    lcurdata=gdat.listarrytser['obsd'][n][0][p][y][:, 0, 1], \
-                                                                                    typefileplot=gdat.typefileplot, \
-                                                                                    strgextn=strgextnover, sizefigr=sizefigr, limtxaxi=limtxaxi)
-                                    if gdat.boolplotdvrp:
-                                        gdat.listdictdvrp[0].append({'path': pathplot, 'limt':[0., 0.3, 1., 0.2]})
-                                
-                                    strgextninje = '%s_%s_%s%s_inje' % (gdat.typedata, gdat.strgtarg[n], gdat.listlablinst[0][p], strglimt)
-                                    pathplot = ephesos.plot_lcur(pathtargvisu, strgtitl=titlinje, timeoffs=gdat.timeoffs, limtyaxi=limtyaxi, \
-                                                                                    timedata=gdat.listarrytser['data'][n][0][p][y][:, 0, 0], \
-                                                                                    lcurdata=gdat.listarrytser['data'][n][0][p][y][:, 0, 1], \
-                                                                                    typefileplot=gdat.typefileplot, \
-                                                                                    strgextn=strgextninje, sizefigr=sizefigr, limtxaxi=limtxaxi)
-                                    if gdat.boolplotdvrp:
-                                        gdat.listdictdvrp[0].append({'path': pathplot, 'limt':[0., 0.1, 1., 0.2]})
-                                
-                                if gdat.typedata == 'simutargsynt' or gdat.typedata == 'simutargpartsynt':
-                                    strgextninje = '%s_%s_%s%s_toyy' % (gdat.typedata, gdat.strgtarg[n], gdat.listlablinst[0][p], strglimt)
-                                    
-                                    pathplot = ephesos.plot_lcur(pathtargvisu, \
-                                                                                    timedata=gdat.listarrytser['data'][n][0][p][y][:, 0, 0], \
-                                                                                    lcurdata=gdat.listarrytser['data'][n][0][p][y][:, 0, 1], \
-                                                                                    strgtitl=titlinje, timeoffs=gdat.timeoffs, limtyaxi=limtyaxi, dictmodl=dictmodl, \
-                                                                                    typefileplot=gdat.typefileplot, \
-                                                                                    strgextn=strgextninje, sizefigr=sizefigr, limtxaxi=limtxaxi)
-                                    if gdat.boolplotdvrp:
-                                        gdat.listdictdvrp[0].append({'path': pathplot, 'limt':[0., 0.4, 1, 0.2]})
-                                    
-                if gdat.boolplotdvrp:
-                    # make a simulation summary plot
-                    for w in gdat.indxpagedvrpsimu:
-                        # path of DV report
-                        gdat.listpathdvrp[w] = pathtargvisu + '%s_dvrp_pag%d.png' % (gdat.strgtarg[n], w)
-                        if not os.path.exists(gdat.listpathdvrp[w]):
-                            figr = plt.figure(figsize=(8.25, 11.75))
-                            numbplot = len(gdat.listdictdvrp[w])
-                            indxplot = np.arange(numbplot)
-                            for dictdvrp in gdat.listdictdvrp[w]:
-                                axis = figr.add_axes(dictdvrp['limt'])
-                                axis.imshow(plt.imread(dictdvrp['path']))
-                            print('Writing to %s...' % gdat.listpathdvrp[w])
-                            plt.axis('off')
-                            plt.savefig(gdat.listpathdvrp[w], dpi=600)
-                            #plt.subplots_adjust(top=1., bottom=0, left=0, right=1)
-                            plt.close()
-        
-            if gdat.boolplotdvrp:
-                for w in gdat.indxpagedvrp:
-                    os.system('cp %s %s' % (gdat.listpathdvrp[w], gdat.pathvisupopldvrp))
-                
         if gdat.boolsimusome:
             for u in gdat.indxtypeposi:
                 for v in gdat.indxtyperele:
@@ -362,9 +171,6 @@ def init( \
         # Boolean flag to make initial plots
         boolplotinit=None, \
         
-        # Boolean flag to make DV reports
-        boolplotdvrp=None, \
-        
         # Boolean flag to make initial plots
         boolplotmile=None, \
         
@@ -396,9 +202,6 @@ def init( \
    
     if gdat.boolplotinit is None:
         gdat.boolplotinit = gdat.boolplot
-    
-    if gdat.boolplotdvrp is None:
-        gdat.boolplotdvrp = gdat.boolplot
     
     if gdat.boolplotmile is None:
         gdat.boolplotmile = gdat.boolplot
@@ -433,9 +236,9 @@ def init( \
         if gdat.typedata == 'simutargsynt':
             gdat.typepopl = 'synt'
         elif gdat.typedata == 'simutargpartsynt':
-            gdat.typepopl = 'targtessprms2min'
+            gdat.typepopl = 'CTL_prms_2min'
         elif gdat.typedata == 'simutargpartinje':
-            gdat.typepopl = 'targtessprms2min'
+            gdat.typepopl = 'CTL_prms_2min'
         else:
             print('gdat.typedata')
             print(gdat.typedata)
@@ -464,15 +267,14 @@ def init( \
             gdat.strginstconc += '%s' % gdat.listlablinst[b][p]
             k += 1
     
-    strgtypedata = ''
+    gdat.strgtypedataconc = ''
     if gdat.booltargsynt:
-        strgtypedata = 'simutargsynt'
-    gdat.strgextn = '%s_%s_%s' % (gdat.typepopl, strgtypedata, gdat.strginstconc)
+        gdat.strgtypedataconc = 'simutargsynt'
+    gdat.strgextn = '%s_%s_%s' % (gdat.typepopl, gdat.strgtypedataconc, gdat.strginstconc)
     
     gdat.pathpopl = gdat.pathbase + gdat.strgextn + '/'
     gdat.pathvisupopl = gdat.pathpopl + 'visuals/'
     gdat.pathdatapopl = gdat.pathpopl + 'data/'
-    gdat.pathvisupopldvrp = gdat.pathvisupopl + 'dvrp/'
 
     # make folders
     for attr, valu in gdat.__dict__.items():
@@ -508,12 +310,6 @@ def init( \
         gdat.numbinst[b] = len(gdat.listlablinst[b])
         gdat.indxinst[b] = np.arange(gdat.numbinst[b])
     
-    # data validation (DV) report
-    ## number of pages in the DV report
-    if gdat.boolplotdvrp:
-        gdat.numbpagedvrpsimu = 1
-        gdat.indxpagedvrpsimu = np.arange(gdat.numbpagedvrpsimu)
-    
     # determine number of targets
     ## number of targets
     if gdat.booltarguser:
@@ -527,7 +323,7 @@ def init( \
         if gdat.boolsimusome:
             gdat.numbtarg = 30000
         else:
-            gdat.numbtarg = dicttic8['tici'].size
+            gdat.numbtarg = dicttic8['TICID'].size
             
         gdat.numbtarg = 30
     
@@ -535,8 +331,8 @@ def init( \
     gdat.indxtarg = np.arange(gdat.numbtarg)
     
     if not gdat.booltarguser and not gdat.booltargsynt:
-        size = dicttic8['tici'].size
-        indx = np.random.choice(np.arange(dicttic8['tici'].size), replace=False, size=size)
+        size = dicttic8['TICID'].size
+        indx = np.random.choice(np.arange(dicttic8['TICID'].size), replace=False, size=size)
         for name in dicttic8.keys():
             dicttic8[name] = dicttic8[name][indx]
     
@@ -547,8 +343,8 @@ def init( \
     if gdat.listticitarg is None:
         gdat.listticitarg = [[] for k in gdat.indxtarg]
     
-    if not gdat.booltarguser and gdat.typedata != 'simutargsynt':
-        gdat.listticitarg = dicttic8['tici']
+    if not gdat.booltarguser and not gdat.booltargsynt:
+        gdat.listticitarg = dicttic8['TICID']
     
     print('gdat.boolplot')
     print(gdat.boolplot)
@@ -556,7 +352,7 @@ def init( \
     print(gdat.boolplotinit)
     # make initial plots
     if gdat.boolplot and gdat.boolplotinit:
-        if gdat.typesyst == 'cosc':
+        if gdat.typesyst == 'CompactObjectStellarCompanion':
             path = gdat.pathvisu + 'radieinsmass.%s' % (gdat.typefileplot) 
             if not os.path.exists(path):
                 # plot Einstein radius vs lens mass
@@ -659,7 +455,7 @@ def init( \
                     figr, axis = plt.subplots(figsize=(10, 4.5))
                     
                     dictoutp = ephesos.eval_modl(time, pericomp=[listperi[k]], epocmtracomp=[0.], radistar=1., massstar=1., \
-                                                                                     masscomp=[10.], inclcomp=[90.], typesyst='cosc', typemodllens=gdat.typemodllens)
+                                                                                     masscomp=[10.], inclcomp=[90.], typesyst='CompactObjectStellarCompanion', typemodllens=gdat.typemodllens)
                     rflxmodl = dictoutp['rflx']
                     axis.plot(time, rflxmodl, color='k', lw=2, label='Total')
                     axis.plot(time, dictoutp['rflxelli'][0], color='b', ls='--', label='Ellipsoidal variation')
@@ -718,7 +514,7 @@ def init( \
             ## plot TESS photometric precision
             path = gdat.pathvisu + 'sigmtmag.%s' % (gdat.typefileplot) 
             if not os.path.exists(path):
-                dictpoplticim110 = nicomedia.retr_dictpopltic8(typepopl='ticim110')
+                dictpoplticim110 = nicomedia.retr_dictpopltic8(typepopl='TIC_m110')
        
                 ## interpolate TESS photometric precision
                 dictpoplticim110['nois'] = nicomedia.retr_noistess(dictpoplticim110['tmag'])
@@ -770,10 +566,7 @@ def init( \
         gdat.liststrgmast = [[] for n in gdat.indxtarg]
     gdat.labltarg = [[] for n in gdat.indxtarg]
     for n in gdat.indxtarg:
-        if gdat.typedata == 'simutargsynt':
-            gdat.strgtarg[n] = 'simugene%04d' % n
-            gdat.labltarg[n] = 'Simulated target'
-        elif gdat.typedata == 'simutargpartsynt':
+        if gdat.booltargsynt:
             gdat.strgtarg[n] = 'simugene%04d' % n
             gdat.labltarg[n] = 'Simulated target'
         else:
@@ -811,10 +604,10 @@ def init( \
         
         listcolrtypetrue = np.array(['g', 'b', 'orange', 'olive'])
         # types of systems
-        #listnametypetrue = ['totl', 'sbin', 'ssys', 'cosc', 'qstr', 'cosctran']
+        #listnametypetrue = ['totl', 'StellarBinary', 'ssys', 'CompactObjectStellarCompanion', 'qstr', 'cosctran']
         #listlabltypetrue = ['All', 'Stellar binary', 'Stellar System', 'Compact object with Stellar Companion', 'QS', 'Tr. COSC']
         #listcolrtypetrue = ['black', 'g', 'b', 'orange', 'yellow', 'olive']
-        if gdat.typesyst == 'cosc':
+        if gdat.typesyst == 'CompactObjectStellarCompanion':
             listlabltypetrue = ['Stellar binary', 'Eclipsing Binary', 'Compact object with Stellar Companion', 'Transiting Compact object with Stellar Companion']
         elif gdat.typesyst == 'PlanetarySystem':
             listlabltypetrue = ['Planetary System', 'Eclipsing Binary']
@@ -869,10 +662,10 @@ def init( \
             
         gdat.boolcosctrue = gdat.typetruetarg == 0
         gdat.boolsbintrue = gdat.typetruetarg == 1
-        gdat.dictindxtarg['cosc'] = gdat.indxtypetruetarg[0]
-        gdat.numbtargcosc = gdat.dictindxtarg['cosc'].size
-        gdat.dictindxtarg['sbin'] = gdat.indxtypetruetarg[1]
-        gdat.numbtargsbin = gdat.dictindxtarg['sbin'].size
+        gdat.dictindxtarg['CompactObjectStellarCompanion'] = gdat.indxtypetruetarg[0]
+        gdat.numbtargcosc = gdat.dictindxtarg['CompactObjectStellarCompanion'].size
+        gdat.dictindxtarg['StellarBinary'] = gdat.indxtypetruetarg[1]
+        gdat.numbtargsbin = gdat.dictindxtarg['StellarBinary'].size
         gdat.dictindxtarg['qstr'] = gdat.indxtypetruetarg[2]
         gdat.dictindxtarg['ssys'] = np.concatenate((gdat.indxtypetruetarg[0], gdat.indxtypetruetarg[1]))
         gdat.dictindxtarg['ssys'] = np.sort(gdat.dictindxtarg['ssys'])
@@ -911,13 +704,20 @@ def init( \
                 gdat.indxssystarg[k] = cntrssys
                 cntrssys += 1
         
-        if gdat.typesyst == 'cosc':
-            dictpoplstar, gdat.dictfeat['true']['cosc'], _, _, _, indxcompsyst, indxmooncompsyst = nicomedia.retr_dictpoplstarcomp('cosc', gdat.typepopl)
-            dictpoplstar, gdat.dictfeat['true']['sbin'], _, _, _, indxcompsyst, indxmooncompsyst = nicomedia.retr_dictpoplstarcomp('sbin', gdat.typepopl)
+        if gdat.typesyst == 'CompactObjectStellarCompanion':
+            dictnico = nicomedia.retr_dictpoplstarcomp('CompactObjectStellarCompanion', gdat.typepopl)
+            gdat.dictfeat['true']['CompactObjectStellarCompanion'] = dictnico['dictpoplcomp']
+            gdat.indxcompcosc = dictnico['indxcompstar']
+            dictnico = nicomedia.retr_dictpoplstarcomp('StellarBinary', gdat.typepopl)
+            gdat.dictfeat['true']['StellarBinary'] = dictnico['dictpoplcomp']
+            gdat.indxcompsbin = dictnico['indxcompstar']
         elif gdat.typesyst == 'PlanetarySystem':
-            dictpoplstar, gdat.dictfeat['true']['PlanetarySystem'], _, _, _, indxcompsyst, indxmooncompsyst = nicomedia.retr_dictpoplstarcomp('PlanetarySystem', gdat.typepopl)
+            dictnico = nicomedia.retr_dictpoplstarcomp('PlanetarySystem', gdat.typepopl)
+            gdat.dictfeat['true']['PlanetarySystem'] = dictnico['dictpoplcomp']
+            gdat.indxcompsyst = dictnico['indxcompstar']
         elif gdat.typesyst == 'StarFlaring':
-            gdat.dictfeat['true']['StarFlaring']['timeflar'] = nicomedia.retr_dictpoplflar('PlanetarySystem', gdat.typepopl)
+            dictnico = nicomedia.retr_dictpoplstarcomp('StarFlaring', gdat.typepopl)
+            gdat.dictfeat['true']['StarFlaring'] = dictnico['dictpoplflar']
         else:
             raise Exception('')
 
@@ -925,18 +725,18 @@ def init( \
         gdat.namepoplcomptran = 'compstar' + gdat.typepopl + 'tran'
         gdat.dictfeat['true']['ssys'] = dict()
         
-        if gdat.typesyst == 'cosc':
+        if gdat.typesyst == 'CompactObjectStellarCompanion':
             for namepoplextn in ['totl', 'tran']:
                 gdat.namepoplcomp = 'compstar' + gdat.typepopl + namepoplextn
                 
                 # list of features for stellar systems
-                listname = np.intersect1d(np.array(list(gdat.dictfeat['true']['cosc'][gdat.namepoplcomp].keys())), \
-                                                                    np.array(list(gdat.dictfeat['true']['sbin'][gdat.namepoplcomp].keys())))
+                listname = np.intersect1d(np.array(list(gdat.dictfeat['true']['CompactObjectStellarCompanion'][gdat.namepoplcomp].keys())), \
+                                                                    np.array(list(gdat.dictfeat['true']['StellarBinary'][gdat.namepoplcomp].keys())))
             
                 gdat.dictfeat['true']['ssys'][gdat.namepoplcomp] = dict()
                 for name in listname:
-                    gdat.dictfeat['true']['ssys'][gdat.namepoplcomp][name] = np.concatenate([gdat.dictfeat['true']['cosc'][gdat.namepoplcomp][name], \
-                                                                                                    gdat.dictfeat['true']['sbin'][gdat.namepoplcomp][name]])
+                    gdat.dictfeat['true']['ssys'][gdat.namepoplcomp][name] = np.concatenate([gdat.dictfeat['true']['CompactObjectStellarCompanion'][gdat.namepoplcomp][name], \
+                                                                                                    gdat.dictfeat['true']['StellarBinary'][gdat.namepoplcomp][name]])
         
             #if gdat.typedata == 'simutargpartinje':
             #    boolsampstar = False
@@ -950,8 +750,8 @@ def init( \
             # merge the features of the simulated COSCs and SBs
             gdat.dictfeat['true']['totl'] = dict()
             for namefeat in ['tmag']:
-                gdat.dictfeat['true']['totl']['tmag'] = np.concatenate([gdat.dictfeat['true']['cosc'][gdat.namepoplcomptotl][namefeat], \
-                                                                                            gdat.dictfeat['true']['sbin'][gdat.namepoplcomptotl][namefeat]])
+                gdat.dictfeat['true']['totl']['tmag'] = np.concatenate([gdat.dictfeat['true']['CompactObjectStellarCompanion'][gdat.namepoplcomptotl][namefeat], \
+                                                                                            gdat.dictfeat['true']['StellarBinary'][gdat.namepoplcomptotl][namefeat]])
 
         # grab the photometric noise of TESS as a function of TESS magnitude
         #if gdat.typedata == 'simutargsynt':
@@ -967,11 +767,11 @@ def init( \
         listtitlcomp = ['Binaries']
         
         dictpopltemp = dict()
-        if gdat.typesyst == 'cosc':
-            dictpopltemp['cosc' + gdat.typepopl + 'totl'] = gdat.dictfeat['true']['cosc'][gdat.namepoplcomptotl]
-            dictpopltemp['sbin' + gdat.typepopl + 'totl'] = gdat.dictfeat['true']['sbin'][gdat.namepoplcomptotl]
-            dictpopltemp['cosc' + gdat.typepopl + 'tran'] = gdat.dictfeat['true']['cosc'][gdat.namepoplcomptran]
-            dictpopltemp['sbin' + gdat.typepopl + 'tran'] = gdat.dictfeat['true']['sbin'][gdat.namepoplcomptran]
+        if gdat.typesyst == 'CompactObjectStellarCompanion':
+            dictpopltemp['CompactObjectStellarCompanion' + gdat.typepopl + 'totl'] = gdat.dictfeat['true']['CompactObjectStellarCompanion'][gdat.namepoplcomptotl]
+            dictpopltemp['StellarBinary' + gdat.typepopl + 'totl'] = gdat.dictfeat['true']['StellarBinary'][gdat.namepoplcomptotl]
+            dictpopltemp['CompactObjectStellarCompanion' + gdat.typepopl + 'tran'] = gdat.dictfeat['true']['CompactObjectStellarCompanion'][gdat.namepoplcomptran]
+            dictpopltemp['StellarBinary' + gdat.typepopl + 'tran'] = gdat.dictfeat['true']['StellarBinary'][gdat.namepoplcomptran]
         elif gdat.typesyst == 'PlanetarySystem':
             dictpopltemp['PlanetarySystem_%s_All' % gdat.typepopl] = gdat.dictfeat['true']['PlanetarySystem'][gdat.namepoplcomptotl]
             dictpopltemp['PlanetarySystem_%s_Transiting' % gdat.typepopl] = gdat.dictfeat['true']['PlanetarySystem'][gdat.namepoplcomptran]
@@ -980,7 +780,7 @@ def init( \
         else:
             raise Exception('')
         
-        typeanls = '%s_%s_%s_%s' % (gdat.typesyst, gdat.typedata, gdat.strginstconc, gdat.typepopl)
+        typeanls = '%s_%s_%s_%s' % (gdat.typesyst, gdat.strgtypedataconc, gdat.strginstconc, gdat.typepopl)
 
         pathvisu = gdat.pathvisupopl + 'True_Features/'
         pathdata = gdat.pathdatapopl + 'True_Features/'
@@ -1001,18 +801,18 @@ def init( \
         
         # relevant targets
         gdat.dictindxtarg['rele'] = [[] for v in gdat.indxtyperele]
-        if gdat.typesyst == 'cosc':
+        if gdat.typesyst == 'CompactObjectStellarCompanion':
             gdat.dictindxtarg['cosctran'] = \
-                gdat.dictindxtarg['cosc'][np.where(np.isfinite(gdat.dictfeat['true']['ssys'][gdat.namepoplcomptran]['duratrantotl'][gdat.indxssyscosc]))]
+                gdat.dictindxtarg['CompactObjectStellarCompanion'][np.where(np.isfinite(gdat.dictfeat['true']['ssys'][gdat.namepoplcomptran]['duratrantotl'][gdat.indxssyscosc]))]
             # relevants are all COSCs
-            gdat.dictindxtarg['rele'][0] = gdat.dictindxtarg['cosc']
+            gdat.dictindxtarg['rele'][0] = gdat.dictindxtarg['CompactObjectStellarCompanion']
             # relevants are those transiting COSCs
             gdat.dictindxtarg['rele'][1] = gdat.dictindxtarg['cosctran']
         elif gdat.typesyst == 'PlanetarySystem':
             gdat.dictindxtarg['PlanetarySystemTransiting'] = \
-                gdat.dictindxtarg['cosc'][np.where(np.isfinite(gdat.dictfeat['true']['PlanetarySystem'][gdat.namepoplcomptran]['duratrantotl'][gdat.indxssyscosc]))]
+                gdat.dictindxtarg['CompactObjectStellarCompanion'][np.where(np.isfinite(gdat.dictfeat['true']['PlanetarySystem'][gdat.namepoplcomptran]['duratrantotl'][gdat.indxssyscosc]))]
             # relevants are all COSCs
-            gdat.dictindxtarg['rele'][0] = gdat.dictindxtarg['cosc']
+            gdat.dictindxtarg['rele'][0] = gdat.dictindxtarg['CompactObjectStellarCompanion']
             # relevants are those transiting COSCs
             gdat.dictindxtarg['rele'][1] = gdat.dictindxtarg['PlanetarySystemTransiting']
         else:
@@ -1068,7 +868,7 @@ def init( \
     gdat.dictmileinptglob['listlablinst'] = gdat.listlablinst
     dictfitt = dict()
     dictfitt['typemodl'] = gdat.typesyst
-    if gdat.typesyst == 'cosc':
+    if gdat.typesyst == 'CompactObjectStellarCompanion':
         dictfitt['typemodllens'] = gdat.typemodllens
     else:
         dictfitt['typemodllens'] = None

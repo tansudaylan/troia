@@ -18,7 +18,7 @@ def cnfg_prev():
     troia.init( \
                typesyst='cosc', \
                liststrgmast=['V723 Mon', 'VFTS 243', 'HR 6819', 'A0620-00'], \
-               typeinst='TESS', \
+               listlablinst=[['TESS'], []], \
                typepopl='prev', \
                dictmileinptglob=dictmileinptglob, \
               )
@@ -31,9 +31,9 @@ def cnfg_Flares():
     
     troia.init( \
                typesyst='StarFlaring', \
-               typeinst='ULTRASAT', \
-               typepopl='targtess_prms_2min', \
-               typedata='simutargpartsynt', \
+               listlablinst=[['ULTRASAT'], []], \
+               typepopl='CTL_S1_2min', \
+               liststrgtypedata=[['simutargpartsynt'], []], \
               )
 
 
@@ -44,9 +44,9 @@ def cnfg_TESSGEO():
     
     troia.init( \
                typesyst='cosc', \
-               typeinst='TESS-GEO', \
-               typepopl='targtess_prms_2min', \
-               typedata='simutargpartsynt', \
+               listlablinst=[['TESS-GEO'], []], \
+               typepopl='CTL_prms_2min', \
+               liststrgtypedata=[['simutargpartsynt'], []], \
               )
 
 
@@ -64,7 +64,7 @@ def cnfg_candidates_Rom():
                listticitarg=listticitarg, \
                typepopl='candidates_Rom', \
                dictmileinptglob=dictmileinptglob, \
-               typeinst='TESS', \
+               listlablinst=[['TESS'], []], \
               )
 
 
@@ -101,9 +101,9 @@ def cnfg_rvel():
 
 def cnfg_gene( \
               typesyst='cosc', \
-              typeinst='TESS', \
-              typepopl='targtess_prms_2min', \
-              typedata='simutargpartinje', \
+              listlablinst=[['TESS'], []], \
+              typepopl='CTL_prms_2min', \
+              liststrgtypedata=[['simutargpartsynt'], []], \
              ):
     '''
     generic function to call troia
@@ -129,8 +129,10 @@ def cnfg_gene( \
     troia.init( \
                typesyst=typesyst, \
                typeinst=typeinst, \
+               listlablinst=listlablinst, \
                typepopl=typepopl, \
                typedata=typedata, \
+               liststrgtypedata=liststrgtypedata, \
                dictmileinptglob=dictmileinptglob, \
               )
 
@@ -157,7 +159,6 @@ def cnfg_LSST():
     
     troia.init( \
                typesyst='PlanetarySystem', \
-               #typedata='simutargsynt', \
                typepopl=typepopl, \
                #listticitarg=listticitarg, \
                liststrgtypedata=[['simutargsynt'], []], \
@@ -188,7 +189,7 @@ def cnfg_cycle3_G03254():
                typesyst='cosc', \
                typepopl='cycle3_G03254', \
                listticitarg=listticitarg, \
-               typeinst='TESS', \
+               listlablinst=[['TESS'], []], \
               )
 
 
