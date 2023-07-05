@@ -93,7 +93,8 @@ def mile_work(gdat, i):
         dicttrue = dict()
         dicttrue['numbyearlsst'] = 5
         dicttrue['typemodl'] = 'PlanetarySystem'
-        dicttrue['epocmtracomp'] = gdat.dictfeat['true']['PlanetarySystem'][gdat.namepoplcomptran]['epocmtracomp'][gdat.indxcompsyst[n]]
+        for nameparacomp in gdat.dictfeat['true']['PlanetarySystem'][gdat.namepoplcomptran].keys():
+            dicttrue[nameparacomp] = gdat.dictfeat['true']['PlanetarySystem'][gdat.namepoplcomptran][nameparacomp][gdat.indxcompsyst[n]]
         gdat.dictmileinpttarg['dicttrue'] = dicttrue
 
         # call miletos to analyze data
