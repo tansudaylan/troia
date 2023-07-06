@@ -714,8 +714,8 @@ def init( \
             gdat.indxcompsbin = dictnico['indxcompstar']
         elif gdat.typesyst == 'PlanetarySystem':
             dictnico = nicomedia.retr_dictpoplstarcomp('PlanetarySystem', gdat.typepopl)
-            gdat.dictfeat['true']['PlanetarySystem'] = dictnico['dictpoplcomp']
-            gdat.indxcompsyst = dictnico['indxcompstar']
+            gdat.dictfeat['true']['PlanetarySystem'] = dictnico['dictpopl']['comp']
+            gdat.indxcompsyst = dictnico['dictindx']['comp']['star']
         elif gdat.typesyst == 'StarFlaring':
             dictnico = nicomedia.retr_dictpoplstarcomp('StarFlaring', gdat.typepopl)
             gdat.dictfeat['true']['StarFlaring'] = dictnico['dictpoplflar']
