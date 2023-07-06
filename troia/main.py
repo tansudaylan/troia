@@ -94,6 +94,8 @@ def mile_work(gdat, i):
         dicttrue['numbyearlsst'] = 5
         dicttrue['typemodl'] = 'PlanetarySystem'
         for nameparacomp in gdat.dictfeat['true']['PlanetarySystem'][gdat.namepoplcomptran].keys():
+            print('nameparacomp')
+            print(nameparacomp)
             dicttrue[nameparacomp] = gdat.dictfeat['true']['PlanetarySystem'][gdat.namepoplcomptran][nameparacomp][gdat.indxcompsyst[n]]
         gdat.dictmileinpttarg['dicttrue'] = dicttrue
 
@@ -718,12 +720,12 @@ def init( \
             gdat.indxcompsyst = dictnico['dictindx']['comp']['star']
         elif gdat.typesyst == 'StarFlaring':
             dictnico = nicomedia.retr_dictpoplstarcomp('StarFlaring', gdat.typepopl)
-            gdat.dictfeat['true']['StarFlaring'] = dictnico['dictpoplflar']
+            gdat.dictfeat['true']['StarFlaring'] = dictnico['dictpopl']['flar']
         else:
             raise Exception('')
 
-        gdat.namepoplcomptotl = 'compstar' + gdat.typepopl + 'totl'
-        gdat.namepoplcomptran = 'compstar' + gdat.typepopl + 'tran'
+        gdat.namepoplcomptotl = 'compstar_%s_All' % gdat.typepopl
+        gdat.namepoplcomptran = 'compstar_%s_Transiting' % gdat.typepopl
         gdat.dictfeat['true']['ssys'] = dict()
         
         if gdat.typesyst == 'CompactObjectStellarCompanion':
@@ -777,6 +779,8 @@ def init( \
             dictpopltemp['PlanetarySystem_%s_All' % gdat.typepopl] = gdat.dictfeat['true']['PlanetarySystem'][gdat.namepoplcomptotl]
             dictpopltemp['PlanetarySystem_%s_Transiting' % gdat.typepopl] = gdat.dictfeat['true']['PlanetarySystem'][gdat.namepoplcomptran]
         elif gdat.typesyst == 'StarFlaring':
+            print('gdat.dictfeat[true][StarFlaring]')
+            print(gdat.dictfeat['true']['StarFlaring'])
             dictpopltemp['StarFlaring_%s_All' % gdat.typepopl] = gdat.dictfeat['true']['StarFlaring'][gdat.namepoplcomptotl]
         else:
             raise Exception('')
