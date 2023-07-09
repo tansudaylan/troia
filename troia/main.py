@@ -93,10 +93,10 @@ def mile_work(gdat, i):
         dicttrue = dict()
         dicttrue['numbyearlsst'] = 5
         dicttrue['typemodl'] = 'PlanetarySystem'
-        for nameparacomp in gdat.dictfeat['true']['PlanetarySystem'][gdat.namepoplcomptran].keys():
-            print('nameparacomp')
-            print(nameparacomp)
-            dicttrue[nameparacomp] = gdat.dictfeat['true']['PlanetarySystem'][gdat.namepoplcomptran][nameparacomp][gdat.indxcompsyst[n]]
+        for namepara in gdat.dicttroy['true']['PlanetarySystem']['listnamefeatbody']:
+            dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['star'][gdat.namepoplstartran][namepara][n]
+        for namepara in gdat.dicttroy['true']['PlanetarySystem']['listnamefeatlimbonly']:
+            dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['star'][gdat.namepoplcomptran][namepara][gdat.indxcompsyst[n]]
         gdat.dictmileinpttarg['dicttrue'] = dicttrue
 
         # call miletos to analyze data
@@ -601,7 +601,7 @@ def init( \
     gdat.boolpositarg = [np.empty(gdat.numbtarg, dtype=bool) for u in gdat.indxtypeposi]
     
     gdat.dictindxtarg = dict()
-    gdat.dictfeat = dict()
+    gdat.dicttroy = dict()
     
     if gdat.boolsimusome:
         
@@ -647,9 +647,9 @@ def init( \
         listdictlablcolrpopl[-1]['PlanetarySystem_%s_All' % gdat.typepopl] = ['All', 'black']
         listdictlablcolrpopl[-1]['PlanetarySystem_%s_Transiting' % gdat.typepopl] = ['All', 'black']
         
-        gdat.dictfeat['true'] = dict()
+        gdat.dicttroy['true'] = dict()
         #for namepoplcomm in listnametypetrue:
-        #    gdat.dictfeat['true'][namepoplcomm] = dict()
+        #    gdat.dicttroy['true'][namepoplcomm] = dict()
 
         # 0: cosc
         # 1: binary star
@@ -708,57 +708,54 @@ def init( \
                 cntrssys += 1
         
         if gdat.typesyst == 'CompactObjectStellarCompanion':
-            dictnico = nicomedia.retr_dictpoplstarcomp('CompactObjectStellarCompanion', gdat.typepopl)
-            gdat.dictfeat['true']['CompactObjectStellarCompanion'] = dictnico['dictpoplcomp']
-            gdat.indxcompcosc = dictnico['indxcompstar']
-            dictnico = nicomedia.retr_dictpoplstarcomp('StellarBinary', gdat.typepopl)
-            gdat.dictfeat['true']['StellarBinary'] = dictnico['dictpoplcomp']
-            gdat.indxcompsbin = dictnico['indxcompstar']
+            gdat.dicttroy['true']['CompactObjectStellarCompanion'] = nicomedia.retr_dictpoplstarcomp('CompactObjectStellarCompanion', gdat.typepopl)
+            gdat.indxcompcosc = gdat.dicttroy['true']['CompactObjectStellarCompanion']['indxcompstar']
+            gdat.dicttroy['true']['StellarBinary'] = nicomedia.retr_dictpoplstarcomp('StellarBinary', gdat.typepopl)
+            gdat.indxcompsbin = gdat.dicttroy['true']['StellarBinary']['indxcompstar']
         elif gdat.typesyst == 'PlanetarySystem':
-            dictnico = nicomedia.retr_dictpoplstarcomp('PlanetarySystem', gdat.typepopl)
-            gdat.dictfeat['true']['PlanetarySystem'] = dictnico['dictpopl']['comp']
-            gdat.indxcompsyst = dictnico['dictindx']['comp']['star']
+            gdat.dicttroy['true']['PlanetarySystem'] = nicomedia.retr_dictpoplstarcomp('PlanetarySystem', gdat.typepopl)
+            gdat.indxcompsyst = gdat.dicttroy['true']['PlanetarySystem']['dictindx']['comp']['star']
         elif gdat.typesyst == 'StarFlaring':
-            dictnico = nicomedia.retr_dictpoplstarcomp('StarFlaring', gdat.typepopl)
-            gdat.dictfeat['true']['StarFlaring'] = dictnico['dictpopl']['flar']
+            gdat.dicttroy['true']['StarFlaring'] = nicomedia.retr_dictpoplstarcomp('StarFlaring', gdat.typepopl)
         else:
             raise Exception('')
 
+        gdat.namepoplstartotl = 'star_%s_All' % gdat.typepopl
+        gdat.namepoplstartran = 'star_%s_Transiting' % gdat.typepopl
         gdat.namepoplcomptotl = 'compstar_%s_All' % gdat.typepopl
         gdat.namepoplcomptran = 'compstar_%s_Transiting' % gdat.typepopl
-        gdat.dictfeat['true']['ssys'] = dict()
         
         if gdat.typesyst == 'CompactObjectStellarCompanion':
             for namepoplextn in ['totl', 'tran']:
                 gdat.namepoplcomp = 'compstar' + gdat.typepopl + namepoplextn
                 
                 # list of features for stellar systems
-                listname = np.intersect1d(np.array(list(gdat.dictfeat['true']['CompactObjectStellarCompanion'][gdat.namepoplcomp].keys())), \
-                                                                    np.array(list(gdat.dictfeat['true']['StellarBinary'][gdat.namepoplcomp].keys())))
+                listname = np.intersect1d(np.array(list(gdat.dicttroy['true']['CompactObjectStellarCompanion']['dictpopl']['comp'][gdat.namepoplcomp].keys())), \
+                                                          np.array(list(gdat.dicttroy['true']['StellarBinary']['dictpopl']['comp'][gdat.namepoplcomp].keys())))
             
-                gdat.dictfeat['true']['ssys'][gdat.namepoplcomp] = dict()
+                gdat.dicttroy['true']['ssys']['dictpopl']['comp'][gdat.namepoplcomp] = dict()
                 for name in listname:
-                    gdat.dictfeat['true']['ssys'][gdat.namepoplcomp][name] = np.concatenate([gdat.dictfeat['true']['CompactObjectStellarCompanion'][gdat.namepoplcomp][name], \
-                                                                                                    gdat.dictfeat['true']['StellarBinary'][gdat.namepoplcomp][name]])
+                    gdat.dicttroy['true']['ssys'][gdat.namepoplcomp][name] = np.concatenate([gdat.dicttroy['true']['CompactObjectStellarCompanion'][gdat.namepoplcomp][name], \
+                                                                                                    gdat.dicttroy['true']['StellarBinary'][gdat.namepoplcomp][name]])
         
             #if gdat.typedata == 'simutargpartinje':
             #    boolsampstar = False
-            #    gdat.dictfeat['true']['ssys']['radistar'] = dicttic8['radistar']
-            #    gdat.dictfeat['true']['ssys']['massstar'] = dicttic8['massstar']
-            #    indx = np.where((~np.isfinite(gdat.dictfeat['true']['ssys']['massstar'])) | (~np.isfinite(gdat.dictfeat['true']['ssys']['radistar'])))[0]
-            #    gdat.dictfeat['true']['ssys']['radistar'][indx] = 1.
-            #    gdat.dictfeat['true']['ssys']['massstar'][indx] = 1.
-            #    gdat.dictfeat['true']['totl']['tmag'] = dicttic8['tmag']
+            #    gdat.dicttroy['true']['ssys']['radistar'] = dicttic8['radistar']
+            #    gdat.dicttroy['true']['ssys']['massstar'] = dicttic8['massstar']
+            #    indx = np.where((~np.isfinite(gdat.dicttroy['true']['ssys']['massstar'])) | (~np.isfinite(gdat.dicttroy['true']['ssys']['radistar'])))[0]
+            #    gdat.dicttroy['true']['ssys']['radistar'][indx] = 1.
+            #    gdat.dicttroy['true']['ssys']['massstar'][indx] = 1.
+            #    gdat.dicttroy['true']['totl']['tmag'] = dicttic8['tmag']
             
             # merge the features of the simulated COSCs and SBs
-            gdat.dictfeat['true']['totl'] = dict()
+            gdat.dicttroy['true']['totl'] = dict()
             for namefeat in ['tmag']:
-                gdat.dictfeat['true']['totl']['tmag'] = np.concatenate([gdat.dictfeat['true']['CompactObjectStellarCompanion'][gdat.namepoplcomptotl][namefeat], \
-                                                                                            gdat.dictfeat['true']['StellarBinary'][gdat.namepoplcomptotl][namefeat]])
+                gdat.dicttroy['true']['totl']['tmag'] = np.concatenate([gdat.dicttroy['true']['CompactObjectStellarCompanion'][gdat.namepoplcomptotl][namefeat], \
+                                                                                            gdat.dicttroy['true']['StellarBinary'][gdat.namepoplcomptotl][namefeat]])
 
         # grab the photometric noise of TESS as a function of TESS magnitude
         #if gdat.typedata == 'simutargsynt':
-        #    gdat.stdvphot = nicomedia.retr_noistess(gdat.dictfeat['true']['totl']['tmag']) * 1e-3 # [dimensionless]
+        #    gdat.stdvphot = nicomedia.retr_noistess(gdat.dicttroy['true']['totl']['tmag']) * 1e-3 # [dimensionless]
         #    
         #    if not np.isfinite(gdat.stdvphot).all():
         #        raise Exception('')
@@ -771,17 +768,15 @@ def init( \
         
         dictpopltemp = dict()
         if gdat.typesyst == 'CompactObjectStellarCompanion':
-            dictpopltemp['CompactObjectStellarCompanion' + gdat.typepopl + 'totl'] = gdat.dictfeat['true']['CompactObjectStellarCompanion'][gdat.namepoplcomptotl]
-            dictpopltemp['StellarBinary' + gdat.typepopl + 'totl'] = gdat.dictfeat['true']['StellarBinary'][gdat.namepoplcomptotl]
-            dictpopltemp['CompactObjectStellarCompanion' + gdat.typepopl + 'tran'] = gdat.dictfeat['true']['CompactObjectStellarCompanion'][gdat.namepoplcomptran]
-            dictpopltemp['StellarBinary' + gdat.typepopl + 'tran'] = gdat.dictfeat['true']['StellarBinary'][gdat.namepoplcomptran]
+            dictpopltemp['CompactObjectStellarCompanion' + gdat.typepopl + 'totl'] = gdat.dicttroy['true']['CompactObjectStellarCompanion']['dictpopl']['comp'][gdat.namepoplcomptotl]
+            dictpopltemp['StellarBinary' + gdat.typepopl + 'totl'] = gdat.dicttroy['true']['StellarBinary']['dictpopl']['comp'][gdat.namepoplcomptotl]
+            dictpopltemp['CompactObjectStellarCompanion' + gdat.typepopl + 'tran'] = gdat.dicttroy['true']['CompactObjectStellarCompanion']['dictpopl']['comp'][gdat.namepoplcomptran]
+            dictpopltemp['StellarBinary' + gdat.typepopl + 'tran'] = gdat.dicttroy['true']['StellarBinary']['dictpopl']['comp'][gdat.namepoplcomptran]
         elif gdat.typesyst == 'PlanetarySystem':
-            dictpopltemp['PlanetarySystem_%s_All' % gdat.typepopl] = gdat.dictfeat['true']['PlanetarySystem'][gdat.namepoplcomptotl]
-            dictpopltemp['PlanetarySystem_%s_Transiting' % gdat.typepopl] = gdat.dictfeat['true']['PlanetarySystem'][gdat.namepoplcomptran]
+            dictpopltemp['PlanetarySystem_%s_All' % gdat.typepopl] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['comp'][gdat.namepoplcomptotl]
+            dictpopltemp['PlanetarySystem_%s_Transiting' % gdat.typepopl] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['comp'][gdat.namepoplcomptran]
         elif gdat.typesyst == 'StarFlaring':
-            print('gdat.dictfeat[true][StarFlaring]')
-            print(gdat.dictfeat['true']['StarFlaring'])
-            dictpopltemp['StarFlaring_%s_All' % gdat.typepopl] = gdat.dictfeat['true']['StarFlaring'][gdat.namepoplcomptotl]
+            dictpopltemp['StarFlaring_%s_All' % gdat.typepopl] = gdat.dicttroy['true']['StarFlaring']['dictpopl']['flar'][gdat.namepoplcomptotl]
         else:
             raise Exception('')
         
@@ -807,15 +802,15 @@ def init( \
         # relevant targets
         gdat.dictindxtarg['rele'] = [[] for v in gdat.indxtyperele]
         if gdat.typesyst == 'CompactObjectStellarCompanion':
-            gdat.dictindxtarg['cosctran'] = \
-                gdat.dictindxtarg['CompactObjectStellarCompanion'][np.where(np.isfinite(gdat.dictfeat['true']['ssys'][gdat.namepoplcomptran]['duratrantotl'][gdat.indxssyscosc]))]
+            indx = np.where(np.isfinite(gdat.dicttroy['true']['ssys']['dictpopl']['comp'][gdat.namepoplcomptran]['duratrantotl'][gdat.indxssyscosc]))
+            gdat.dictindxtarg['cosctran'] = gdat.dictindxtarg['CompactObjectStellarCompanion'][indx]
             # relevants are all COSCs
             gdat.dictindxtarg['rele'][0] = gdat.dictindxtarg['CompactObjectStellarCompanion']
             # relevants are those transiting COSCs
             gdat.dictindxtarg['rele'][1] = gdat.dictindxtarg['cosctran']
         elif gdat.typesyst == 'PlanetarySystem':
-            gdat.dictindxtarg['PlanetarySystemTransiting'] = \
-                gdat.dictindxtarg['CompactObjectStellarCompanion'][np.where(np.isfinite(gdat.dictfeat['true']['PlanetarySystem'][gdat.namepoplcomptran]['duratrantotl'][gdat.indxssyscosc]))]
+            indx = np.where(np.isfinite(gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['comp'][gdat.namepoplcomptran]['duratrantotl'][gdat.indxssyscosc]))
+            gdat.dictindxtarg['PlanetarySystemTransiting'] = gdat.dictindxtarg['CompactObjectStellarCompanion'][indx]
             # relevants are all COSCs
             gdat.dictindxtarg['rele'][0] = gdat.dictindxtarg['CompactObjectStellarCompanion']
             # relevants are those transiting COSCs
@@ -846,9 +841,7 @@ def init( \
         # move TESS magnitudes from the dictinary of all systems to the dictionaries of each types of system
         #for namepoplcomm in listnametypetrue:
         #    if namepoplcomm != 'totl':
-        #        print('gdat.dictfeat[true].keys()')
-        #        print(gdat.dictfeat['true'].keys())
-        #        gdat.dictfeat['true'][namepoplcomm]['tmag'] = gdat.dictfeat['true']['totl']['tmag'][gdat.dictindxtarg[namepoplcomm]]
+        #        gdat.dicttroy['true'][namepoplcomm]['tmag'] = gdat.dicttroy['true']['totl']['tmag'][gdat.dictindxtarg[namepoplcomm]]
     
     gdat.pathlogg = gdat.pathdata + 'logg/'
     
@@ -961,7 +954,7 @@ def init( \
                 labluuvv = '(u = %d, v = %d)' % (u, v)
 
             gdat.dictindxtargtemp = dict()
-            gdat.dictfeat['stat'] = dict()
+            gdat.dicttroy['stat'] = dict()
 
             if u == -1:
                 gdat.dictindxtargtemp[strguuvv + 're'] = gdat.dictindxtarg['rele'][v]
@@ -977,14 +970,14 @@ def init( \
             
             for strgkeyy in gdat.dictindxtargtemp:
                 if len(gdat.dictindxtargtemp[strgkeyy]) > 0:
-                    gdat.dictfeat['stat']['stat' + strgkeyy] = dict()
+                    gdat.dicttroy['stat']['stat' + strgkeyy] = dict()
                     for namefeat in gdat.listnamefeat:
-                        gdat.dictfeat['stat']['stat' + strgkeyy][namefeat] = gdat.dictstat[namefeat][gdat.dictindxtargtemp[strgkeyy]]
+                        gdat.dicttroy['stat']['stat' + strgkeyy][namefeat] = gdat.dictstat[namefeat][gdat.dictindxtargtemp[strgkeyy]]
             
             listdictlablcolrpopl = []
             listboolcompexcl = []
             listtitlcomp = []
-            listnamepoplcomm = list(gdat.dictfeat['stat'].keys())
+            listnamepoplcomm = list(gdat.dicttroy['stat'].keys())
             strgtemp = 'stat' + strguuvv
             
             print('strguuvv')
@@ -1059,8 +1052,8 @@ def init( \
             print(listboolcompexcl)
             print('listtitlcomp')
             print(listtitlcomp)
-            print('gdat.dictfeat[stat]')
-            print(gdat.dictfeat['stat'])
+            print('gdat.dicttroy[stat]')
+            print(gdat.dicttroy['stat'])
             
             for dictlablcolrpopl in listdictlablcolrpopl:
                 if len(dictlablcolrpopl) == 0:
@@ -1068,7 +1061,7 @@ def init( \
 
             pergamon.init( \
                           'targ_cosc', \
-                          dictpopl=gdat.dictfeat['stat'], \
+                          dictpopl=gdat.dicttroy['stat'], \
                           listdictlablcolrpopl=listdictlablcolrpopl, \
                           listboolcompexcl=listboolcompexcl, \
                           listtitlcomp=listtitlcomp, \
@@ -1078,9 +1071,9 @@ def init( \
                          )
                 
             if gdat.boolplot and gdat.boolsimusome and u != -1 and v != -1:
-                listvarbreca = np.vstack([gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['pericomp'][gdat.indxssysrele[v]], \
-                                          gdat.dictfeat['true']['ssys'][gdat.namepoplcomptotl]['masscomp'][gdat.indxssysrele[v]], \
-                                          gdat.dictfeat['true']['totl']['tmag'][gdat.dictindxtarg['rele'][v]]]).T
+                listvarbreca = np.vstack([gdat.dicttroy['true']['ssys'][gdat.namepoplcomptotl]['pericomp'][gdat.indxssysrele[v]], \
+                                          gdat.dicttroy['true']['ssys'][gdat.namepoplcomptotl]['masscomp'][gdat.indxssysrele[v]], \
+                                          gdat.dicttroy['true']['totl']['tmag'][gdat.dictindxtarg['rele'][v]]]).T
                 liststrgvarbreca = ['trueperi', 'truemasscomp', 'truetmag']
                 #listlablvarbreca, listscalvarbreca = tdpy.retr_listlablscalpara(liststrgvarbreca)
                 listlablvarbreca = [['$P$', 'day'], ['$M_c$', '$M_\odot$'], ['Tmag', '']]
