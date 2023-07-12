@@ -223,6 +223,8 @@ def init( \
     gdat.booltargusergaid = gdat.listgaid is not None
     gdat.booltarguser = gdat.booltargusertici or gdat.booltargusermast or gdat.booltargusergaid
     
+    miletos.setup_miletos(gdat)
+
     miletos.setup1_miletos(gdat)
     
     if gdat.booltargsynt and gdat.booltarguser or not gdat.booltargsynt and not gdat.booltarguser and gdat.typepopl is None:
@@ -644,9 +646,18 @@ def init( \
         listdictlablcolrpopl = []
         
         listdictlablcolrpopl.append(dict())
-        listdictlablcolrpopl[-1]['PlanetarySystem_%s_All' % gdat.typepopl] = ['All', 'black']
-        listdictlablcolrpopl[-1]['PlanetarySystem_%s_Transiting' % gdat.typepopl] = ['All', 'black']
-        
+        if gdat.typesyst == 'CompactObjectStellarCompanion':
+            listdictlablcolrpopl[-1]['PlanetarySystem_%s_All' % gdat.typepopl] = ['All', 'black']
+            listdictlablcolrpopl[-1]['PlanetarySystem_%s_Transiting' % gdat.typepopl] = ['All', 'black']
+        elif gdat.typesyst == 'PlanetarySystem':
+            listdictlablcolrpopl[-1]['PlanetarySystem_%s_All' % gdat.typepopl] = ['All', 'black']
+            listdictlablcolrpopl[-1]['PlanetarySystem_%s_Transiting' % gdat.typepopl] = ['All', 'black']
+        elif gdat.typesyst == 'StarFlaring':
+            listdictlablcolrpopl[-1]['StarFlaring_%s_All' % gdat.typepopl] = ['All', 'black']
+            listdictlablcolrpopl[-1]['StarFlaring_%s_Mdwarfs' % gdat.typepopl] = ['All', 'red']
+        else:
+            raise Exception('')
+
         gdat.dicttroy['true'] = dict()
         #for namepoplcomm in listnametypetrue:
         #    gdat.dicttroy['true'][namepoplcomm] = dict()
@@ -708,12 +719,12 @@ def init( \
                 cntrssys += 1
         
         if gdat.typesyst == 'CompactObjectStellarCompanion':
-            gdat.dicttroy['true']['CompactObjectStellarCompanion'] = nicomedia.retr_dictpoplstarcomp('CompactObjectStellarCompanion', gdat.typepopl)
+            gdat.dicttroy['true']['CompactObjectStellarCompanion'] = nicomedia.retr_dictpoplstarcomp('CompactObjectStellarCompanion', gdat.typepopl, minmnumbcompstar=1)
             gdat.indxcompcosc = gdat.dicttroy['true']['CompactObjectStellarCompanion']['indxcompstar']
             gdat.dicttroy['true']['StellarBinary'] = nicomedia.retr_dictpoplstarcomp('StellarBinary', gdat.typepopl)
             gdat.indxcompsbin = gdat.dicttroy['true']['StellarBinary']['indxcompstar']
         elif gdat.typesyst == 'PlanetarySystem':
-            gdat.dicttroy['true']['PlanetarySystem'] = nicomedia.retr_dictpoplstarcomp('PlanetarySystem', gdat.typepopl)
+            gdat.dicttroy['true']['PlanetarySystem'] = nicomedia.retr_dictpoplstarcomp('PlanetarySystem', gdat.typepopl, minmnumbcompstar=1)
             gdat.indxcompsyst = gdat.dicttroy['true']['PlanetarySystem']['dictindx']['comp']['star']
         elif gdat.typesyst == 'StarFlaring':
             gdat.dicttroy['true']['StarFlaring'] = nicomedia.retr_dictpoplstarcomp('StarFlaring', gdat.typepopl)
@@ -722,8 +733,12 @@ def init( \
 
         gdat.namepoplstartotl = 'star_%s_All' % gdat.typepopl
         gdat.namepoplstartran = 'star_%s_Transiting' % gdat.typepopl
-        gdat.namepoplcomptotl = 'compstar_%s_All' % gdat.typepopl
-        gdat.namepoplcomptran = 'compstar_%s_Transiting' % gdat.typepopl
+        if gdat.typesyst == 'StarFlaring':
+            strglimb = 'flar'
+        else:
+            strglimb = 'comp'
+        gdat.namepoplcomptotl = '%sstar_%s_All' % (strglimb, gdat.typepopl)
+        gdat.namepoplcomptran = '%sstar_%s_Transiting' % (strglimb, gdat.typepopl)
         
         if gdat.typesyst == 'CompactObjectStellarCompanion':
             for namepoplextn in ['totl', 'tran']:
@@ -777,6 +792,7 @@ def init( \
             dictpopltemp['PlanetarySystem_%s_Transiting' % gdat.typepopl] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['comp'][gdat.namepoplcomptran]
         elif gdat.typesyst == 'StarFlaring':
             dictpopltemp['StarFlaring_%s_All' % gdat.typepopl] = gdat.dicttroy['true']['StarFlaring']['dictpopl']['flar'][gdat.namepoplcomptotl]
+            dictpopltemp['StarFlaring_%s_Mdwarfs' % gdat.typepopl] = gdat.dicttroy['true']['StarFlaring']['dictpopl']['flar'][gdat.namepoplcomptotl]
         else:
             raise Exception('')
         
@@ -815,6 +831,9 @@ def init( \
             gdat.dictindxtarg['rele'][0] = gdat.dictindxtarg['CompactObjectStellarCompanion']
             # relevants are those transiting COSCs
             gdat.dictindxtarg['rele'][1] = gdat.dictindxtarg['PlanetarySystemTransiting']
+        elif gdat.typesyst == 'StarFlaring':
+            #indx = np.where(np.isfinite(gdat.dicttroy['true']['StarFlaring']['dictpopl']['flar'][gdat.namepoplcomptran]['duratrantotl'][gdat.indxssyscosc]))
+            gdat.dictindxtarg['rele'][0] = gdat.dictindxtarg['StarFlaring']
         else:
             raise Exception('')
         gdat.numbtargrele = np.empty(gdat.numbtyperele, dtype=int)
@@ -834,8 +853,6 @@ def init( \
                     gdat.indxssysrele[v][cntrrele] = cntrssys
                     cntrssys += 1
                 cntrrele += 1
-
-    #miletos.setup_miletos(gdat)
 
     #if gdat.boolsimusome:
         # move TESS magnitudes from the dictinary of all systems to the dictionaries of each types of system
@@ -1103,6 +1120,41 @@ def init( \
                 tdpy.plot_recaprec(gdat.pathvisupopl, strgextn, listvarbreca, listvarbprec, liststrgvarbreca, liststrgvarbprec, \
                                         listlablvarbreca, listlablvarbprec, gdat.boolposirele[u][v], gdat.boolreleposi[u][v])
 
+
+        #if gdat.typeanls == 'cosc' or gdat.typeanls == 'psys' or gdat.typeanls == 'plan':
+        #    
+        #        # calculate photometric precision for the star population
+        #        if typeinst.startswith('tess'):
+        #            gdat.dictpopl[namepoplcomptran]['nois'] = nicomedia.retr_noistess(gdat.dictpopl[namepoplcomptran]['tmag'])
+        #        elif typeinst.startswith('lsst'):
+        #            gdat.dictpopl[namepoplcomptran]['nois'] = nicomedia.retr_noislsst(gdat.dictpopl[namepoplcomptran]['rmag'])
+        #    
+        #        # expected BLS signal detection efficiency
+        #        if typeinst.startswith('lsst'):
+        #            numbvisi = 1000
+        #            gdat.dictpopl[namepoplcomptran]['sdee'] = gdat.dictpopl[namepoplcomptran]['depttrancomp'] / 5. / gdat.dictpopl[namepoplcomptran]['nois'] * \
+        #                                                                                                 np.sqrt(gdat.dictpopl[namepoplcomptran]['dcyc'] * numbvisi)
+        #        if typeinst.startswith('tess'):
+        #            if gdat.typeanls == 'plan':
+        #                gdat.dictpopl[namepoplcomptran]['sdee'] = np.sqrt(gdat.dictpopl[namepoplcomptran]['duratrantotl']) * \
+        #                                                                    gdat.dictpopl[namepoplcomptran]['depttrancomp'] / gdat.dictpopl[namepoplcomptran]['nois']
+        #            if gdat.typeanls == 'cosc':
+        #                gdat.dictpopl[namepoplcomptran]['sdee'] = np.sqrt(gdat.dictpopl[namepoplcomptran]['duratrantotl']) * \
+        #                                                                                        gdat.dictpopl[namepoplcomptran]['amplslen'] \
+        #                                                                                                               / gdat.dictpopl[namepoplcomptran]['nois']
+        #        
+        #        # expected detections
+        #        #gdat.dictpopl[namepoplcomptran]['probdeteusam'] = np.exp(-(0.01 * gdat.dictpopl[namepoplcomptran]['pericomp'] * gdat.dictpopl[namepoplcomptran]['numbtsec']))
+        #        #booldeteusam = np.random.rand(gdat.dictpopl[namepoplcomptran]['pericomp'].size) < gdat.dictpopl[namepoplcomptran]['probdeteusam']
+        #        
+        #        #indx = (gdat.dictpopl[namepoplcomptran]['sdee'] > 5) & booldeteusam
+        #        indx = (gdat.dictpopl[namepoplcomptran]['sdee'] > 5)
+        #        retr_subp(gdat.dictpopl, gdat.dictnumbsamp, gdat.dictindxsamp, namepoplcomptran, 'compstar' + typepoplsyst + 'tranposi', indx)
+
+        #        # expected non-detections
+        #        #indx = (gdat.dictpopl[namepoplcomptran]['sdee'] < 5) | (~booldeteusam)
+        #        indx = (gdat.dictpopl[namepoplcomptran]['sdee'] < 5)
+        #        retr_subp(gdat.dictpopl, gdat.dictnumbsamp, gdat.dictindxsamp, namepoplcomptran, 'compstar' + typepoplsyst + 'trannega', indx)
 
 
 

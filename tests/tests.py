@@ -137,7 +137,7 @@ def cnfg_gene( \
               )
 
 
-def cnfg_LSST():
+def cnfg_LSST_PlanetarySystem():
     '''
     LSST transiting exoplanet survey
     '''
