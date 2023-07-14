@@ -94,6 +94,8 @@ def mile_work(gdat, i):
         dicttrue['numbyearlsst'] = 5
         dicttrue['typemodl'] = 'PlanetarySystem'
         for namepara in gdat.dicttroy['true']['PlanetarySystem']['listnamefeatbody']:
+            print('gdat.dicttroy[true][PlanetarySystem][dictpopl][star].keys()')
+            print(list(gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['star'].keys()))
             dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['star'][gdat.namepoplstartran][namepara][n]
         for namepara in gdat.dicttroy['true']['PlanetarySystem']['listnamefeatlimbonly']:
             dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['star'][gdat.namepoplcomptran][namepara][gdat.indxcompsyst[n]]
