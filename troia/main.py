@@ -93,12 +93,17 @@ def mile_work(gdat, i):
         dicttrue = dict()
         dicttrue['numbyearlsst'] = 5
         dicttrue['typemodl'] = 'PlanetarySystem'
-        for namepara in gdat.dicttroy['true']['PlanetarySystem']['listnamefeatbody']:
-            print('gdat.dicttroy[true][PlanetarySystem][dictpopl][star].keys()')
-            print(list(gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['star'].keys()))
-            dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['star'][gdat.namepoplstartran][namepara][n]
-        for namepara in gdat.dicttroy['true']['PlanetarySystem']['listnamefeatlimbonly']:
-            dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['star'][gdat.namepoplcomptran][namepara][gdat.indxcompsyst[n]]
+        typelevl = 'limb'
+        if typelevl == 'body':
+            for namepara in gdat.dicttroy['true']['PlanetarySystem']['listnamefeatbody']:
+                print('gdat.dicttroy[true][PlanetarySystem][dictpopl][star].keys()')
+                print(list(gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['star'].keys()))
+                dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['star'][gdat.namepoplstartotl][namepara][n]
+        if typelevl == 'limb':
+            for namepara in gdat.dicttroy['true']['PlanetarySystem']['listnamefeatlimbonly']:
+                print('gdat.dicttroy[true][PlanetarySystem][dictpopl][star].keys())')
+                print(list(gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['star'].keys()))
+                dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['comp'][gdat.namepoplcomptotl][namepara][gdat.indxcompsyst[n]]
         gdat.dictmileinpttarg['dicttrue'] = dicttrue
 
         # call miletos to analyze data
@@ -230,8 +235,6 @@ def init( \
     miletos.setup1_miletos(gdat)
     
     if gdat.booltargsynt and gdat.booltarguser or not gdat.booltargsynt and not gdat.booltarguser and gdat.typepopl is None:
-        print('gdat.typedata')
-        print(gdat.typedata)
         print('gdat.booltarguser')
         print(gdat.booltarguser)
         raise Exception('')
@@ -240,20 +243,25 @@ def init( \
         raise Exception('The type of population, typepopl, must be defined by the user when the target list is provided by the user')
     
     if gdat.typepopl is None:
-        if gdat.typedata == 'simutargsynt':
-            gdat.typepopl = 'synt'
-        elif gdat.typedata == 'simutargpartsynt':
-            gdat.typepopl = 'CTL_prms_2min'
-        elif gdat.typedata == 'simutargpartinje':
-            gdat.typepopl = 'CTL_prms_2min'
-        else:
-            print('gdat.typedata')
-            print(gdat.typedata)
-            raise Exception('gdat.typedata is undefined.')
+        gdat.typepopl = 'Synthetic'
+    
+    #        gdat.typepopl = 'CTL_prms_2min'
+    #        gdat.typepopl = 'CTL_prms_2min'
     
     print('gdat.typepopl')
     print(gdat.typepopl)
 
+    if gdat.booldiag:
+        if gdat.booltargsynt and gdat.typepopl != 'Synthetic':
+            print('')
+            print('')
+            print('')
+            print('gdat.booltargsynt')
+            print(gdat.booltargsynt)
+            print('gdat.typepopl')
+            print(gdat.typepopl)
+            raise Exception('')
+    
     # paths
     ## read environment variable
     gdat.pathbase = os.environ['TROIA_DATA_PATH'] + '/'
@@ -297,10 +305,6 @@ def init( \
     gdat.timeoffs = 2457000.
     gdat.boolanimtmpt = False
     
-    if gdat.typeverb > 1:
-        print('gdat.typedata')
-        print(gdat.typedata)
-
     if not gdat.booltarguser and not gdat.booltargsynt:
         dicttic8 = nicomedia.retr_dictpopltic8(typepopl=gdat.typepopl)
         
@@ -621,6 +625,8 @@ def init( \
         elif gdat.typesyst == 'StarFlaring':
             listlabltypetrue = ['StarFlaring']
         else:
+            print('gdat.typesyst')
+            print(gdat.typesyst)
             raise Exception('')
         
         numbtypetrue = len(listlabltypetrue)

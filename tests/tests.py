@@ -43,10 +43,10 @@ def cnfg_TESSGEO():
     '''
     
     troia.init( \
-               typesyst='cosc', \
-               listlablinst=[['TESS-GEO'], []], \
-               typepopl='CTL_prms_2min', \
-               liststrgtypedata=[['simutargpartsynt'], []], \
+               typesyst='PlanetarySystem', \
+               listlablinst=[['TGEO-UV', 'TGEO-IR', 'TGEO-VIS'], []], \
+               #typepopl='CTL_prms_2min', \
+               liststrgtypedata=[['simutargsynt', 'simutargsynt', 'simutargsynt'], []], \
               )
 
 
