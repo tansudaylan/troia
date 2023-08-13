@@ -731,7 +731,9 @@ def init( \
         
         if gdat.typesyst == 'CompactObjectStellarCompanion':
             gdat.dicttroy['true']['CompactObjectStellarCompanion'] = nicomedia.retr_dictpoplstarcomp('CompactObjectStellarCompanion', gdat.typepopl, minmnumbcompstar=1)
-            gdat.indxcompcosc = gdat.dicttroy['true']['CompactObjectStellarCompanion']['indxcompstar']
+            print('gdat.dicttroy[true][CompactObjectStellarCompanion]')
+            #print(gdat.dicttroy['true']['CompactObjectStellarCompanion'])
+            gdat.indxcompcosc = gdat.dicttroy['true']['CompactObjectStellarCompanion']['dictindx']['comp']['star']
             gdat.dicttroy['true']['StellarBinary'] = nicomedia.retr_dictpoplstarcomp('StellarBinary', gdat.typepopl)
             gdat.indxcompsbin = gdat.dicttroy['true']['StellarBinary']['indxcompstar']
         elif gdat.typesyst == 'PlanetarySystem':
