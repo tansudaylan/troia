@@ -625,6 +625,9 @@ def init( \
         elif gdat.typesyst == 'StarFlaring':
             listlabltypetrue = ['StarFlaring']
         else:
+            print('')
+            print('')
+            print('')
             print('gdat.typesyst')
             print(gdat.typesyst)
             raise Exception('')
@@ -1129,7 +1132,7 @@ def init( \
                                         listlablvarbreca, listlablvarbprec, gdat.boolposirele[u][v], gdat.boolreleposi[u][v])
 
 
-        #if gdat.typeanls == 'cosc' or gdat.typeanls == 'psys' or gdat.typeanls == 'plan':
+        #if gdat.typeanls == 'CompactObjectStellarCompanion' or gdat.typeanls == 'psys' or gdat.typeanls == 'plan':
         #    
         #        # calculate photometric precision for the star population
         #        if typeinst.startswith('tess'):
@@ -1146,7 +1149,7 @@ def init( \
         #            if gdat.typeanls == 'plan':
         #                gdat.dictpopl[namepoplcomptran]['sdee'] = np.sqrt(gdat.dictpopl[namepoplcomptran]['duratrantotl']) * \
         #                                                                    gdat.dictpopl[namepoplcomptran]['depttrancomp'] / gdat.dictpopl[namepoplcomptran]['nois']
-        #            if gdat.typeanls == 'cosc':
+        #            if gdat.typeanls == 'CompactObjectStellarCompanion':
         #                gdat.dictpopl[namepoplcomptran]['sdee'] = np.sqrt(gdat.dictpopl[namepoplcomptran]['duratrantotl']) * \
         #                                                                                        gdat.dictpopl[namepoplcomptran]['amplslen'] \
         #                                                                                                               / gdat.dictpopl[namepoplcomptran]['nois']

@@ -16,7 +16,7 @@ def cnfg_prev():
     dictmileinptglob['dictpboxinpt']['factosam'] = 0.1
 
     troia.init( \
-               typesyst='cosc', \
+               typesyst='CompactObjectStellarCompanion', \
                liststrgmast=['V723 Mon', 'VFTS 243', 'HR 6819', 'A0620-00'], \
                listlablinst=[['TESS'], []], \
                typepopl='prev', \
@@ -60,7 +60,7 @@ def cnfg_candidates_Rom():
     
     listticitarg = [21266729, 14397653, 12967420, 3892500, 3664978, 1008024, 1066665, 2761086, 3542993]
     troia.init( \
-               typesyst='cosc', \
+               typesyst='CompactObjectStellarCompanion', \
                listticitarg=listticitarg, \
                typepopl='candidates_Rom', \
                dictmileinptglob=dictmileinptglob, \
@@ -74,7 +74,7 @@ def cnfg_XRB():
     '''
 
     troia.init( \
-               typesyst='cosc', \
+               typesyst='CompactObjectStellarCompanion', \
                liststrgmast=['HR6819', 'Vela X-1'], \
                typepopl='XRB', \
               )
@@ -94,13 +94,13 @@ def cnfg_rvel():
     '''   
     
     troia.init( \
-               typesyst='cosc', \
+               typesyst='CompactObjectStellarCompanion', \
                typepopl='rvel', \
               )
 
 
-def cnfg_gene( \
-              typesyst='cosc', \
+def cnfg_TESS_BH( \
+              typesyst='CompactObjectStellarCompanion', \
               listlablinst=[['TESS'], []], \
               typepopl='CTL_prms_2min', \
               liststrgtypedata=[['simutargpartsynt'], []], \
@@ -128,10 +128,8 @@ def cnfg_gene( \
     
     troia.init( \
                typesyst=typesyst, \
-               typeinst=typeinst, \
                listlablinst=listlablinst, \
                typepopl=typepopl, \
-               typedata=typedata, \
                liststrgtypedata=liststrgtypedata, \
                dictmileinptglob=dictmileinptglob, \
               )
@@ -186,7 +184,7 @@ def cnfg_cycle3_G03254():
     listticitarg = listticitarg.astype(int)
     listticitarg = np.unique(listticitarg)
     troia.init( \
-               typesyst='cosc', \
+               typesyst='CompactObjectStellarCompanion', \
                typepopl='cycle3_G03254', \
                listticitarg=listticitarg, \
                listlablinst=[['TESS'], []], \
