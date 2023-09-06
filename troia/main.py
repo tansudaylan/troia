@@ -105,11 +105,25 @@ def mile_work(gdat, i):
                 print(list(gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['star'].keys()))
                 dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['comp'][gdat.namepoplcomptotl][namepara][gdat.indxcompsyst[n]]
         gdat.dictmileinpttarg['dicttrue'] = dicttrue
+        
+        gdat.boolskipmile = True
 
-        # call miletos to analyze data
-        dictmileoutp = miletos.init( \
-                                    **gdat.dictmileinpttarg, \
-                                   )
+        if gdat.boolskipmile:
+            dictmileoutp = dict()
+            dictmileoutp['perilspempow'] = 0
+            dictmileoutp['powrlspempow'] = 0
+            dictmileoutp['dictpboxoutp'] = dict()
+            dictmileoutp['dictpboxoutp']['sdeecomp'] = [0]
+            dictmileoutp['dictpboxoutp']['pericomp'] = [0]
+            
+            dictmileoutp['boolposianls'] = []
+            for u in gdat.indxtypeposi:
+                dictmileoutp['boolposianls'].append(True)
+        else:
+            # call miletos to analyze data
+            dictmileoutp = miletos.init( \
+                                        **gdat.dictmileinpttarg, \
+                                       )
         
         gdat.dictstat['perilspeprim'][n] = dictmileoutp['perilspempow']
         gdat.dictstat['powrlspeprim'][n] = dictmileoutp['powrlspempow']
@@ -735,7 +749,7 @@ def init( \
             #print(gdat.dicttroy['true']['CompactObjectStellarCompanion'])
             gdat.indxcompcosc = gdat.dicttroy['true']['CompactObjectStellarCompanion']['dictindx']['comp']['star']
             gdat.dicttroy['true']['StellarBinary'] = nicomedia.retr_dictpoplstarcomp('StellarBinary', gdat.typepopl)
-            gdat.indxcompsbin = gdat.dicttroy['true']['StellarBinary']['indxcompstar']
+            gdat.indxcompsbin = gdat.dicttroy['true']['StellarBinary']['dictindx']['comp']['star']
         elif gdat.typesyst == 'PlanetarySystem':
             gdat.dicttroy['true']['PlanetarySystem'] = nicomedia.retr_dictpoplstarcomp('PlanetarySystem', gdat.typepopl, minmnumbcompstar=1)
             gdat.indxcompsyst = gdat.dicttroy['true']['PlanetarySystem']['dictindx']['comp']['star']
@@ -754,9 +768,11 @@ def init( \
         gdat.namepoplcomptran = '%sstar_%s_Transiting' % (strglimb, gdat.typepopl)
         
         if gdat.typesyst == 'CompactObjectStellarCompanion':
-            for namepoplextn in ['totl', 'tran']:
-                gdat.namepoplcomp = 'compstar' + gdat.typepopl + namepoplextn
+            for namepoplextn in ['All', 'tran']:
+                gdat.namepoplcomp = 'compstar_%s_%s' % (gdat.typepopl, namepoplextn)
                 
+                print('gdat.dicttroy[true][CompactObjectStellarCompanion][dictpopl][comp]')
+                print(gdat.dicttroy['true']['CompactObjectStellarCompanion']['dictpopl']['comp'])
                 # list of features for stellar systems
                 listname = np.intersect1d(np.array(list(gdat.dicttroy['true']['CompactObjectStellarCompanion']['dictpopl']['comp'][gdat.namepoplcomp].keys())), \
                                                           np.array(list(gdat.dicttroy['true']['StellarBinary']['dictpopl']['comp'][gdat.namepoplcomp].keys())))
@@ -958,15 +974,23 @@ def init( \
     gdat.listlablnega = ['Weak BLS power', 'Weak LS power', 'Weak BLS and LS power', 'Weak BLS or LS power']
             
     if gdat.boolsimusome:
-        gdat.listlablrele = ['Simulated COSC', 'Simulated tr. COSC']
-        gdat.listlablirre = ['Simulated QS or SB', 'Simulated QS, SB or non-tr. COSC']
-    
+        #gdat.listlablrele = ['Simulated %s' % gdat.typesyst, 'Simulated tr. COSC' % gdat.typesyst]
+        #gdat.listlablirre = ['Simulated QS or SB', 'Simulated QS, SB or non-tr. COSC']
+        
+        gdat.listlablrele = ['Simulated %s' % gdat.typesyst]
+        gdat.listlablirre = ['Simulated no signal']
+        gdat.listlablreleirre = [gdat.listlablrele, gdat.listlablirre]
+
     # for each positive and relevant type, estimate the recall and precision
     gdat.indxtypeposiiter = np.concatenate((np.array([-1]), gdat.indxtypeposi))
     if gdat.boolsimusome:
         gdat.indxtypereleiter = np.concatenate((np.array([-1]), gdat.indxtyperele))
     else:
         gdat.indxtypereleiter = np.array([-1])
+    
+    print('gdat.indxtypereleiter')
+    print(gdat.indxtypereleiter)
+
     for u in gdat.indxtypeposiiter:
         for v in gdat.indxtypereleiter:
             
@@ -1029,9 +1053,20 @@ def init( \
                 listtitlcomp.append(None)
             for namepoplcomm in listnamepoplcomm:
                 if strgtemp + 're' in namepoplcomm:
-                    listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablrele[v], 'blue']
+                    print('v')
+                    print(v)
+                    print('gdat.listlablrele')
+                    print(gdat.listlablrele)
+                    print('listdictlablcolrpopl')
+                    print(listdictlablcolrpopl)
+                    print('gdat.indxtypereleiter')
+                    print(gdat.indxtypereleiter)
+                    print('gdat.indxtyperele')
+                    print(gdat.indxtyperele)
+
+                    listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablreleirre[v], 'blue']
                 if strgtemp + 'ir' in namepoplcomm:
-                    listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablirre[v], 'orange']
+                    listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablreleirre[v], 'orange']
             
             boolgood = False
             for namepoplcomm in listnamepoplcomm:
@@ -1097,16 +1132,29 @@ def init( \
                           listtitlcomp=listtitlcomp, \
                           pathvisu=gdat.pathvisupopl, \
                           pathdata=gdat.pathdatapopl, \
+                          lablsampgene='exoplanet', \
                           boolsortpoplsize=False, \
                          )
-                
+            
+
             if gdat.boolplot and gdat.boolsimusome and u != -1 and v != -1:
-                listvarbreca = np.vstack([gdat.dicttroy['true']['ssys'][gdat.namepoplcomptotl]['pericomp'][gdat.indxssysrele[v]], \
-                                          gdat.dicttroy['true']['ssys'][gdat.namepoplcomptotl]['masscomp'][gdat.indxssysrele[v]], \
-                                          gdat.dicttroy['true']['totl']['tmag'][gdat.dictindxtarg['rele'][v]]]).T
-                liststrgvarbreca = ['trueperi', 'truemasscomp', 'truetmag']
-                #listlablvarbreca, listscalvarbreca = tdpy.retr_listlablscalpara(liststrgvarbreca)
-                listlablvarbreca = [['$P$', 'day'], ['$M_c$', '$M_\odot$'], ['Tmag', '']]
+                listvarbreca = []
+                print('gdat.dicttroy[true][gdat.typesyst].keys()')
+                print(gdat.dicttroy['true'][gdat.typesyst].keys())
+                
+                listvarbreca.append(gdat.dicttroy['true'][gdat.typesyst]['dictpopl']['comp'][gdat.namepoplcomptotl]['pericomp'][gdat.indxssysrele[v]])
+                #listvarbreca.append(gdat.dicttroy['true'][gdat.typesyst]['dictpopl']['comp'][gdat.namepoplcomptotl]['masscomp'][gdat.indxssysrele[v]])
+                listvarbreca.append(gdat.dicttroy['true'][gdat.typesyst]['dictpopl']['comp'][gdat.namepoplcomptotl]['tmag'][gdat.dictindxtarg['rele'][v]])
+                listvarbreca = np.vstack(listvarbreca).T
+                
+                liststrgvarbreca = []
+                liststrgvarbreca.append('trueperi')
+                #liststrgvarbreca.append('truemasscomp')
+                liststrgvarbreca.append('truetmag')
+                
+                #listlablvarbreca = [['$P$', 'day'], ['$M_c$', '$M_\odot$'], ['Tmag', '']]
+                
+                listlablvarbreca, listscalvarbreca, _, _, _ = tdpy.retr_listlablscalpara(liststrgvarbreca)
                 
                 listtemp = []
                 for namefeat in gdat.listnamefeat:
@@ -1115,7 +1163,7 @@ def init( \
                 #listvarbprec = np.vstack([gdat.listsdee, gdat.listpowrlspe]).T
                 #listlablvarbprec = [['SDE', ''], ['$P_{LS}$', '']]
                 liststrgvarbprec = gdat.listnamefeat#['sdeecomp', 'powrlspe']
-                listlablvarbprec, listscalvarbprec = tdpy.retr_listlablscalpara(gdat.listnamefeat)
+                listlablvarbprec, listscalvarbprec, _, _, _ = tdpy.retr_listlablscalpara(liststrgvarbprec)
                 #print('listvarbreca')
                 #print(listvarbreca)
                 #print('listvarbprec')

@@ -99,6 +99,41 @@ def cnfg_rvel():
               )
 
 
+def cnfg_TESSGEO_WD( \
+                    typesyst='PlanetarySystem', \
+                    listlablinst=[['TESS-GEO'], []], \
+                    #typepopl='Gaia_WD', \
+                    typepopl=None, \
+                    liststrgtypedata=[['simutargsynt'], []], \
+                   ):
+    '''
+    generic function to call troia
+    '''
+    
+    dictmileinptglob = dict()
+    dictmileinptglob['dictpboxinpt'] = dict()
+    #dictmileinptglob['dictpboxinpt']['factosam'] = 1.
+    
+    # oversampling factor (wrt to transit duration) when rebinning data to decrease the time resolution
+    dictmileinptglob['dictpboxinpt']['factduracade'] = 2.
+    # factor by which to oversample the frequency grid
+    dictmileinptglob['dictpboxinpt']['factosam'] = 10.
+    # number of duty cycle samples  
+    dictmileinptglob['dictpboxinpt']['numbdcyc'] = 3
+    # spread in the logarithm of duty cycle
+    dictmileinptglob['dictpboxinpt']['deltlogtdcyc'] = 0.5
+    # epoc steps divided by trial duration
+    dictmileinptglob['dictpboxinpt']['factdeltepocdura'] = 0.5
+
+    troia.init( \
+               typesyst=typesyst, \
+               listlablinst=listlablinst, \
+               typepopl=typepopl, \
+               liststrgtypedata=liststrgtypedata, \
+               dictmileinptglob=dictmileinptglob, \
+              )
+
+
 def cnfg_TESS_BH( \
               typesyst='CompactObjectStellarCompanion', \
               listlablinst=[['TESS'], []], \
@@ -124,8 +159,6 @@ def cnfg_TESS_BH( \
     # epoc steps divided by trial duration
     dictmileinptglob['dictpboxinpt']['factdeltepocdura'] = 0.5
 
-    dictmileinptglob['booltpxfonly'] = True
-    
     troia.init( \
                typesyst=typesyst, \
                listlablinst=listlablinst, \
