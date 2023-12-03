@@ -776,11 +776,20 @@ def init( \
         gdat.namepoplcomptran = '%sstar_%s_Transiting' % (strglimb, gdat.typepopl)
         
         if gdat.typesyst == 'CompactObjectStellarCompanion':
-            for namepoplextn in ['All', 'tran']:
+            for namepoplextn in ['All', 'Transiting']:
                 gdat.namepoplcomp = 'compstar_%s_%s' % (gdat.typepopl, namepoplextn)
                 
+                if gdat.booldiag:
+                    if gdat.namepoplcomp.endswith('_tran'):
+                        raise Exception('')
+
                 print('gdat.dicttroy')
+                print(gdat.dicttroy)
                 summgene(gdat.dicttroy, boolshowlong=False)
+                
+                print('gdat.dicttroy[true][CompactObjectStellarCompanion][dictpopl]')
+                print(gdat.dicttroy['true']['CompactObjectStellarCompanion']['dictpopl'])
+                
                 # list of features for stellar systems
                 listname = np.intersect1d(np.array(list(gdat.dicttroy['true']['CompactObjectStellarCompanion']['dictpopl']['comp'][gdat.namepoplcomp].keys())), \
                                                           np.array(list(gdat.dicttroy['true']['StellarBinary']['dictpopl']['comp'][gdat.namepoplcomp].keys())))
@@ -803,6 +812,8 @@ def init( \
             # merge the features of the simulated COSCs and SBs
             gdat.dicttroy['true']['totl'] = dict()
             for namefeat in ['tmag']:
+                print('gdat.dicttroy[true][CompactObjectStellarCompanion]')
+                print(gdat.dicttroy['true']['CompactObjectStellarCompanion'])
                 gdat.dicttroy['true']['totl']['tmag'] = np.concatenate([gdat.dicttroy['true']['CompactObjectStellarCompanion'][gdat.namepoplcomptotl][namefeat], \
                                                                                             gdat.dicttroy['true']['StellarBinary'][gdat.namepoplcomptotl][namefeat]])
 
@@ -823,8 +834,8 @@ def init( \
         if gdat.typesyst == 'CompactObjectStellarCompanion':
             dictpopltemp['CompactObjectStellarCompanion' + gdat.typepopl + 'totl'] = gdat.dicttroy['true']['CompactObjectStellarCompanion']['dictpopl']['comp'][gdat.namepoplcomptotl]
             dictpopltemp['StellarBinary' + gdat.typepopl + 'totl'] = gdat.dicttroy['true']['StellarBinary']['dictpopl']['comp'][gdat.namepoplcomptotl]
-            dictpopltemp['CompactObjectStellarCompanion' + gdat.typepopl + 'tran'] = gdat.dicttroy['true']['CompactObjectStellarCompanion']['dictpopl']['comp'][gdat.namepoplcomptran]
-            dictpopltemp['StellarBinary' + gdat.typepopl + 'tran'] = gdat.dicttroy['true']['StellarBinary']['dictpopl']['comp'][gdat.namepoplcomptran]
+            dictpopltemp['CompactObjectStellarCompanion' + gdat.typepopl + 'Transiting'] = gdat.dicttroy['true']['CompactObjectStellarCompanion']['dictpopl']['comp'][gdat.namepoplcomptran]
+            dictpopltemp['StellarBinary' + gdat.typepopl + 'Transiting'] = gdat.dicttroy['true']['StellarBinary']['dictpopl']['comp'][gdat.namepoplcomptran]
         elif gdat.typesyst == 'PlanetarySystem':
             dictpopltemp['PlanetarySystem_%s_All' % gdat.typepopl] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['comp'][gdat.namepoplcomptotl]
             dictpopltemp['PlanetarySystem_%s_Transiting' % gdat.typepopl] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['comp'][gdat.namepoplcomptran]
@@ -863,6 +874,15 @@ def init( \
             # relevants are those transiting COSCs
             gdat.dictindxtarg['rele'][1] = gdat.dictindxtarg['cosctran']
         elif gdat.typesyst == 'PlanetarySystem':
+            if gdat.booldiag:
+                if len(gdat.dictindxtarg['rele']) != 2:
+                    print('')
+                    print('')
+                    print('')
+                    print('gdat.dictindxtarg[rele]')
+                    print(gdat.dictindxtarg['rele'])
+                    raise Exception('')
+
             indx = np.where(np.isfinite(gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['comp'][gdat.namepoplcomptran]['duratrantotl'][gdat.indxssyscosc]))
             gdat.dictindxtarg['PlanetarySystemTransiting'] = gdat.dictindxtarg['CompactObjectStellarCompanion'][indx]
             # relevants are all COSCs
