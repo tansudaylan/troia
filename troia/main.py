@@ -612,8 +612,16 @@ def init( \
     gdat.listarrytser = dict()
     
     if gdat.boolsimusome:
+    
+        #gdat.listlablrele = ['Simulated %s' % gdat.typesyst, 'Simulated tr. COSC' % gdat.typesyst]
+        #gdat.listlablirre = ['Simulated QS or SB', 'Simulated QS, SB or non-tr. COSC']
+        
+        gdat.listlablrele = ['Simulated %s' % gdat.typesyst]
+        gdat.listlablirre = ['Simulated no signal']
+        gdat.listlablreleirre = [gdat.listlablrele, gdat.listlablirre]
+    
         # number of relevant types
-        gdat.numbtyperele = 2
+        gdat.numbtyperele = len(gdat.listlablrele)
         gdat.indxtyperele = np.arange(gdat.numbtyperele)
         gdat.boolreletarg = [np.empty(gdat.numbtarg, dtype=bool) for v in gdat.indxtyperele]
     
@@ -629,7 +637,7 @@ def init( \
         
         listcolrtypetrue = np.array(['g', 'b', 'orange', 'olive'])
         # types of systems
-        #listnametypetrue = ['totl', 'StellarBinary', 'ssys', 'CompactObjectStellarCompanion', 'qstr', 'cosctran']
+        #listnametypetrue = ['totl', 'StellarBinary', 'StellarSystem', 'CompactObjectStellarCompanion', 'qstr', 'cosctran']
         #listlabltypetrue = ['All', 'Stellar binary', 'Stellar System', 'Compact object with Stellar Companion', 'QS', 'Tr. COSC']
         #listcolrtypetrue = ['black', 'g', 'b', 'orange', 'yellow', 'olive']
         if gdat.typesyst == 'CompactObjectStellarCompanion':
@@ -706,9 +714,9 @@ def init( \
         gdat.dictindxtarg['StellarBinary'] = gdat.indxtypetruetarg[1]
         gdat.numbtargsbin = gdat.dictindxtarg['StellarBinary'].size
         gdat.dictindxtarg['qstr'] = gdat.indxtypetruetarg[2]
-        gdat.dictindxtarg['ssys'] = np.concatenate((gdat.indxtypetruetarg[0], gdat.indxtypetruetarg[1]))
-        gdat.dictindxtarg['ssys'] = np.sort(gdat.dictindxtarg['ssys'])
-        gdat.numbtargssys = gdat.dictindxtarg['ssys'].size
+        gdat.dictindxtarg['StellarSystem'] = np.concatenate((gdat.indxtypetruetarg[0], gdat.indxtypetruetarg[1]))
+        gdat.dictindxtarg['StellarSystem'] = np.sort(gdat.dictindxtarg['StellarSystem'])
+        gdat.numbtargssys = gdat.dictindxtarg['StellarSystem'].size
         print('gdat.numbtarg')
         print(gdat.numbtarg)
         print('gdat.numbtargcosc')
@@ -746,7 +754,7 @@ def init( \
         if gdat.typesyst == 'CompactObjectStellarCompanion':
             gdat.dicttroy['true']['CompactObjectStellarCompanion'] = nicomedia.retr_dictpoplstarcomp('CompactObjectStellarCompanion', gdat.typepopl, minmnumbcompstar=1)
             print('gdat.dicttroy[true][CompactObjectStellarCompanion]')
-            #print(gdat.dicttroy['true']['CompactObjectStellarCompanion'])
+            print(gdat.dicttroy['true']['CompactObjectStellarCompanion'].keys())
             gdat.indxcompcosc = gdat.dicttroy['true']['CompactObjectStellarCompanion']['dictindx']['comp']['star']
             gdat.dicttroy['true']['StellarBinary'] = nicomedia.retr_dictpoplstarcomp('StellarBinary', gdat.typepopl)
             gdat.indxcompsbin = gdat.dicttroy['true']['StellarBinary']['dictindx']['comp']['star']
@@ -771,24 +779,25 @@ def init( \
             for namepoplextn in ['All', 'tran']:
                 gdat.namepoplcomp = 'compstar_%s_%s' % (gdat.typepopl, namepoplextn)
                 
-                print('gdat.dicttroy[true][CompactObjectStellarCompanion][dictpopl][comp]')
-                print(gdat.dicttroy['true']['CompactObjectStellarCompanion']['dictpopl']['comp'])
+                print('gdat.dicttroy')
+                summgene(gdat.dicttroy, boolshowlong=False)
                 # list of features for stellar systems
                 listname = np.intersect1d(np.array(list(gdat.dicttroy['true']['CompactObjectStellarCompanion']['dictpopl']['comp'][gdat.namepoplcomp].keys())), \
                                                           np.array(list(gdat.dicttroy['true']['StellarBinary']['dictpopl']['comp'][gdat.namepoplcomp].keys())))
             
-                gdat.dicttroy['true']['ssys']['dictpopl']['comp'][gdat.namepoplcomp] = dict()
-                for name in listname:
-                    gdat.dicttroy['true']['ssys'][gdat.namepoplcomp][name] = np.concatenate([gdat.dicttroy['true']['CompactObjectStellarCompanion'][gdat.namepoplcomp][name], \
-                                                                                                    gdat.dicttroy['true']['StellarBinary'][gdat.namepoplcomp][name]])
+                # maybe to be deleted
+                #gdat.dicttroy['true']['StellarSystem']['dictpopl']['comp'][gdat.namepoplcomp] = dict()
+                #for name in listname:
+                #    gdat.dicttroy['true']['StellarSystem'][gdat.namepoplcomp][name] = np.concatenate([gdat.dicttroy['true']['CompactObjectStellarCompanion'][gdat.namepoplcomp][name], \
+                #                                                                                    gdat.dicttroy['true']['StellarBinary'][gdat.namepoplcomp][name]])
         
             #if gdat.typedata == 'simutargpartinje':
             #    boolsampstar = False
-            #    gdat.dicttroy['true']['ssys']['radistar'] = dicttic8['radistar']
-            #    gdat.dicttroy['true']['ssys']['massstar'] = dicttic8['massstar']
-            #    indx = np.where((~np.isfinite(gdat.dicttroy['true']['ssys']['massstar'])) | (~np.isfinite(gdat.dicttroy['true']['ssys']['radistar'])))[0]
-            #    gdat.dicttroy['true']['ssys']['radistar'][indx] = 1.
-            #    gdat.dicttroy['true']['ssys']['massstar'][indx] = 1.
+            #    gdat.dicttroy['true']['StellarSystem']['radistar'] = dicttic8['radistar']
+            #    gdat.dicttroy['true']['StellarSystem']['massstar'] = dicttic8['massstar']
+            #    indx = np.where((~np.isfinite(gdat.dicttroy['true']['StellarSystem']['massstar'])) | (~np.isfinite(gdat.dicttroy['true']['StellarSystem']['radistar'])))[0]
+            #    gdat.dicttroy['true']['StellarSystem']['radistar'][indx] = 1.
+            #    gdat.dicttroy['true']['StellarSystem']['massstar'][indx] = 1.
             #    gdat.dicttroy['true']['totl']['tmag'] = dicttic8['tmag']
             
             # merge the features of the simulated COSCs and SBs
@@ -847,7 +856,7 @@ def init( \
         # relevant targets
         gdat.dictindxtarg['rele'] = [[] for v in gdat.indxtyperele]
         if gdat.typesyst == 'CompactObjectStellarCompanion':
-            indx = np.where(np.isfinite(gdat.dicttroy['true']['ssys']['dictpopl']['comp'][gdat.namepoplcomptran]['duratrantotl'][gdat.indxssyscosc]))
+            indx = np.where(np.isfinite(gdat.dicttroy['true']['StellarSystem']['dictpopl']['comp'][gdat.namepoplcomptran]['duratrantotl'][gdat.indxssyscosc]))
             gdat.dictindxtarg['cosctran'] = gdat.dictindxtarg['CompactObjectStellarCompanion'][indx]
             # relevants are all COSCs
             gdat.dictindxtarg['rele'][0] = gdat.dictindxtarg['CompactObjectStellarCompanion']
@@ -878,7 +887,7 @@ def init( \
             cntrrele = 0
             gdat.indxssysrele[v] = np.empty(gdat.numbtargrele[v], dtype=int)
             for n in gdat.dictindxtarg['rele'][v]:
-                if n in gdat.dictindxtarg['ssys']:
+                if n in gdat.dictindxtarg['StellarSystem']:
                     gdat.indxssysrele[v][cntrrele] = cntrssys
                     cntrssys += 1
                 cntrrele += 1
@@ -973,14 +982,6 @@ def init( \
     gdat.listlablposi = ['Strong BLS power', 'Strong LS power', 'Strong BLS or LS power', 'Strong BLS and LS power']
     gdat.listlablnega = ['Weak BLS power', 'Weak LS power', 'Weak BLS and LS power', 'Weak BLS or LS power']
             
-    if gdat.boolsimusome:
-        #gdat.listlablrele = ['Simulated %s' % gdat.typesyst, 'Simulated tr. COSC' % gdat.typesyst]
-        #gdat.listlablirre = ['Simulated QS or SB', 'Simulated QS, SB or non-tr. COSC']
-        
-        gdat.listlablrele = ['Simulated %s' % gdat.typesyst]
-        gdat.listlablirre = ['Simulated no signal']
-        gdat.listlablreleirre = [gdat.listlablrele, gdat.listlablirre]
-
     # for each positive and relevant type, estimate the recall and precision
     gdat.indxtypeposiiter = np.concatenate((np.array([-1]), gdat.indxtypeposi))
     if gdat.boolsimusome:
@@ -996,6 +997,19 @@ def init( \
             
             if u == -1 and v == -1:
                 continue
+        
+            if gdat.booldiag:
+                if v >= len(gdat.listlablrele):
+                    print('')
+                    print('')
+                    print('')
+                    print('gdat.indxtypereleiter')
+                    print(gdat.indxtypereleiter)
+                    print('v')
+                    print(v)
+                    print('gdat.listlablrele')
+                    print(gdat.listlablrele)
+                    raise Exception('v >= len(gdat.listlablrele)')
 
             if u == -1:
                 strguuvv = 'v%d' % (v)
@@ -1100,6 +1114,12 @@ def init( \
                 listtitlcomp.append(None)
             for namepoplcomm in listnamepoplcomm:
                 if strgtemp + 'trpo' in namepoplcomm:
+                    print('u, v')
+                    print(u, v)
+                    print('gdat.listlablrele')
+                    print(gdat.listlablrele)
+                    print('gdat.listlablposi')
+                    print(gdat.listlablposi)
                     listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablrele[v] + ', ' + gdat.listlablposi[u], 'green']
                 if strgtemp + 'trne' in namepoplcomm:
                     listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablirre[v] + ', ' + gdat.listlablnega[u], 'blue']

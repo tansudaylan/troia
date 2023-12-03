@@ -141,7 +141,7 @@ def cnfg_TESS_BH( \
               liststrgtypedata=[['simutargpartsynt'], []], \
              ):
     '''
-    generic function to call troia
+    generic function to call troia for self-lensing black holes
     '''
     
     dictmileinptglob = dict()
