@@ -812,8 +812,15 @@ def init( \
             # merge the features of the simulated COSCs and SBs
             gdat.dicttroy['true']['totl'] = dict()
             for namefeat in ['tmag']:
-                print('gdat.dicttroy[true][CompactObjectStellarCompanion]')
-                print(gdat.dicttroy['true']['CompactObjectStellarCompanion'])
+                if gdat.booldiag:
+                    if not gdat.namepoplcomptotl in gdat.dicttroy['true']['CompactObjectStellarCompanion']:
+                        print('gdat.dicttroy[true][CompactObjectStellarCompanion]')
+                        print(gdat.dicttroy['true']['CompactObjectStellarCompanion'])
+                        print('')
+                        print('')
+                        print('')
+                        raise Exception('not gdat.namepoplcomptotl in gdat.dicttroy[true][CompactObjectStellarCompanion]')
+
                 gdat.dicttroy['true']['totl']['tmag'] = np.concatenate([gdat.dicttroy['true']['CompactObjectStellarCompanion'][gdat.namepoplcomptotl][namefeat], \
                                                                                             gdat.dicttroy['true']['StellarBinary'][gdat.namepoplcomptotl][namefeat]])
 
