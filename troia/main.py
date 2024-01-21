@@ -96,13 +96,9 @@ def mile_work(gdat, i):
         typelevl = 'limb'
         if typelevl == 'body':
             for namepara in gdat.dicttroy['true']['PlanetarySystem']['listnamefeatbody']:
-                print('gdat.dicttroy[true][PlanetarySystem][dictpopl][star].keys()')
-                print(list(gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['star'].keys()))
                 dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['star'][gdat.namepoplstartotl][namepara][n]
         if typelevl == 'limb':
             for namepara in gdat.dicttroy['true']['PlanetarySystem']['listnamefeatlimbonly']:
-                print('gdat.dicttroy[true][PlanetarySystem][dictpopl][star].keys())')
-                print(list(gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['star'].keys()))
                 dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['comp'][gdat.namepoplcomptotl][namepara][gdat.indxcompsyst[n]]
         gdat.dictmileinpttarg['dicttrue'] = dicttrue
         
@@ -753,8 +749,6 @@ def init( \
         
         if gdat.typesyst == 'CompactObjectStellarCompanion':
             gdat.dicttroy['true']['CompactObjectStellarCompanion'] = nicomedia.retr_dictpoplstarcomp('CompactObjectStellarCompanion', gdat.typepopl, minmnumbcompstar=1)
-            print('gdat.dicttroy[true][CompactObjectStellarCompanion]')
-            print(gdat.dicttroy['true']['CompactObjectStellarCompanion'].keys())
             gdat.indxcompcosc = gdat.dicttroy['true']['CompactObjectStellarCompanion']['dictindx']['comp']['star']
             gdat.dicttroy['true']['StellarBinary'] = nicomedia.retr_dictpoplstarcomp('StellarBinary', gdat.typepopl)
             gdat.indxcompsbin = gdat.dicttroy['true']['StellarBinary']['dictindx']['comp']['star']
@@ -783,12 +777,7 @@ def init( \
                     if gdat.namepoplcomp.endswith('_tran'):
                         raise Exception('')
 
-                print('gdat.dicttroy')
-                print(gdat.dicttroy)
                 summgene(gdat.dicttroy, boolshowlong=False)
-                
-                print('gdat.dicttroy[true][CompactObjectStellarCompanion][dictpopl]')
-                print(gdat.dicttroy['true']['CompactObjectStellarCompanion']['dictpopl'])
                 
                 # list of features for stellar systems
                 listname = np.intersect1d(np.array(list(gdat.dicttroy['true']['CompactObjectStellarCompanion']['dictpopl']['comp'][gdat.namepoplcomp].keys())), \
@@ -813,16 +802,15 @@ def init( \
             gdat.dicttroy['true']['totl'] = dict()
             for namefeat in ['tmag']:
                 if gdat.booldiag:
-                    if not gdat.namepoplcomptotl in gdat.dicttroy['true']['CompactObjectStellarCompanion']:
-                        print('gdat.dicttroy[true][CompactObjectStellarCompanion]')
-                        print(gdat.dicttroy['true']['CompactObjectStellarCompanion'])
+                    if not gdat.namepoplcomptotl in gdat.dicttroy['true']['CompactObjectStellarCompanion']['dictpopl']['comp']:
                         print('')
                         print('')
                         print('')
-                        raise Exception('not gdat.namepoplcomptotl in gdat.dicttroy[true][CompactObjectStellarCompanion]')
+                        raise Exception('not gdat.namepoplcomptotl in gdat.dicttroy[true][CompactObjectStellarCompanion][dictpopl][comp]')
 
-                gdat.dicttroy['true']['totl']['tmag'] = np.concatenate([gdat.dicttroy['true']['CompactObjectStellarCompanion'][gdat.namepoplcomptotl][namefeat], \
-                                                                                            gdat.dicttroy['true']['StellarBinary'][gdat.namepoplcomptotl][namefeat]])
+                gdat.dicttroy['true']['totl']['tmag'] = \
+                        np.concatenate([gdat.dicttroy['true']['CompactObjectStellarCompanion']['dictpopl']['comp'][gdat.namepoplcomptotl][namefeat], \
+                                                        gdat.dicttroy['true']['StellarBinary']['dictpopl']['comp'][gdat.namepoplcomptotl][namefeat]])
 
         # grab the photometric noise of TESS as a function of TESS magnitude
         #if gdat.typedata == 'simutargsynt':
@@ -1186,8 +1174,6 @@ def init( \
 
             if gdat.boolplot and gdat.boolsimusome and u != -1 and v != -1:
                 listvarbreca = []
-                print('gdat.dicttroy[true][gdat.typesyst].keys()')
-                print(gdat.dicttroy['true'][gdat.typesyst].keys())
                 
                 listvarbreca.append(gdat.dicttroy['true'][gdat.typesyst]['dictpopl']['comp'][gdat.namepoplcomptotl]['pericomp'][gdat.indxssysrele[v]])
                 #listvarbreca.append(gdat.dicttroy['true'][gdat.typesyst]['dictpopl']['comp'][gdat.namepoplcomptotl]['masscomp'][gdat.indxssysrele[v]])
