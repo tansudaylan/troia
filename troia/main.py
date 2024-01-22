@@ -636,17 +636,18 @@ def init( \
     
     if gdat.boolsimusome:
         
-        listcolrtypetrue = np.array(['g', 'b', 'orange', 'olive'])
-        # types of systems
-        #listnametypetrue = ['totl', 'StellarBinary', 'StellarSystem', 'CompactObjectStellarCompanion', 'qstr', 'cosctran']
-        #listlabltypetrue = ['All', 'Stellar binary', 'Stellar System', 'Compact object with Stellar Companion', 'QS', 'Tr. COSC']
-        #listcolrtypetrue = ['black', 'g', 'b', 'orange', 'yellow', 'olive']
+        listcolrtypetrue = np.array(['g', 'b', 'orange', 'olive', 'yellow'])
+        
+        gdat.dictprobtypetrue = dict()
         if gdat.typesyst == 'CompactObjectStellarCompanion':
-            listlabltypetrue = ['Stellar binary', 'Eclipsing Binary', 'Compact object with Stellar Companion', 'Transiting Compact object with Stellar Companion']
+            gdat.dictprobtypetrue['CompactObjectStellarCompanion'] = [0.70, 'Compact object with Stellar Companion']
+            gdat.dictprobtypetrue['StellarBinary'] = [0.25, 'Stellar Binary']
+            gdat.dictprobtypetrue['Asteroid'] = [0.05, 'Asteroid']
         elif gdat.typesyst == 'PlanetarySystem':
-            listlabltypetrue = ['Planetary System', 'Eclipsing Binary']
+            gdat.dictprobtypetrue['PlanetarySystem'] = [0.75, 'Planetary System']
+            gdat.dictprobtypetrue['StellarBinary'] = [0.25, 'Stellar Binary']
         elif gdat.typesyst == 'StarFlaring':
-            listlabltypetrue = ['StarFlaring']
+            gdat.dictprobtypetrue['StellarFlare'] = [1., 'Stellar binary']
         else:
             print('')
             print('')
@@ -655,14 +656,20 @@ def init( \
             print(gdat.typesyst)
             raise Exception('')
         
-        numbtypetrue = len(listlabltypetrue)
-        indxtypetrue = np.arange(numbtypetrue)
+        # names of simulated classes of systems
+        gdat.listnameclastype = list(gdat.dictprobtypetrue.keys())
         
-        listnametypetrue = []
-        for k in indxtypetrue:
-            nametypetrue = ''.join(listlabltypetrue[k].split(' '))
-            listnametypetrue.append(nametypetrue)
+        # number of simulated classes
+        gdat.numbtypetrue = len(gdat.listnameclastype)
+        indxtypetrue = np.arange(gdat.numbtypetrue)
         
+        # probabilities of simulated classes
+        gdat.probtypetrue = np.empty(gdat.numbtypetrue)
+        gdat.listlabltypetrue = [[] for k in indxtypetrue]
+        for k, name in enumerate(gdat.listnameclastype):
+            gdat.probtypetrue[k] = gdat.dictprobtypetrue[name][0]
+            gdat.listlabltypetrue[k] = gdat.dictprobtypetrue[name][1]
+
         listcolrtypetrue = listcolrtypetrue[indxtypetrue]
         
         #numbpoplcomp = numbnameincl * numbtypetrue
@@ -689,9 +696,6 @@ def init( \
             listdictlablcolrpopl[-1]['PlanetarySystem_%s_All' % gdat.typepopl] = ['All', 'black']
             listdictlablcolrpopl[-1]['PlanetarySystem_%s_Transiting' % gdat.typepopl] = ['All', 'black']
         
-            gdat.dictindxtarg['PlanetarySystem'] = np.arange(gdat.numbtarg)
-            gdat.dictindxtarg['StellarSystem'] = np.arange(gdat.numbtarg)
-            
         elif gdat.typesyst == 'StarFlaring':
             listdictlablcolrpopl[-1]['StarFlaring_%s_All' % gdat.typepopl] = ['All', 'black']
             listdictlablcolrpopl[-1]['StarFlaring_%s_Mdwarfs' % gdat.typepopl] = ['All', 'red']
@@ -701,14 +705,9 @@ def init( \
         #for namepoplcomm in listnametypetrue:
         #    gdat.dicttroy['true'][namepoplcomm] = dict()
 
-        if gdat.typesyst == 'CompactObjectStellarCompanion':
-            # 0: cosc
-            # 1: binary star
-            # 2: single star
-            gdat.probtypetrue = np.array([0.7, 0.25, 0.05])
-        
-        gdat.numbtypetrue = gdat.probtypetrue.size
+        gdat.numbtypetrue = len(gdat.listnameclastype)
         gdat.indxtypetrue = np.arange(gdat.numbtypetrue)
+        
         gdat.typetruetarg = np.random.choice(gdat.indxtypetrue, size=gdat.numbtarg, p=gdat.probtypetrue)
             
         gdat.indxtypetruetarg = [[] for r in gdat.indxtypetrue]
@@ -716,22 +715,22 @@ def init( \
             gdat.indxtypetruetarg[r] = np.where(gdat.typetruetarg == r)[0]
         
         gdat.booltypetargtrue = dict()
+        gdat.numbtargtype = dict()
         if gdat.typesyst == 'CompactObjectStellarCompanion':
             gdat.booltypetargtrue['CompactObjectStellarCompanion'] = gdat.typetruetarg == 0
             gdat.booltypetargtrue['StellarBinary'] = gdat.typetruetarg == 1
-        
-        gdat.listnameclastype = list(gdat.dictindxtarg.keys())
-        
-        #if gdat.typesyst == 'CompactObjectStellarCompanion' or gdat.typesyst == 'PlanetarySystem':
-        
-
-        gdat.numbtargtype = dict()
-        if gdat.typesyst == 'CompactObjectStellarCompanion':
+            
             gdat.dictindxtarg['CompactObjectStellarCompanion'] = gdat.indxtypetruetarg[0]
             gdat.dictindxtarg['StellarBinary'] = gdat.indxtypetruetarg[1]
-            gdat.dictindxtarg['qstr'] = gdat.indxtypetruetarg[2]
+            gdat.dictindxtarg['Asteroid'] = gdat.indxtypetruetarg[2]
+            
             gdat.dictindxtarg['StellarSystem'] = np.concatenate((gdat.indxtypetruetarg[0], gdat.indxtypetruetarg[1]))
             gdat.dictindxtarg['StellarSystem'] = np.sort(gdat.dictindxtarg['StellarSystem'])
+        
+        elif gdat.typesyst == 'PlanetarySystem':
+            gdat.dictindxtarg['PlanetarySystem'] = np.arange(gdat.numbtarg)
+            gdat.dictindxtarg['StellarBinary'] = np.arange(gdat.numbtarg)
+            
             
         print('gdat.numbtargtype')
         for name in gdat.listnameclastype:
