@@ -150,9 +150,10 @@ def mile_work(gdat, i):
 
 def init( \
         
+        # type of the system
         typesyst, \
 
-        # population type
+        # type of population of target sources
         typepopl=None, \
 
         # list of target TIC IDs
@@ -612,7 +613,11 @@ def init( \
         #gdat.listlablrele = ['Simulated %s' % gdat.typesyst, 'Simulated tr. COSC' % gdat.typesyst]
         #gdat.listlablirre = ['Simulated QS or SB', 'Simulated QS, SB or non-tr. COSC']
         
+        # labels of the relevant classes
         gdat.listlablrele = ['Simulated %s' % gdat.typesyst]
+        
+
+        # labels of the irrelevant classes
         gdat.listlablirre = ['Simulated no signal']
         gdat.listlablreleirre = [gdat.listlablrele, gdat.listlablirre]
     
@@ -674,6 +679,8 @@ def init( \
         
         listdictlablcolrpopl = []
         
+        gdat.dicttroy['true'] = dict()
+        
         listdictlablcolrpopl.append(dict())
         if gdat.typesyst == 'CompactObjectStellarCompanion':
             listdictlablcolrpopl[-1]['PlanetarySystem_%s_All' % gdat.typepopl] = ['All', 'black']
@@ -681,71 +688,85 @@ def init( \
         elif gdat.typesyst == 'PlanetarySystem':
             listdictlablcolrpopl[-1]['PlanetarySystem_%s_All' % gdat.typepopl] = ['All', 'black']
             listdictlablcolrpopl[-1]['PlanetarySystem_%s_Transiting' % gdat.typepopl] = ['All', 'black']
+        
+            gdat.dictindxtarg['PlanetarySystem'] = np.arange(gdat.numbtarg)
+            gdat.dictindxtarg['StellarSystem'] = np.arange(gdat.numbtarg)
+            
         elif gdat.typesyst == 'StarFlaring':
             listdictlablcolrpopl[-1]['StarFlaring_%s_All' % gdat.typepopl] = ['All', 'black']
             listdictlablcolrpopl[-1]['StarFlaring_%s_Mdwarfs' % gdat.typepopl] = ['All', 'red']
         else:
             raise Exception('')
 
-        gdat.dicttroy['true'] = dict()
         #for namepoplcomm in listnametypetrue:
         #    gdat.dicttroy['true'][namepoplcomm] = dict()
 
-        # 0: cosc
-        # 1: binary star
-        # 2: single star
-        gdat.probtypetrue = np.array([0.7, 0.25, 0.05])
+        if gdat.typesyst == 'CompactObjectStellarCompanion':
+            # 0: cosc
+            # 1: binary star
+            # 2: single star
+            gdat.probtypetrue = np.array([0.7, 0.25, 0.05])
+        
         gdat.numbtypetrue = gdat.probtypetrue.size
         gdat.indxtypetrue = np.arange(gdat.numbtypetrue)
         gdat.typetruetarg = np.random.choice(gdat.indxtypetrue, size=gdat.numbtarg, p=gdat.probtypetrue)
-        
+            
         gdat.indxtypetruetarg = [[] for r in gdat.indxtypetrue]
         for r in gdat.indxtypetrue:
             gdat.indxtypetruetarg[r] = np.where(gdat.typetruetarg == r)[0]
+        
+        gdat.booltypetargtrue = dict()
+        if gdat.typesyst == 'CompactObjectStellarCompanion':
+            gdat.booltypetargtrue['CompactObjectStellarCompanion'] = gdat.typetruetarg == 0
+            gdat.booltypetargtrue['StellarBinary'] = gdat.typetruetarg == 1
+        
+        gdat.listnameclastype = list(gdat.dictindxtarg.keys())
+        
+        #if gdat.typesyst == 'CompactObjectStellarCompanion' or gdat.typesyst == 'PlanetarySystem':
+        
+
+        gdat.numbtargtype = dict()
+        if gdat.typesyst == 'CompactObjectStellarCompanion':
+            gdat.dictindxtarg['CompactObjectStellarCompanion'] = gdat.indxtypetruetarg[0]
+            gdat.dictindxtarg['StellarBinary'] = gdat.indxtypetruetarg[1]
+            gdat.dictindxtarg['qstr'] = gdat.indxtypetruetarg[2]
+            gdat.dictindxtarg['StellarSystem'] = np.concatenate((gdat.indxtypetruetarg[0], gdat.indxtypetruetarg[1]))
+            gdat.dictindxtarg['StellarSystem'] = np.sort(gdat.dictindxtarg['StellarSystem'])
             
-        gdat.boolcosctrue = gdat.typetruetarg == 0
-        gdat.boolsbintrue = gdat.typetruetarg == 1
-        gdat.dictindxtarg['CompactObjectStellarCompanion'] = gdat.indxtypetruetarg[0]
-        gdat.numbtargcosc = gdat.dictindxtarg['CompactObjectStellarCompanion'].size
-        gdat.dictindxtarg['StellarBinary'] = gdat.indxtypetruetarg[1]
-        gdat.numbtargsbin = gdat.dictindxtarg['StellarBinary'].size
-        gdat.dictindxtarg['qstr'] = gdat.indxtypetruetarg[2]
-        gdat.dictindxtarg['StellarSystem'] = np.concatenate((gdat.indxtypetruetarg[0], gdat.indxtypetruetarg[1]))
-        gdat.dictindxtarg['StellarSystem'] = np.sort(gdat.dictindxtarg['StellarSystem'])
-        gdat.numbtargssys = gdat.dictindxtarg['StellarSystem'].size
+        print('gdat.numbtargtype')
+        for name in gdat.listnameclastype:
+            gdat.numbtargtype[name] = gdat.dictindxtarg[name].size
+            print(name)
+            print(gdat.numbtargtype[name])
+
         print('gdat.numbtarg')
         print(gdat.numbtarg)
-        print('gdat.numbtargcosc')
-        print(gdat.numbtargcosc)
-        print('gdat.numbtargsbin')
-        print(gdat.numbtargsbin)
-        print('gdat.numbtargssys')
-        print(gdat.numbtargssys)
-        print('gdat.boolcosctrue')
-        print(gdat.boolcosctrue)
-        print('gdat.boolsbintrue')
-        print(gdat.boolsbintrue)
-        
-        gdat.indxssyscosc = np.full(gdat.numbtargcosc, -1, dtype=int)
-        gdat.indxssyssbin = np.full(gdat.numbtargsbin, -1, dtype=int)
-        gdat.indxcoscssys = np.full(gdat.numbtargssys, -1, dtype=int)
-        gdat.indxsbinssys = np.full(gdat.numbtargssys, -1, dtype=int)
-        gdat.indxssystarg = np.full(gdat.numbtarg, -1, dtype=int)
-        cntrcosc = 0
-        cntrsbin = 0
-        cntrssys = 0
-        for k in gdat.indxtarg:
-            if gdat.boolcosctrue[k] or gdat.boolsbintrue[k]:
-                if gdat.boolcosctrue[k]:
-                    gdat.indxcoscssys[cntrssys] = cntrcosc
-                    gdat.indxssyscosc[cntrcosc] = cntrssys
-                    cntrcosc += 1
-                if gdat.boolsbintrue[k]:
-                    gdat.indxsbinssys[cntrssys] = cntrsbin
-                    gdat.indxssyssbin[cntrsbin] = cntrssys
-                    cntrsbin += 1
-                gdat.indxssystarg[k] = cntrssys
-                cntrssys += 1
+        if gdat.typesyst == 'CompactObjectStellarCompanion':
+            print('gdat.boolcosctrue')
+            print(gdat.boolcosctrue)
+            print('gdat.boolsbintrue')
+            print(gdat.boolsbintrue)
+            
+            gdat.indxssyscosc = np.full(gdat.numbtargcosc, -1, dtype=int)
+            gdat.indxssyssbin = np.full(gdat.numbtargsbin, -1, dtype=int)
+            gdat.indxcoscssys = np.full(gdat.numbtargssys, -1, dtype=int)
+            gdat.indxsbinssys = np.full(gdat.numbtargssys, -1, dtype=int)
+            gdat.indxssystarg = np.full(gdat.numbtarg, -1, dtype=int)
+            cntrcosc = 0
+            cntrsbin = 0
+            cntrssys = 0
+            for k in gdat.indxtarg:
+                if gdat.boolcosctrue[k] or gdat.boolsbintrue[k]:
+                    if gdat.boolcosctrue[k]:
+                        gdat.indxcoscssys[cntrssys] = cntrcosc
+                        gdat.indxssyscosc[cntrcosc] = cntrssys
+                        cntrcosc += 1
+                    if gdat.boolsbintrue[k]:
+                        gdat.indxsbinssys[cntrssys] = cntrsbin
+                        gdat.indxssyssbin[cntrsbin] = cntrssys
+                        cntrsbin += 1
+                    gdat.indxssystarg[k] = cntrssys
+                    cntrssys += 1
         
         if gdat.typesyst == 'CompactObjectStellarCompanion':
             gdat.dicttroy['true']['CompactObjectStellarCompanion'] = nicomedia.retr_dictpoplstarcomp('CompactObjectStellarCompanion', gdat.typepopl, minmnumbcompstar=1)
@@ -869,21 +890,22 @@ def init( \
             # relevants are those transiting COSCs
             gdat.dictindxtarg['rele'][1] = gdat.dictindxtarg['cosctran']
         elif gdat.typesyst == 'PlanetarySystem':
-            if gdat.booldiag:
+            
+            # this check is probably wrong
+            if False and gdat.booldiag:
                 if len(gdat.dictindxtarg['rele']) != 2:
                     print('')
                     print('')
                     print('')
+                    print('gdat.indxtyperele')
+                    print(gdat.indxtyperele)
                     print('gdat.dictindxtarg[rele]')
                     print(gdat.dictindxtarg['rele'])
-                    raise Exception('')
-
-            indx = np.where(np.isfinite(gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['comp'][gdat.namepoplcomptran]['duratrantotl'][gdat.indxssyscosc]))
-            gdat.dictindxtarg['PlanetarySystemTransiting'] = gdat.dictindxtarg['CompactObjectStellarCompanion'][indx]
-            # relevants are all COSCs
-            gdat.dictindxtarg['rele'][0] = gdat.dictindxtarg['CompactObjectStellarCompanion']
-            # relevants are those transiting COSCs
-            gdat.dictindxtarg['rele'][1] = gdat.dictindxtarg['PlanetarySystemTransiting']
+                    raise Exception('len(gdat.dictindxtarg[rele]) != 2')
+            
+            # relevants are Planetary Systems
+            gdat.dictindxtarg['rele'][0] = gdat.dictindxtarg['PlanetarySystem']
+        
         elif gdat.typesyst == 'StarFlaring':
             #indx = np.where(np.isfinite(gdat.dicttroy['true']['StarFlaring']['dictpopl']['flar'][gdat.namepoplcomptran]['duratrantotl'][gdat.indxssyscosc]))
             gdat.dictindxtarg['rele'][0] = gdat.dictindxtarg['StarFlaring']
