@@ -254,7 +254,7 @@ def init( \
         raise Exception('The type of population, typepopl, must be defined by the user when the target list is provided by the user')
     
     if gdat.typepopl is None:
-        gdat.typepopl = 'Synthetic'
+        gdat.typepopl = 'SyntheticPopulation'
     
     #        gdat.typepopl = 'CTL_prms_2min'
     #        gdat.typepopl = 'CTL_prms_2min'
@@ -263,7 +263,7 @@ def init( \
     print(gdat.typepopl)
 
     if gdat.booldiag:
-        if gdat.booltargsynt and gdat.typepopl != 'Synthetic':
+        if gdat.booltargsynt and gdat.typepopl != 'SyntheticPopulation':
             print('')
             print('')
             print('')
@@ -724,9 +724,6 @@ def init( \
             gdat.dictindxtarg['StellarBinary'] = gdat.indxtypetruetarg[1]
             gdat.dictindxtarg['Asteroid'] = gdat.indxtypetruetarg[2]
             
-            gdat.dictindxtarg['StellarSystem'] = np.concatenate((gdat.indxtypetruetarg[0], gdat.indxtypetruetarg[1]))
-            gdat.dictindxtarg['StellarSystem'] = np.sort(gdat.dictindxtarg['StellarSystem'])
-        
         elif gdat.typesyst == 'PlanetarySystem':
             gdat.dictindxtarg['PlanetarySystem'] = np.arange(gdat.numbtarg)
             gdat.dictindxtarg['StellarBinary'] = np.arange(gdat.numbtarg)
@@ -803,12 +800,6 @@ def init( \
                 listname = np.intersect1d(np.array(list(gdat.dicttroy['true']['CompactObjectStellarCompanion']['dictpopl']['comp'][gdat.namepoplcomp].keys())), \
                                                           np.array(list(gdat.dicttroy['true']['StellarBinary']['dictpopl']['comp'][gdat.namepoplcomp].keys())))
             
-                # maybe to be deleted
-                #gdat.dicttroy['true']['StellarSystem']['dictpopl']['comp'][gdat.namepoplcomp] = dict()
-                #for name in listname:
-                #    gdat.dicttroy['true']['StellarSystem'][gdat.namepoplcomp][name] = np.concatenate([gdat.dicttroy['true']['CompactObjectStellarCompanion'][gdat.namepoplcomp][name], \
-                #                                                                                    gdat.dicttroy['true']['StellarBinary'][gdat.namepoplcomp][name]])
-        
             #if gdat.typedata == 'simutargpartinje':
             #    boolsampstar = False
             #    gdat.dicttroy['true']['StellarSystem']['radistar'] = dicttic8['radistar']
@@ -882,7 +873,7 @@ def init( \
         # relevant targets
         gdat.dictindxtarg['rele'] = [[] for v in gdat.indxtyperele]
         if gdat.typesyst == 'CompactObjectStellarCompanion':
-            indx = np.where(np.isfinite(gdat.dicttroy['true']['StellarSystem']['dictpopl']['comp'][gdat.namepoplcomptran]['duratrantotl'][gdat.indxssyscosc]))
+            indx = np.where(np.isfinite(gdat.dicttroy['true']['StellarBinary']['dictpopl']['comp'][gdat.namepoplcomptran]['duratrantotl'][gdat.indxssyscosc]))
             gdat.dictindxtarg['cosctran'] = gdat.dictindxtarg['CompactObjectStellarCompanion'][indx]
             # relevants are all COSCs
             gdat.dictindxtarg['rele'][0] = gdat.dictindxtarg['CompactObjectStellarCompanion']
@@ -923,7 +914,7 @@ def init( \
             cntrrele = 0
             gdat.indxssysrele[v] = np.empty(gdat.numbtargrele[v], dtype=int)
             for n in gdat.dictindxtarg['rele'][v]:
-                if n in gdat.dictindxtarg['StellarSystem']:
+                if n in gdat.dictindxtarg['StellarBinary']:
                     gdat.indxssysrele[v][cntrrele] = cntrssys
                     cntrssys += 1
                 cntrrele += 1
