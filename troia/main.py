@@ -1172,7 +1172,7 @@ def init( \
                     raise Exception('')
 
             pergamon.init( \
-                          'targ_cosc', \
+                          'Classification', \
                           dictpopl=gdat.dicttroy['stat'], \
                           listdictlablcolrpopl=listdictlablcolrpopl, \
                           listboolcompexcl=listboolcompexcl, \
