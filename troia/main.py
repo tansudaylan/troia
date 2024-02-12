@@ -1206,9 +1206,9 @@ def init( \
             if gdat.boolplot and gdat.boolsimusome and u != -1 and v != -1:
                 listvarbreca = []
                 
-                listvarbreca.append(gdat.dicttroy['true'][gdat.typesyst]['dictpopl']['comp'][gdat.namepoplcomptotl]['pericomp'][gdat.indxssysrele[v]])
+                listvarbreca.append(gdat.dicttroy['true'][gdat.typesyst]['dictpopl']['comp'][gdat.namepoplcomptotl]['pericomp'][0][gdat.indxssysrele[v]])
                 #listvarbreca.append(gdat.dicttroy['true'][gdat.typesyst]['dictpopl']['comp'][gdat.namepoplcomptotl]['masscomp'][gdat.indxssysrele[v]])
-                listvarbreca.append(gdat.dicttroy['true'][gdat.typesyst]['dictpopl']['comp'][gdat.namepoplcomptotl]['tmag'][gdat.dictindxtarg['rele'][v]])
+                listvarbreca.append(gdat.dicttroy['true'][gdat.typesyst]['dictpopl']['comp'][gdat.namepoplcomptotl]['tmag'][0][gdat.dictindxtarg['rele'][v]])
                 listvarbreca = np.vstack(listvarbreca).T
                 
                 liststrgvarbreca = []
@@ -1222,7 +1222,7 @@ def init( \
                 
                 listtemp = []
                 for namefeat in gdat.listnamefeat:
-                    listtemp.append(gdat.dictstat[namefeat][gdat.dictindxtarg['posi'][u]])
+                    listtemp.append(gdat.dictstat[namefeat][0][gdat.dictindxtarg['posi'][u]])
                 listvarbprec = np.vstack(listtemp).T
                 #listvarbprec = np.vstack([gdat.listsdee, gdat.listpowrlspe]).T
                 #listlablvarbprec = [['SDE', ''], ['$P_{LS}$', '']]
