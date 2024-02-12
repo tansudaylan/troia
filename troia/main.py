@@ -99,7 +99,7 @@ def mile_work(gdat, i):
                 dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['star'][gdat.namepoplstartotl][namepara][n]
         if typelevl == 'limb':
             for namepara in gdat.dicttroy['true']['PlanetarySystem']['listnamefeatlimbonly']:
-                dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['comp'][gdat.namepoplcomptotl][namepara][gdat.indxcompsyst[n]]
+                dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['comp'][gdat.namepoplcomptotl][namepara][0][gdat.indxcompsyst[n]]
         gdat.dictmileinpttarg['dicttrue'] = dicttrue
         
         gdat.boolskipmile = True
@@ -121,11 +121,11 @@ def mile_work(gdat, i):
                                         **gdat.dictmileinpttarg, \
                                        )
         
-        gdat.dictstat['perilspeprim'][n] = dictmileoutp['perilspempow']
-        gdat.dictstat['powrlspeprim'][n] = dictmileoutp['powrlspempow']
+        gdat.dictstat['perilspeprim'][0][n] = dictmileoutp['perilspempow']
+        gdat.dictstat['powrlspeprim'][0][n] = dictmileoutp['powrlspempow']
         
-        gdat.dictstat['sdeepboxprim'][n] = dictmileoutp['dictpboxoutp']['sdeecomp'][0]
-        gdat.dictstat['peripboxprim'][n] = dictmileoutp['dictpboxoutp']['pericomp'][0]
+        gdat.dictstat['sdeepboxprim'][0][n] = dictmileoutp['dictpboxoutp']['sdeecomp'][0]
+        gdat.dictstat['peripboxprim'][0][n] = dictmileoutp['dictpboxoutp']['pericomp'][0]
         
         # taking the fist element, which belongs to the first TCE
         for u in gdat.indxtypeposi:
@@ -851,6 +851,19 @@ def init( \
         else:
             raise Exception('')
         
+        # check if dictpopltemp is properly defined, which should be a list of two items (of values and labels, respectively)
+        if gdat.booldiag:
+            for namepopl in dictpopltemp:
+                for namefeat in dictpopltemp[namepopl]:
+                    if len(dictpopltemp[namepopl][namefeat]) != 2 or \
+                                        len(dictpopltemp[namepopl][namefeat][1]) > 0 and not isinstance(dictpopltemp[namepopl][namefeat][1], str):
+                        print('')
+                        print('')
+                        print('')
+                        print('dictpopltemp[namepopl][namefeat]')
+                        print(dictpopltemp[namepopl][namefeat])
+                        raise Exception('dictpopltemp is not properly defined.')
+        
         typeanls = '%s_%s_%s_%s' % (gdat.typesyst, gdat.strgtypedataconc, gdat.strginstconc, gdat.typepopl)
 
         pathvisu = gdat.pathvisupopl + 'True_Features/'
@@ -932,7 +945,7 @@ def init( \
 
     gdat.listnamefeat = ['peripboxprim', 'sdeepboxprim', 'perilspeprim', 'powrlspeprim']
     for namefeat in gdat.listnamefeat:
-        gdat.dictstat[namefeat] = np.empty(gdat.numbtarg)
+        gdat.dictstat[namefeat] = [np.empty(gdat.numbtarg), '']
     
     ## fill miletos input dictionary
     ### path to put target data and visuals
@@ -1067,7 +1080,8 @@ def init( \
                 if len(gdat.dictindxtargtemp[strgkeyy]) > 0:
                     gdat.dicttroy['stat']['stat' + strgkeyy] = dict()
                     for namefeat in gdat.listnamefeat:
-                        gdat.dicttroy['stat']['stat' + strgkeyy][namefeat] = gdat.dictstat[namefeat][gdat.dictindxtargtemp[strgkeyy]]
+                        gdat.dicttroy['stat']['stat' + strgkeyy][namefeat] = [[], []]
+                        gdat.dicttroy['stat']['stat' + strgkeyy][namefeat][0] = gdat.dictstat[namefeat][0][gdat.dictindxtargtemp[strgkeyy]]
             
             listdictlablcolrpopl = []
             listboolcompexcl = []
@@ -1075,6 +1089,8 @@ def init( \
             listnamepoplcomm = list(gdat.dicttroy['stat'].keys())
             strgtemp = 'stat' + strguuvv
             
+            print('u, v')
+            print(u, v)
             print('strguuvv')
             print(strguuvv)
             print('strgtemp')
@@ -1104,10 +1120,13 @@ def init( \
                     print(gdat.indxtypereleiter)
                     print('gdat.indxtyperele')
                     print(gdat.indxtyperele)
-
-                    listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablreleirre[v], 'blue']
+                    print('gdat.listlablreleirre')
+                    print(gdat.listlablreleirre)
+                    print('gdat.listlablreleirre[v]')
+                    print(gdat.listlablreleirre[v])
+                    listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablirre[v], 'blue']
                 if strgtemp + 'ir' in namepoplcomm:
-                    listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablreleirre[v], 'orange']
+                    listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablirre[v], 'orange']
             
             boolgood = False
             for namepoplcomm in listnamepoplcomm:
