@@ -39,7 +39,7 @@ def cnfg_Flares():
 
 def cnfg_TESSGEO():
     '''
-    Simulated analysis for simulatenaous data collected by TESS EM2 and TESS L5
+    Simulated analysis for simulatenaous data collected by TESS EM2 and TESS-GEO
     '''
     
     troia.init( \
