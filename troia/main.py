@@ -1,17 +1,11 @@
-import os, sys, datetime, fnmatch, copy
-
-from tqdm import tqdm
+import os, sys, datetime, copy
 
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
-import astroquery
-
 import numpy as np
 import scipy.interpolate
-
-import json
 
 from tdpy.util import summgene
 import tdpy
@@ -117,6 +111,8 @@ def mile_work(gdat, i):
                 dictmileoutp['boolposianls'].append(True)
         else:
             # call miletos to analyze data
+            
+            print('Calling miletos...')
             dictmileoutp = miletos.init( \
                                         **gdat.dictmileinpttarg, \
                                        )
@@ -461,7 +457,6 @@ def init( \
                 plt.savefig(path)
                 plt.close()
             
-
             # type of lens model
             gdat.typemodllens = 'gaus'
 
@@ -477,7 +472,7 @@ def init( \
                     figr, axis = plt.subplots(figsize=(10, 4.5))
                     
                     dictoutp = ephesos.eval_modl(time, pericomp=[listperi[k]], epocmtracomp=[0.], radistar=1., massstar=1., \
-                                                                                     masscomp=[10.], inclcomp=[90.], typesyst='CompactObjectStellarCompanion', typemodllens=gdat.typemodllens)
+                                                         masscomp=[10.], inclcomp=[90.], typesyst='CompactObjectStellarCompanion', typemodllens=gdat.typemodllens)
                     rflxmodl = dictoutp['rflx']
                     axis.plot(time, rflxmodl, color='k', lw=2, label='Total')
                     axis.plot(time, dictoutp['rflxelli'][0], color='b', ls='--', label='Ellipsoidal variation')
@@ -691,14 +686,14 @@ def init( \
         listdictlablcolrpopl.append(dict())
         if gdat.typesyst == 'CompactObjectStellarCompanion':
             listdictlablcolrpopl[-1]['PlanetarySystem_%s_All' % gdat.typepopl] = ['All', 'black']
-            listdictlablcolrpopl[-1]['PlanetarySystem_%s_Transiting' % gdat.typepopl] = ['All', 'black']
+            listdictlablcolrpopl[-1]['PlanetarySystem_%s_Transiting' % gdat.typepopl] = ['Transiting', 'b']
         elif gdat.typesyst == 'PlanetarySystem':
             listdictlablcolrpopl[-1]['PlanetarySystem_%s_All' % gdat.typepopl] = ['All', 'black']
-            listdictlablcolrpopl[-1]['PlanetarySystem_%s_Transiting' % gdat.typepopl] = ['All', 'black']
+            listdictlablcolrpopl[-1]['PlanetarySystem_%s_Transiting' % gdat.typepopl] = ['Transiting', 'b']
         
         elif gdat.typesyst == 'StarFlaring':
             listdictlablcolrpopl[-1]['StarFlaring_%s_All' % gdat.typepopl] = ['All', 'black']
-            listdictlablcolrpopl[-1]['StarFlaring_%s_Mdwarfs' % gdat.typepopl] = ['All', 'red']
+            listdictlablcolrpopl[-1]['StarFlaring_%s_Mdwarfs' % gdat.typepopl] = ['M dwarfs', 'red']
         else:
             raise Exception('')
 
@@ -727,7 +722,6 @@ def init( \
         elif gdat.typesyst == 'PlanetarySystem':
             gdat.dictindxtarg['PlanetarySystem'] = np.arange(gdat.numbtarg)
             gdat.dictindxtarg['StellarBinary'] = np.arange(gdat.numbtarg)
-            
             
         print('gdat.numbtargtype')
         for name in gdat.listnameclastype:
@@ -834,7 +828,7 @@ def init( \
         print('Visualizing the features of the simulated population...')
 
         listboolcompexcl = [False]
-        listtitlcomp = ['Binaries']
+        listtitlcomp = ['']
         
         dictpopltemp = dict()
         if gdat.typesyst == 'CompactObjectStellarCompanion':
@@ -869,7 +863,7 @@ def init( \
         pathvisu = gdat.pathvisupopl + 'True_Features/'
         pathdata = gdat.pathdatapopl + 'True_Features/'
         
-        lablnumbsamp = 'Number of binaries'
+        lablnumbsamp = 'Number of systems'
 
         pergamon.init( \
                       typeanls, \
@@ -1062,7 +1056,7 @@ def init( \
                 labluuvv = '(u = %d, v = %d)' % (u, v)
 
             gdat.dictindxtargtemp = dict()
-            gdat.dicttroy['stat'] = dict()
+            gdat.dicttroy['anls'] = dict()
 
             if u == -1:
                 gdat.dictindxtargtemp[strguuvv + 're'] = gdat.dictindxtarg['rele'][v]
@@ -1078,38 +1072,38 @@ def init( \
             
             for strgkeyy in gdat.dictindxtargtemp:
                 if len(gdat.dictindxtargtemp[strgkeyy]) > 0:
-                    gdat.dicttroy['stat']['stat' + strgkeyy] = dict()
+                    gdat.dicttroy['anls'][strgkeyy] = dict()
                     for namefeat in gdat.listnamefeat:
-                        gdat.dicttroy['stat']['stat' + strgkeyy][namefeat] = [[], []]
-                        gdat.dicttroy['stat']['stat' + strgkeyy][namefeat][0] = gdat.dictstat[namefeat][0][gdat.dictindxtargtemp[strgkeyy]]
+                        gdat.dicttroy['anls'][strgkeyy][namefeat] = [[], []]
+                        gdat.dicttroy['anls'][strgkeyy][namefeat][0] = gdat.dictstat[namefeat][0][gdat.dictindxtargtemp[strgkeyy]]
+                        # labels of the units for test statistics
+                        gdat.dicttroy['anls'][strgkeyy][namefeat][1] = ''
             
             listdictlablcolrpopl = []
             listboolcompexcl = []
             listtitlcomp = []
-            listnamepoplcomm = list(gdat.dicttroy['stat'].keys())
+            listnamepoplcomm = list(gdat.dicttroy['anls'].keys())
             strgtemp = 'stat' + strguuvv
             
             print('u, v')
             print(u, v)
             print('strguuvv')
             print(strguuvv)
-            print('strgtemp')
-            print(strgtemp)
             print('listnamepoplcomm')
             print(listnamepoplcomm)
             
             boolgood = False
             for namepoplcomm in listnamepoplcomm:
-                if strgtemp + 're' in namepoplcomm:
+                if strguuvv + 're' in namepoplcomm:
                     boolgood = True
-                if strgtemp + 'ir' in namepoplcomm:
+                if strguuvv + 'ir' in namepoplcomm:
                     boolgood = True
             if boolgood:
                 listdictlablcolrpopl.append(dict())
                 listboolcompexcl.append(True)
                 listtitlcomp.append(None)
             for namepoplcomm in listnamepoplcomm:
-                if strgtemp + 're' in namepoplcomm:
+                if strguuvv + 're' in namepoplcomm:
                     print('v')
                     print(v)
                     print('gdat.listlablrele')
@@ -1125,41 +1119,41 @@ def init( \
                     print('gdat.listlablreleirre[v]')
                     print(gdat.listlablreleirre[v])
                     listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablirre[v], 'blue']
-                if strgtemp + 'ir' in namepoplcomm:
+                if strguuvv + 'ir' in namepoplcomm:
                     listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablirre[v], 'orange']
             
             boolgood = False
             for namepoplcomm in listnamepoplcomm:
-                if strgtemp + 'po' in namepoplcomm:
+                if strguuvv + 'po' in namepoplcomm:
                     boolgood = True
-                if strgtemp + 'ne' in namepoplcomm:
+                if strguuvv + 'ne' in namepoplcomm:
                     boolgood = True
             if boolgood:
                 listdictlablcolrpopl.append(dict())
                 listboolcompexcl.append(True)
                 listtitlcomp.append(None)
             for namepoplcomm in listnamepoplcomm:
-                if strgtemp + 'po' in namepoplcomm:
+                if strguuvv + 'po' in namepoplcomm:
                     listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablposi[u], 'violet']
-                if strgtemp + 'ne' in namepoplcomm:
+                if strguuvv + 'ne' in namepoplcomm:
                     listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablnega[u], 'brown']
             
             boolgood = False
             for namepoplcomm in listnamepoplcomm:
-                if strgtemp + 'trpo' in namepoplcomm:
+                if strguuvv + 'trpo' in namepoplcomm:
                     boolgood = True
-                if strgtemp + 'trne' in namepoplcomm:
+                if strguuvv + 'trne' in namepoplcomm:
                     boolgood = True
-                if strgtemp + 'flpo' in namepoplcomm:
+                if strguuvv + 'flpo' in namepoplcomm:
                     boolgood = True
-                if strgtemp + 'flne' in namepoplcomm:
+                if strguuvv + 'flne' in namepoplcomm:
                     boolgood = True
             if boolgood:
                 listdictlablcolrpopl.append(dict())
                 listboolcompexcl.append(True)
                 listtitlcomp.append(None)
             for namepoplcomm in listnamepoplcomm:
-                if strgtemp + 'trpo' in namepoplcomm:
+                if strguuvv + 'trpo' in namepoplcomm:
                     print('u, v')
                     print(u, v)
                     print('gdat.listlablrele')
@@ -1167,11 +1161,11 @@ def init( \
                     print('gdat.listlablposi')
                     print(gdat.listlablposi)
                     listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablrele[v] + ', ' + gdat.listlablposi[u], 'green']
-                if strgtemp + 'trne' in namepoplcomm:
+                if strguuvv + 'trne' in namepoplcomm:
                     listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablirre[v] + ', ' + gdat.listlablnega[u], 'blue']
-                if strgtemp + 'flpo' in namepoplcomm:
+                if strguuvv + 'flpo' in namepoplcomm:
                     listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablirre[v] + ', ' + gdat.listlablposi[u], 'red']
-                if strgtemp + 'flne' in namepoplcomm:
+                if strguuvv + 'flne' in namepoplcomm:
                     listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablrele[v] + ', ' + gdat.listlablnega[u], 'orange']
             
             typeanls = 'cosc_%s_%s_%s' % (gdat.strgextn, gdat.strginstconc, gdat.typepopl)
@@ -1184,15 +1178,15 @@ def init( \
             print('listtitlcomp')
             print(listtitlcomp)
             print('gdat.dicttroy[stat]')
-            print(gdat.dicttroy['stat'])
-            
+            print(gdat.dicttroy['anls'])
+
             for dictlablcolrpopl in listdictlablcolrpopl:
                 if len(dictlablcolrpopl) == 0:
                     raise Exception('')
 
             pergamon.init( \
                           'Classification', \
-                          dictpopl=gdat.dicttroy['stat'], \
+                          dictpopl=gdat.dicttroy['anls'], \
                           listdictlablcolrpopl=listdictlablcolrpopl, \
                           listboolcompexcl=listboolcompexcl, \
                           listtitlcomp=listtitlcomp, \
@@ -1202,7 +1196,6 @@ def init( \
                           boolsortpoplsize=False, \
                          )
             
-
             if gdat.boolplot and gdat.boolsimusome and u != -1 and v != -1:
                 listvarbreca = []
                 

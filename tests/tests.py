@@ -173,7 +173,7 @@ def cnfg_LSST_PlanetarySystem():
     LSST transiting exoplanet survey
     '''
     
-    typepopl = 'Synthetic'
+    typepopl = 'SyntheticPopulation'
     if typepopl == 'TIC':
         listticitarg = []
         k = 0
