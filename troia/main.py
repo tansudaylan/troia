@@ -51,15 +51,7 @@ def mile_work(gdat, i):
                 else:
                     gdat.boolreletarg[v][n] = False
 
-        if gdat.booldataobsv and gdat.typepopl == 'list':
-            #listarrytser = None
-            rasctarg = None
-            decltarg = None
-            strgmast = liststrgmast[n]
-            labltarg = None
-            strgtarg = None
-
-        else:
+        if gdat.typepopl == 'SyntheticPopulation':
             #listarrytser = dict()
             #listarrytser['raww'] = gdat.listarrytser['data'][n]
             
@@ -71,6 +63,22 @@ def mile_work(gdat, i):
             if len(strgtarg) == 0:
                 raise Exception('')
         
+        else:
+            if gdat.typepopl == 'MASTKeywords':
+                rasctarg = None
+                decltarg = None
+                strgmast = gdat.liststrgmast[n]
+                labltarg = None
+                strgtarg = None
+
+            elif gdat.booldataobsv and gdat.typepopl == 'TOIs':
+                rasctarg = None
+                decltarg = None
+                strgmast = None
+                toiitarg = gdat.listtoiitarg[n]
+                labltarg = None
+                strgtarg = None
+        
         gdat.dictmileinpttarg = copy.deepcopy(gdat.dictmileinptglob)
 
         if n < gdat.maxmnumbtargplot:
@@ -80,42 +88,38 @@ def mile_work(gdat, i):
         gdat.dictmileinpttarg['rasctarg'] = rasctarg
         gdat.dictmileinpttarg['decltarg'] = decltarg
         gdat.dictmileinpttarg['strgtarg'] = strgtarg
+        gdat.dictmileinpttarg['toiitarg'] = toiitarg
         gdat.dictmileinpttarg['labltarg'] = labltarg
         gdat.dictmileinpttarg['strgmast'] = strgmast
+        
         #gdat.dictmileinpttarg['listarrytser'] = listarrytser
+        
+        dictmagtsyst = dict()
         
         dicttrue = dict()
         dicttrue['numbyearlsst'] = 5
         dicttrue['typemodl'] = 'PlanetarySystem'
         typelevl = 'limb'
-        if typelevl == 'body':
-            for namepara in gdat.dicttroy['true']['PlanetarySystem']['listnamefeatbody']:
-                dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['star'][gdat.namepoplstartotl][namepara][n]
-        if typelevl == 'limb':
-            for namepara in gdat.dicttroy['true']['PlanetarySystem']['listnamefeatlimbonly']:
-                dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['comp'][gdat.namepoplcomptotl][namepara][0][gdat.indxcompsyst[n]]
-        gdat.dictmileinpttarg['dicttrue'] = dicttrue
+        if gdat.boolsimusome:
+            if typelevl == 'body':
+                for namepara in gdat.dicttroy['true']['PlanetarySystem']['listnamefeatbody']:
+                    dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['star'][gdat.namepoplstartotl][namepara][n]
+            if typelevl == 'limb':
+                for namepara in gdat.dicttroy['true']['PlanetarySystem']['listnamefeatlimbonly']:
+                    dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['comp'][gdat.namepoplcomptotl][namepara][0][gdat.indxcompsyst[n]]
+            gdat.dictmileinpttarg['dicttrue'] = dicttrue
         
-        gdat.boolskipmile = True
-
-        if gdat.boolskipmile:
-            dictmileoutp = dict()
-            dictmileoutp['perilspempow'] = 0
-            dictmileoutp['powrlspempow'] = 0
-            dictmileoutp['dictpboxoutp'] = dict()
-            dictmileoutp['dictpboxoutp']['sdeecomp'] = [0]
-            dictmileoutp['dictpboxoutp']['pericomp'] = [0]
-            
-            dictmileoutp['boolposianls'] = []
-            for u in gdat.indxtypeposi:
-                dictmileoutp['boolposianls'].append(True)
-        else:
-            # call miletos to analyze data
-            
-            print('Calling miletos...')
-            dictmileoutp = miletos.init( \
-                                        **gdat.dictmileinpttarg, \
-                                       )
+            for b in range(2):
+                for strginst in gdat.listlablinst[b]:
+                    dictmagtsyst[strginst] = dicttrue['magtsyst' + strginst]
+            gdat.dictmileinpttarg['dictmagtsyst'] = dictmagtsyst
+        
+        # call miletos to analyze data
+        
+        print('Calling miletos...')
+        dictmileoutp = miletos.init( \
+                                    **gdat.dictmileinpttarg, \
+                                   )
         
         gdat.dictstat['perilspeprim'][0][n] = dictmileoutp['perilspempow']
         gdat.dictstat['powrlspeprim'][0][n] = dictmileoutp['powrlspempow']
@@ -154,6 +158,9 @@ def init( \
 
         # list of target TIC IDs
         listticitarg=None, \
+        
+        # list of target TOIs
+        listtoiitarg=None, \
         
         # type of experiment
         listlablinst=None, \
@@ -229,28 +236,55 @@ def init( \
 
     print('troia initialized at %s...' % gdat.strgtimestmp)
     
-    if gdat.liststrgmast is not None and gdat.listticitarg is not None:
-        raise Exception('liststrgmast and listticitarg cannot be defined simultaneously.')
+    if gdat.liststrgmast is not None and gdat.listticitarg is not None or \
+       gdat.liststrgmast is not None and gdat.listtoiitarg is not None or \
+       gdat.listticitarg is not None and gdat.listtoiitarg is not None:
+        raise Exception('liststrgmast, listticitarg and listtoiitarg cannot be defined simultaneously.')
 
+    gdat.booltargusertoii = gdat.listtoiitarg is not None
     gdat.booltargusertici = gdat.listticitarg is not None
     gdat.booltargusermast = gdat.liststrgmast is not None
     gdat.booltargusergaid = gdat.listgaid is not None
-    gdat.booltarguser = gdat.booltargusertici or gdat.booltargusermast or gdat.booltargusergaid
+    gdat.booltarguser = gdat.booltargusertici or gdat.booltargusermast or gdat.booltargusergaid or gdat.booltargusertoii
     
+    # prepare miletos gdat for setup
+    gdat.boolsimutargpartfprt = None
+
     miletos.setup_miletos(gdat)
 
     miletos.setup1_miletos(gdat)
     
     if gdat.booltargsynt and gdat.booltarguser or not gdat.booltargsynt and not gdat.booltarguser and gdat.typepopl is None:
+        print('')
+        print('')
+        print('')
+        print('gdat.booltargsynt')
+        print(gdat.booltargsynt)
         print('gdat.booltarguser')
         print(gdat.booltarguser)
+        print('gdat.booltarguser')
+        print(gdat.booltarguser)
+        print('gdat.typepopl')
+        print(gdat.typepopl)
         raise Exception('')
 
-    if (liststrgmast is not None or listticitarg is not None) and gdat.typepopl is None:
+    if (gdat.liststrgmast is not None or listticitarg is not None) and gdat.typepopl is None:
         raise Exception('The type of population, typepopl, must be defined by the user when the target list is provided by the user')
     
     if gdat.typepopl is None:
-        gdat.typepopl = 'SyntheticPopulation'
+        if gdat.booltarguser:
+            if gdat.booltargusertoii:
+                gdat.typepopl = 'TOIs'
+            elif gdat.booltargusertici:
+                gdat.typepopl = 'TICs'
+            elif gdat.booltargusermast:
+                gdat.typepopl = 'MASTKeywords'
+            elif gdat.booltargusergaid:
+                gdat.typepopl = 'GaiaIDs'
+            else:
+                raise Exception('')
+        else:
+            gdat.typepopl = 'SyntheticPopulation'
     
     #        gdat.typepopl = 'CTL_prms_2min'
     #        gdat.typepopl = 'CTL_prms_2min'
@@ -333,10 +367,14 @@ def init( \
     if gdat.booltarguser:
         if gdat.booltargusertici:
             gdat.numbtarg = len(gdat.listticitarg)
-        if gdat.booltargusermast:
+        elif gdat.booltargusertoii:
+            gdat.numbtarg = len(gdat.listtoiitarg)
+        elif gdat.booltargusermast:
             gdat.numbtarg = len(gdat.liststrgmast)
-        if gdat.booltargusergaid:
+        elif gdat.booltargusergaid:
             gdat.numbtarg = len(gdat.listgaidtarg)
+        else:
+            raise Exception('')
     else:
         if gdat.boolsimusome:
             gdat.numbtarg = 30000
@@ -591,16 +629,21 @@ def init( \
                 gdat.strgtarg[n] = 'TIC%d' % (gdat.listticitarg[n])
                 gdat.labltarg[n] = 'TIC %d' % (gdat.listticitarg[n])
                 gdat.liststrgmast[n] = gdat.labltarg[n]
-            if gdat.booltargusertici:
+            elif gdat.booltargusertici:
                 gdat.labltarg[n] = 'TIC ' + str(gdat.listticitarg[n])
                 gdat.strgtarg[n] = 'TIC' + str(gdat.listticitarg[n])
-            if gdat.booltargusermast:
+            elif gdat.booltargusertoii:
+                gdat.labltarg[n] = 'TOI ' + str(gdat.listtoiitarg[n])
+                gdat.strgtarg[n] = 'TOI' + str(gdat.listtoiitarg[n])
+            elif gdat.booltargusermast:
                 gdat.labltarg[n] = gdat.liststrgmast[n]
                 gdat.strgtarg[n] = ''.join(gdat.liststrgmast[n].split(' '))
-            if gdat.booltargusergaid:
+            elif gdat.booltargusergaid:
                 gdat.labltarg[n] = 'GID=' % (dictcatlrvel['rasc'][n], dictcatlrvel['decl'][n])
                 gdat.strgtarg[n] = 'R%.4gDEC%.4g' % (dictcatlrvel['rasc'][n], dictcatlrvel['decl'][n])
-    
+            else:
+                raise Exception('')
+
     gdat.listarrytser = dict()
     
     if gdat.boolsimusome:
@@ -964,12 +1007,12 @@ def init( \
     gdat.dictmileinptglob['maxmfreqlspe'] = 1. / 0.1 # minimum period is 0.1 day
     #gdat.dictmileinptglob['boolsrchsingpuls'] = True
     #### define SDE threshold for periodic box search
-    if not 'dictpboxinpt' in gdat.dictmileinptglob:
-        gdat.dictmileinptglob['dictpboxinpt'] = dict()
+    if not 'dictboxsperiinpt' in gdat.dictmileinptglob:
+        gdat.dictmileinptglob['dictboxsperiinpt'] = dict()
     
     # inputs to the periodic box search pipeline
-    gdat.dictmileinptglob['dictpboxinpt']['boolsrchposi'] = True
-    gdat.dictmileinptglob['dictpboxinpt']['boolprocmult'] = False
+    gdat.dictmileinptglob['dictboxsperiinpt']['boolsrchposi'] = True
+    gdat.dictmileinptglob['dictboxsperiinpt']['boolprocmult'] = False
     
     if gdat.boolsimusome:
         gdat.boolreleposi = [[[] for v in gdat.indxtyperele] for u in gdat.indxtypeposi]
@@ -1000,7 +1043,7 @@ def init( \
     else:
         gdat.listindxtarg = [gdat.indxtarg]
         temp = mile_work(gdat, 0)
-
+    
     if gdat.boolsimusome:
         for u in gdat.indxtypeposi:
             for v in gdat.indxtyperele:
