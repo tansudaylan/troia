@@ -116,9 +116,14 @@ def cnfg_TESSGEO_PlanetPlanet():
     dictpoplsystinpt = dict()
     dictpoplsystinpt['booltrancomp'] = True
     
+    dictmileinptglob = dict()
+    dictmileinptglob['boolbdtr'] = [[False, False], []]
+    dictmileinptglob['boolfitt'] = False
+    
     strgcnfg = 'TESSGEO_PlanetPlanet'
     troia.init( \
                strgcnfg=strgcnfg, \
+               dictmileinptglob=dictmileinptglob, \
                typesyst='PlanetarySystem', \
                listlablinst=[['TESS-GEO-UV', 'TESS-GEO-VIS'], []], \
                liststrgtypedata=[['simutargsynt', 'simutargsynt'], []], \
@@ -141,6 +146,9 @@ def cnfg_TESSGEO_WD( \
     dictmileinptglob = dict()
     dictmileinptglob['dictboxsperiinpt'] = dict()
     #dictmileinptglob['dictboxsperiinpt']['factosam'] = 1.
+    
+    dictmileinptglob['boolbdtr'] = [[False, False], []]
+    dictmileinptglob['boolfitt'] = False
     
     # oversampling factor (wrt to transit duration) when rebinning data to decrease the time resolution
     dictmileinptglob['dictboxsperiinpt']['factduracade'] = 2.

@@ -45,7 +45,7 @@ def mile_work(gdat, i):
     for n in gdat.listindxtarg[i]:
         
         if gdat.boolsimusome:
-            for v in gdat.indxtyperele:
+            for v in gdat.indxtypeclastrue:
                 if n in gdat.dictindxtarg['rele'][v]:
                     gdat.boolreletarg[v][n] = True
                 else:
@@ -83,10 +83,21 @@ def mile_work(gdat, i):
         
         gdat.dictmileinpttarg = copy.deepcopy(gdat.dictmileinptglob)
 
-        if n < gdat.maxmnumbtargplot:
+        if n < gdat.numbtargplot:
+            # determine whether to make miletos plots of the analysis
             gdat.dictmileinpttarg['boolplot'] = gdat.boolplotmile
+            
+            # determine whether to make ephesos plots of the simulated data
+            if gdat.boolsimusome:
+                gdat.dictmileinpttarg['boolplotefestrue'] = True
         else:
             gdat.dictmileinpttarg['boolplot'] = False
+        
+        # determine whether to make animations of simulated data 
+        if gdat.boolsimusome:
+            if n < gdat.numbtarganimtrue:
+                gdat.dictmileinpttarg['boolmakeanimefestrue'] = True
+
         gdat.dictmileinpttarg['rasctarg'] = rasctarg
         gdat.dictmileinpttarg['decltarg'] = decltarg
         gdat.dictmileinpttarg['strgtarg'] = strgtarg
@@ -142,12 +153,20 @@ def mile_work(gdat, i):
                     raise Exception('len(gdat.listlablposi) != len(gdat.listlablnega)')
             
             gdat.numbtypeposi = len(gdat.listlablposi)
-            gdat.indxtypeposi = np.arange(gdat.numbtypeposi)
-            gdat.boolpositarg = [np.empty(gdat.numbtarg, dtype=bool) for u in gdat.indxtypeposi]
-
+            gdat.indxtypeclasdisp = np.arange(gdat.numbtypeposi)
+            gdat.boolpositarg = [np.empty(gdat.numbtarg, dtype=bool) for u in gdat.indxtypeclasdisp]
+            
+            gdat.listnameclasdispposi = ''
+            
+            gdat.listnamepoplposi = [[] for u in gdat.indxtypeclasdisp]
+            gdat.listnamepoplnega = [[] for u in gdat.indxtypeclasdisp]
+            for u in gdat.indxtypeclasdisp:
+                gdat.listnamepoplposi[u] = ''.join(gdat.listlablposi[u].split(' '))
+                gdat.listnamepoplnega[u] = ''.join(gdat.listlablnega[u].split(' '))
+            
             if gdat.boolsimusome:
-                gdat.boolreleposi = [[[] for v in gdat.indxtyperele] for u in gdat.indxtypeposi]
-                gdat.boolposirele = [[[] for v in gdat.indxtyperele] for u in gdat.indxtypeposi]
+                gdat.boolreleposi = [[[] for v in gdat.indxtypeclastrue] for u in gdat.indxtypeclasdisp]
+                gdat.boolposirele = [[[] for v in gdat.indxtypeclastrue] for u in gdat.indxtypeclasdisp]
         
             # output features of miletos
             gdat.dictstat = dict()
@@ -160,26 +179,29 @@ def mile_work(gdat, i):
                 gdat.listnamefeatstat += ['peripboxprim', 's2nrpboxprim']
             if dictmileoutp['boolsrchoutlperi']:
                 gdat.listnamefeatstat += ['minmfrddtimeoutlsort']
-                
-            for namefeat in gdat.listnamefeatstat:
-                gdat.dictstat[namefeat] = [np.empty(gdat.numbtarg), '']
+            
+            for u in gdat.indxtypeclasdisp:
+                gdat.dictstat[gdat.listnamepoplposi[u]] = dict()
+                for namefeat in gdat.listnamefeatstat:
+                    gdat.dictstat[gdat.listnamepoplposi[u]][namefeat] = [np.empty(gdat.numbtarg), '']
         
-        if dictmileoutp['boolcalclspe']:
-            gdat.dictstat['perilspeprim'][0][n] = dictmileoutp['perilspempow']
-            gdat.dictstat['powrlspeprim'][0][n] = dictmileoutp['powrlspempow']
-        if dictmileoutp['boolsrchboxsperi']:
-            gdat.dictstat['s2nrpboxprim'][0][n] = dictmileoutp['dictboxsperioutp']['s2nr'][0]
-            gdat.dictstat['peripboxprim'][0][n] = dictmileoutp['dictboxsperioutp']['peri'][0]
-        if dictmileoutp['boolsrchoutlperi']:
-            gdat.dictstat['minmfrddtimeoutlsort'][0][n] = dictmileoutp['dictoutlperi']['minmfrddtimeoutlsort'][0]
+        for u in gdat.indxtypeclasdisp:
+            if dictmileoutp['boolcalclspe']:
+                gdat.dictstat[gdat.listnamepoplposi[u]]['perilspeprim'][0][n] = dictmileoutp['perilspempow']
+                gdat.dictstat[gdat.listnamepoplposi[u]]['powrlspeprim'][0][n] = dictmileoutp['powrlspempow']
+            if dictmileoutp['boolsrchboxsperi']:
+                gdat.dictstat[gdat.listnamepoplposi[u]]['s2nrpboxprim'][0][n] = dictmileoutp['dictboxsperioutp']['s2nr'][0]
+                gdat.dictstat[gdat.listnamepoplposi[u]]['peripboxprim'][0][n] = dictmileoutp['dictboxsperioutp']['peri'][0]
+            if dictmileoutp['boolsrchoutlperi']:
+                gdat.dictstat[gdat.listnamepoplposi[u]]['minmfrddtimeoutlsort'][0][n] = dictmileoutp['dictoutlperi']['minmfrddtimeoutlsort'][0]
         
         # taking the fist element, which belongs to the first TCE
-        for u in gdat.indxtypeposi:
+        for u in gdat.indxtypeclasdisp:
             gdat.boolpositarg[u][n] = dictmileoutp['boolposianls'][u]
         
         if gdat.boolsimusome:
-            for u in gdat.indxtypeposi:
-                for v in gdat.indxtyperele:
+            for u in gdat.indxtypeclasdisp:
+                for v in gdat.indxtypeclastrue:
                     if gdat.boolreletarg[v][n]:
                         if gdat.boolpositarg[u][n]:
                             gdat.boolposirele[u][v].append(True)
@@ -432,8 +454,11 @@ def init( \
     gdat.numbdatatser = 2
     gdat.indxdatatser = np.arange(gdat.numbdatatser)
 
-    # maximum number of targets to plot
-    gdat.maxmnumbtargplot = 50
+    # number of targets for which to produce miletos plots
+    gdat.numbtargplot = 5
+
+    # number of targets for which to animate true system via ephesos
+    gdat.numbtarganimtrue = 0
 
     gdat.numbinst = np.empty(gdat.numbdatatser, dtype=int)
     gdat.indxinst = [[] for b in gdat.indxdatatser]
@@ -531,8 +556,8 @@ def init( \
     
         # number of relevant types
         gdat.numbtyperele = len(gdat.listlablrele)
-        gdat.indxtyperele = np.arange(gdat.numbtyperele)
-        gdat.boolreletarg = [np.empty(gdat.numbtarg, dtype=bool) for v in gdat.indxtyperele]
+        gdat.indxtypeclastrue = np.arange(gdat.numbtyperele)
+        gdat.boolreletarg = [np.empty(gdat.numbtarg, dtype=bool) for v in gdat.indxtypeclastrue]
     
     gdat.dictindxtarg = dict()
     gdat.dicttroy = dict()
@@ -799,7 +824,7 @@ def init( \
                      )
         
         # relevant targets
-        gdat.dictindxtarg['rele'] = [[] for v in gdat.indxtyperele]
+        gdat.dictindxtarg['rele'] = [[] for v in gdat.indxtypeclastrue]
         if gdat.typesyst == 'CompactObjectStellarCompanion':
             indx = np.where(np.isfinite(gdat.dicttroy['true']['StellarBinary']['dictpopl']['comp'][gdat.namepoplcomptran]['duratrantotl'][gdat.indxssyscosc]))
             gdat.dictindxtarg['cosctran'] = gdat.dictindxtarg['CompactObjectStellarCompanion'][indx]
@@ -815,8 +840,8 @@ def init( \
                     print('')
                     print('')
                     print('')
-                    print('gdat.indxtyperele')
-                    print(gdat.indxtyperele)
+                    print('gdat.indxtypeclastrue')
+                    print(gdat.indxtypeclastrue)
                     print('gdat.dictindxtarg[rele]')
                     print(gdat.dictindxtarg['rele'])
                     raise Exception('len(gdat.dictindxtarg[rele]) != 2')
@@ -831,13 +856,13 @@ def init( \
             raise Exception('')
         gdat.numbtargrele = np.empty(gdat.numbtyperele, dtype=int)
         
-        gdat.dictindxtarg['irre'] = [[] for v in gdat.indxtyperele]
-        for v in gdat.indxtyperele:
+        gdat.dictindxtarg['irre'] = [[] for v in gdat.indxtypeclastrue]
+        for v in gdat.indxtypeclastrue:
             gdat.dictindxtarg['irre'][v] = np.setdiff1d(gdat.indxtarg, gdat.dictindxtarg['rele'][v])
             gdat.numbtargrele[v] = gdat.dictindxtarg['rele'][v].size
         
-        gdat.indxssysrele = [[] for v in gdat.indxtyperele]
-        for v in gdat.indxtyperele:
+        gdat.indxssysrele = [[] for v in gdat.indxtypeclastrue]
+        for v in gdat.indxtypeclastrue:
             cntrssys = 0
             cntrrele = 0
             gdat.indxssysrele[v] = np.empty(gdat.numbtargrele[v], dtype=int)
@@ -910,83 +935,87 @@ def init( \
         temp = mile_work(gdat, 0)
     
     if gdat.boolsimusome:
-        for u in gdat.indxtypeposi:
-            for v in gdat.indxtyperele:
+        for u in gdat.indxtypeclasdisp:
+            for v in gdat.indxtypeclastrue:
                 gdat.boolposirele[u][v] = np.array(gdat.boolposirele[u][v], dtype=bool)
                 gdat.boolreleposi[u][v] = np.array(gdat.boolreleposi[u][v], dtype=bool)
     
-    gdat.dictindxtarg['posi'] = [[] for u in gdat.indxtypeposi]
-    gdat.dictindxtarg['nega'] = [[] for u in gdat.indxtypeposi]
-    for u in gdat.indxtypeposi:
+    gdat.dictindxtarg['posi'] = [[] for u in gdat.indxtypeclasdisp]
+    gdat.dictindxtarg['nega'] = [[] for u in gdat.indxtypeclasdisp]
+    for u in gdat.indxtypeclasdisp:
         gdat.dictindxtarg['posi'][u] = np.where(gdat.boolpositarg[u])[0]
         gdat.dictindxtarg['nega'][u] = np.setdiff1d(gdat.indxtarg, gdat.dictindxtarg['posi'][u])
     
     # for each positive and relevant type, estimate the recall and precision
-    gdat.indxtypeposiiter = np.concatenate((np.array([-1]), gdat.indxtypeposi))
-    if gdat.boolsimusome:
-        gdat.indxtypereleiter = np.concatenate((np.array([-1]), gdat.indxtyperele))
-    else:
-        gdat.indxtypereleiter = np.array([-1])
-    
-    print('gdat.indxtypeposiiter')
-    print(gdat.indxtypeposiiter)
-    print('gdat.indxtypereleiter')
-    print(gdat.indxtypereleiter)
 
-    for u in gdat.indxtypeposiiter:
-        for v in gdat.indxtypereleiter:
+    for u in gdat.indxtypeclasdisp:
+        for v in gdat.indxtypeclastrue:
             
-            if u == -1 and v == -1:
-                continue
-        
             if gdat.booldiag:
                 if v >= len(gdat.listlablrele):
                     print('')
                     print('')
                     print('')
-                    print('gdat.indxtypereleiter')
-                    print(gdat.indxtypereleiter)
+                    print('gdat.indxtypeclastrueiter')
+                    print(gdat.indxtypeclastrueiter)
                     print('v')
                     print(v)
                     print('gdat.listlablrele')
                     print(gdat.listlablrele)
                     raise Exception('v >= len(gdat.listlablrele)')
 
-            # for relevant type v
-            if u == -1:
-                strguuvv = 'v%d' % (v)
-                labluuvv = '(v = %d)' % (v)
-            # for positive type u
-            elif v == -1:
-                strguuvv = 'u%d' % (u)
-                labluuvv = '(u = %d)' % (u)
             # for positive type u and relevant type v
-            else:
-                strguuvv = 'u%dv%d' % (u, v)
-                labluuvv = '(u = %d, v = %d)' % (u, v)
+            strguuvv = 'u%dv%d' % (u, v)
+            labluuvv = '(u = %d, v = %d)' % (u, v)
 
             gdat.dictindxtargtemp = dict()
             gdat.dicttarg = dict()
 
-            if u == -1:
-                gdat.dictindxtargtemp[strguuvv + 're'] = gdat.dictindxtarg['rele'][v]
-                gdat.dictindxtargtemp[strguuvv + 'ir'] = gdat.dictindxtarg['irre'][v]
-            elif v == -1:
-                gdat.dictindxtargtemp[strguuvv + 'ne'] = gdat.dictindxtarg['nega'][u]
-                gdat.dictindxtargtemp[strguuvv + 'po'] = gdat.dictindxtarg['posi'][u]
-            else:
-                gdat.dictindxtargtemp[strguuvv + 'trpo'] = np.intersect1d(gdat.dictindxtarg['posi'][u], gdat.dictindxtarg['rele'][v])
-                gdat.dictindxtargtemp[strguuvv + 'trne'] = np.intersect1d(gdat.dictindxtarg['nega'][u], gdat.dictindxtarg['irre'][v])
-                gdat.dictindxtargtemp[strguuvv + 'flpo'] = np.intersect1d(gdat.dictindxtarg['posi'][u], gdat.dictindxtarg['irre'][v])
-                gdat.dictindxtargtemp[strguuvv + 'flne'] = np.intersect1d(gdat.dictindxtarg['nega'][u], gdat.dictindxtarg['rele'][v])
+            gdat.dictindxtargtemp[strguuvv + 're'] = gdat.dictindxtarg['rele'][v]
+            gdat.dictindxtargtemp[strguuvv + 'ir'] = gdat.dictindxtarg['irre'][v]
+            
+            gdat.dictindxtargtemp[strguuvv + 'ne'] = gdat.dictindxtarg['nega'][u]
+            gdat.dictindxtargtemp[strguuvv + 'po'] = gdat.dictindxtarg['posi'][u]
+            
+            gdat.dictindxtargtemp[strguuvv + 'trpo'] = np.intersect1d(gdat.dictindxtarg['posi'][u], gdat.dictindxtarg['rele'][v])
+            gdat.dictindxtargtemp[strguuvv + 'trne'] = np.intersect1d(gdat.dictindxtarg['nega'][u], gdat.dictindxtarg['irre'][v])
+            gdat.dictindxtargtemp[strguuvv + 'flpo'] = np.intersect1d(gdat.dictindxtarg['posi'][u], gdat.dictindxtarg['irre'][v])
+            gdat.dictindxtargtemp[strguuvv + 'flne'] = np.intersect1d(gdat.dictindxtarg['nega'][u], gdat.dictindxtarg['rele'][v])
+            
+            # determine positive population and negative populations for classification of targets based on disposition properties
+            if u == 0:
+                if gdat.typesyst == 'PlanetarySystem':
+                    namepoplclasdispposi = 'HighBLSpower'
+                    listnamepoplclasdispnega = ['LowBLSpower']
+
+            # determine relevant population and irrelevant populations for classification of targets based on true properties
+            if v == 0:
+                if gdat.typesyst == 'PlanetarySystem':
+                    namepoplclastruerele = ''
+                    listnamepoplclastrueirre = ['']
             
             for strgkeyy in gdat.dictindxtargtemp:
                 if len(gdat.dictindxtargtemp[strgkeyy]) > 0:
+                    
                     gdat.dicttarg[strgkeyy] = dict()
+                    
+                    # disposition features
+                    ## of the positive population
                     for namefeat in gdat.listnamefeatstat:
-                        tdpy.setp_dict(gdat.dicttarg[strgkeyy], namefeat, gdat.dictstat[namefeat][0][gdat.dictindxtargtemp[strgkeyy]])
-                    for namefeat in gdat.dictpopltrue.keys():
-                        tdpy.setp_dict(gdat.dicttarg[strgkeyy], namefeat, gdat.dictpopltrue[namefeat][0][gdat.dictindxtargtemp[strgkeyy]])
+                        tdpy.setp_dict(gdat.dicttarg[strgkeyy], namefeat, gdat.dictstat[namepoplclasdispposi][namefeat][0][gdat.dictindxtargtemp[strgkeyy]])
+                    ## of the negatives population
+                    for namepopl in listnamepoplclasdispnega:
+                        for namefeat in gdat.listnamefeatstat:
+                            tdpy.setp_dict(gdat.dicttarg[strgkeyy], namefeat, gdat.dictstat[namepopl][namefeat][0][gdat.dictindxtargtemp[strgkeyy]])
+
+                    # true features
+                    ## of the relevant population
+                    for namefeat in gdat.dictpopltrue[namepoplclastruerele].keys():
+                        tdpy.setp_dict(gdat.dicttarg[strgkeyy], namefeat, gdat.dictpopltrue[namepoplclastruerele][namefeat][0][gdat.dictindxtargtemp[strgkeyy]])
+                    ## of the irrelevant populations
+                    for namepopl in listnamepoplclastrueirre:
+                        for namefeat in gdat.dictpopltrue[namepopl].keys():
+                            tdpy.setp_dict(gdat.dicttarg[strgkeyy], namefeat, gdat.dictpopltrue[namepopl][namefeat][0][gdat.dictindxtargtemp[strgkeyy]])
             
             listdictlablcolrpopl = []
             listboolcompexcl = []
@@ -1006,8 +1035,8 @@ def init( \
             print(gdat.listlablposi)
             print('listdictlablcolrpopl')
             print(listdictlablcolrpopl)
-            print('gdat.indxtyperele')
-            print(gdat.indxtyperele)
+            print('gdat.indxtypeclastrue')
+            print(gdat.indxtypeclastrue)
             
             boolgood = False
             for namepoplcomm in listnamepoplcomm:
@@ -1109,7 +1138,7 @@ def init( \
                 
                 listtemp = []
                 for namefeat in gdat.listnamefeatstat:
-                    listtemp.append(gdat.dictstat[namefeat][0][gdat.dictindxtarg['posi'][u]])
+                    listtemp.append(gdat.dictstat[gdat.listnamepoplposi[u]][namefeat][0][gdat.dictindxtarg['posi'][u]])
                 listvarbprec = np.vstack(listtemp).T
                 #listvarbprec = np.vstack([gdat.lists2nr, gdat.listpowrlspe]).T
                 liststrgvarbprec = gdat.listnamefeatstat#['s2nr', 'powrlspe']
