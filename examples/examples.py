@@ -145,7 +145,7 @@ def cnfg_TESSGEO_WD( \
     
     dictmileinptglob = dict()
     dictmileinptglob['dictboxsperiinpt'] = dict()
-    #dictmileinptglob['dictboxsperiinpt']['factosam'] = 1.
+    dictmileinptglob['dictboxsperiinpt']['minmperi'] = 0.01
     
     dictmileinptglob['boolbdtr'] = [[False, False], []]
     dictmileinptglob['boolfitt'] = False
@@ -162,6 +162,8 @@ def cnfg_TESSGEO_WD( \
     dictpoplsystinpt = dict()
     dictpoplsystinpt['typestar'] = 'wdwf'
     dictpoplsystinpt['maxmnumbcompstar'] = 1
+    dictpoplsystinpt['maxmmasscomp'] = 2.
+    dictpoplsystinpt['maxmpericomp'] = 2.
     
     strgcnfg = 'TESSGEO_WD'
     
