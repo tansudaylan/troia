@@ -133,36 +133,26 @@ def mile_work(gdat, i):
                                     **gdat.dictmileinpttarg, \
                                    )
         if n == 0:
-            gdat.listlablposi = []
-            gdat.listlablnega = []
+            gdat.listlablclasdisp = []
             if dictmileoutp['boolcalclspe']:
-                gdat.listlablposi.append('High LS power')
-                gdat.listlablnega.append('Weak LS power')
+                gdat.listlablclasdisp.append('High LS power')
+                gdat.listlablclasdisp.append('Weak LS power')
             if dictmileoutp['boolsrchboxsperi']:
-                gdat.listlablposi.append('High BLS power')
-                gdat.listlablnega.append('Weak BLS power')
+                gdat.listlablclasdisp.append('High BLS power')
+                gdat.listlablclasdisp.append('Weak BLS power')
             if dictmileoutp['boolsrchoutlperi']:
-                gdat.listlablposi.append('Low min$_k$ $f_k$')
-                gdat.listlablnega.append('High min$_k$ $f_k$')
+                gdat.listlablclasdisp.append('Low min$_k$ $f_k$')
+                gdat.listlablclasdisp.append('High min$_k$ $f_k$')
             
-            if gdat.booldiag:
-                if len(gdat.listlablposi) != len(gdat.listlablnega):
-                    print('')
-                    print('')
-                    print('')
-                    raise Exception('len(gdat.listlablposi) != len(gdat.listlablnega)')
-            
-            gdat.numbtypeposi = len(gdat.listlablposi)
-            gdat.indxtypeclasdisp = np.arange(gdat.numbtypeposi)
+            gdat.numbtypeclasdisp = 1
+            gdat.indxtypeclasdisp = np.arange(gdat.numbtypeclasdisp)
             gdat.boolpositarg = [np.empty(gdat.numbtarg, dtype=bool) for u in gdat.indxtypeclasdisp]
             
             gdat.listnameclasdispposi = ''
             
-            gdat.listnamepoplposi = [[] for u in gdat.indxtypeclasdisp]
-            gdat.listnamepoplnega = [[] for u in gdat.indxtypeclasdisp]
+            gdat.listnameclasdisp = [[] for u in gdat.indxtypeclasdisp]
             for u in gdat.indxtypeclasdisp:
-                gdat.listnamepoplposi[u] = ''.join(gdat.listlablposi[u].split(' '))
-                gdat.listnamepoplnega[u] = ''.join(gdat.listlablnega[u].split(' '))
+                gdat.listnameclasdisp[u] = ''.join(gdat.listlablclasdisp[u].split(' '))
             
             if gdat.boolsimusome:
                 gdat.boolreleposi = [[[] for v in gdat.indxtypeclastrue] for u in gdat.indxtypeclasdisp]
@@ -181,19 +171,25 @@ def mile_work(gdat, i):
                 gdat.listnamefeatstat += ['minmfrddtimeoutlsort']
             
             for u in gdat.indxtypeclasdisp:
-                gdat.dictstat[gdat.listnamepoplposi[u]] = dict()
+                gdat.dictstat[gdat.listnameclasdisp[u]] = dict()
                 for namefeat in gdat.listnamefeatstat:
-                    gdat.dictstat[gdat.listnamepoplposi[u]][namefeat] = [np.empty(gdat.numbtarg), '']
+                    gdat.dictstat[gdat.listnameclasdisp[u]][namefeat] = [np.empty(gdat.numbtarg), '']
         
+        print('gdat.indxtypeclasdisp')
+        print(gdat.indxtypeclasdisp)
+        print('gdat.listnameclasdisp')
+        print(gdat.listnameclasdisp)
+        print('gdat.dictstat')
+        print(gdat.dictstat)
         for u in gdat.indxtypeclasdisp:
             if dictmileoutp['boolcalclspe']:
-                gdat.dictstat[gdat.listnamepoplposi[u]]['perilspeprim'][0][n] = dictmileoutp['perilspempow']
-                gdat.dictstat[gdat.listnamepoplposi[u]]['powrlspeprim'][0][n] = dictmileoutp['powrlspempow']
+                gdat.dictstat[gdat.listnameclasdisp[u]]['perilspeprim'][0][n] = dictmileoutp['perilspempow']
+                gdat.dictstat[gdat.listnameclasdisp[u]]['powrlspeprim'][0][n] = dictmileoutp['powrlspempow']
             if dictmileoutp['boolsrchboxsperi']:
-                gdat.dictstat[gdat.listnamepoplposi[u]]['s2nrpboxprim'][0][n] = dictmileoutp['dictboxsperioutp']['s2nr'][0]
-                gdat.dictstat[gdat.listnamepoplposi[u]]['peripboxprim'][0][n] = dictmileoutp['dictboxsperioutp']['peri'][0]
+                gdat.dictstat[gdat.listnameclasdisp[u]]['s2nrpboxprim'][0][n] = dictmileoutp['dictboxsperioutp']['s2nr'][0]
+                gdat.dictstat[gdat.listnameclasdisp[u]]['peripboxprim'][0][n] = dictmileoutp['dictboxsperioutp']['peri'][0]
             if dictmileoutp['boolsrchoutlperi']:
-                gdat.dictstat[gdat.listnamepoplposi[u]]['minmfrddtimeoutlsort'][0][n] = dictmileoutp['dictoutlperi']['minmfrddtimeoutlsort'][0]
+                gdat.dictstat[gdat.listnameclasdisp[u]]['minmfrddtimeoutlsort'][0][n] = dictmileoutp['dictoutlperi']['minmfrddtimeoutlsort'][0]
         
         # taking the fist element, which belongs to the first TCE
         for u in gdat.indxtypeclasdisp:
@@ -1031,8 +1027,8 @@ def init( \
             print(listnamepoplcomm)
             print('gdat.listlablrele')
             print(gdat.listlablrele)
-            print('gdat.listlablposi')
-            print(gdat.listlablposi)
+            print('gdat.listlablclasdisp')
+            print(gdat.listlablclasdisp)
             print('listdictlablcolrpopl')
             print(listdictlablcolrpopl)
             print('gdat.indxtypeclastrue')
@@ -1066,9 +1062,9 @@ def init( \
                 listtitlcomp.append(None)
             for namepoplcomm in listnamepoplcomm:
                 if strguuvv + 'po' in namepoplcomm:
-                    listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablposi[u], 'violet']
+                    listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablclasdisp[u], 'violet']
                 if strguuvv + 'ne' in namepoplcomm:
-                    listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablnega[u], 'brown']
+                    listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablclasdisp[u], 'brown']
             
             boolgood = False
             for namepoplcomm in listnamepoplcomm:
@@ -1086,13 +1082,13 @@ def init( \
                 listtitlcomp.append(None)
             for namepoplcomm in listnamepoplcomm:
                 if strguuvv + 'trpo' in namepoplcomm:
-                    listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablrele[v] + ', ' + gdat.listlablposi[u], 'green']
+                    listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablrele[v] + ', ' + gdat.listlablclasdisp[u], 'green']
                 if strguuvv + 'trne' in namepoplcomm:
-                    listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablirre[v] + ', ' + gdat.listlablnega[u], 'blue']
+                    listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablirre[v] + ', ' + gdat.listlablclasdisp[u], 'blue']
                 if strguuvv + 'flpo' in namepoplcomm:
-                    listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablirre[v] + ', ' + gdat.listlablposi[u], 'red']
+                    listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablirre[v] + ', ' + gdat.listlablclasdisp[u], 'red']
                 if strguuvv + 'flne' in namepoplcomm:
-                    listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablrele[v] + ', ' + gdat.listlablnega[u], 'orange']
+                    listdictlablcolrpopl[-1][namepoplcomm] = [gdat.listlablrele[v] + ', ' + gdat.listlablclasdisp[u], 'orange']
             
             typecnfg = '%s' % (gdat.strgextn)
             
@@ -1138,7 +1134,7 @@ def init( \
                 
                 listtemp = []
                 for namefeat in gdat.listnamefeatstat:
-                    listtemp.append(gdat.dictstat[gdat.listnamepoplposi[u]][namefeat][0][gdat.dictindxtarg['posi'][u]])
+                    listtemp.append(gdat.dictstat[gdat.listnameclasdisp[u]][namefeat][0][gdat.dictindxtarg['posi'][u]])
                 listvarbprec = np.vstack(listtemp).T
                 #listvarbprec = np.vstack([gdat.lists2nr, gdat.listpowrlspe]).T
                 liststrgvarbprec = gdat.listnamefeatstat#['s2nr', 'powrlspe']
