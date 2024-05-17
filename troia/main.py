@@ -1006,8 +1006,6 @@ def init( \
                     ## of the negatives population
                     for namepopl in listnamepoplclasdispnega:
                         for namefeat in gdat.listnamefeatstat:
-                            print('gdat.dictstat.keys()')
-                            print(gdat.dictstat.keys())
                             tdpy.setp_dict(gdat.dicttarg[strgkeyy], namefeat, gdat.dictstat[namepopl][namefeat][0][gdat.dictindxtargtemp[strgkeyy]])
 
                     # true features
