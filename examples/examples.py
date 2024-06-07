@@ -179,6 +179,20 @@ def cnfg_TESSGEO_PlanetPlanet():
               )
 
 
+def cnfg_TOI_multis():
+
+    dictfitt = dict()
+    dictfitt['typemodl'] = 'PlanetarySystem'
+    
+    for strgmast in ['TOI-270', 'TOI-700', 'TOI-1233', 'TOI-1339']:
+        
+        miletos.main.init( \
+                       strgmast=strgmast, \
+                       dictfitt=dictfitt, \
+                       strgclus='TOI_multis', \
+                      )
+
+
 def cnfg_TESSGEO_WD( \
                     typesyst='PlanetarySystem', \
                     listlablinst=[['TESS-GEO-UV', 'TESS-GEO-VIS'], []], \
