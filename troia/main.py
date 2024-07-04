@@ -136,15 +136,15 @@ def mile_work(gdat, i):
             gdat.listlablclasdisp = []
             if dictmileoutp['boolcalclspe']:
                 gdat.listlablclasdisp.append('High LS power')
-                gdat.listlablclasdisp.append('Weak LS power')
+                gdat.listlablclasdisp.append('Low LS power')
             if dictmileoutp['boolsrchboxsperi']:
                 gdat.listlablclasdisp.append('High BLS power')
-                gdat.listlablclasdisp.append('Weak BLS power')
+                gdat.listlablclasdisp.append('Low BLS power')
             if dictmileoutp['boolsrchoutlperi']:
                 gdat.listlablclasdisp.append('Low min$_k$ $f_k$')
                 gdat.listlablclasdisp.append('High min$_k$ $f_k$')
             
-            gdat.numbtypeclasdisp = 1
+            gdat.numbtypeclasdisp = len(gdat.listlablclasdisp)
             gdat.indxtypeclasdisp = np.arange(gdat.numbtypeclasdisp)
             gdat.boolpositarg = [np.empty(gdat.numbtarg, dtype=bool) for u in gdat.indxtypeclasdisp]
             
@@ -582,7 +582,10 @@ def init( \
         
         # names of simulated classes of systems
         gdat.listnameclastype = list(gdat.dictprobtypetrue.keys())
-        
+        gdat.listnameclastype = []
+        for name in gdat.dictprobtypetrue.keys[]:
+            gdat.listnameclastype += ['%s_%s' % (name, gdat.typepopl, 'Transiting')]
+            gdat.listnameclastype += [name + 'Transiting']
         # number of simulated classes
         gdat.numbtypetrue = len(gdat.listnameclastype)
         indxtypetrue = np.arange(gdat.numbtypetrue)
@@ -648,8 +651,15 @@ def init( \
             gdat.dictindxtarg['Asteroid'] = gdat.indxtypetruetarg[2]
             
         elif gdat.typesyst == 'PlanetarySystem':
-            gdat.dictindxtarg['PlanetarySystem'] = np.arange(gdat.numbtarg)
-            gdat.dictindxtarg['StellarBinary'] = np.arange(gdat.numbtarg)
+            gdat.numbsystplan = 100
+            gdat.numbsystsbin = 50
+            indxsystplan = np.arange(gdat.numbsystplan)
+            indxsystsbin = np.arange(gdat.numbsystsbin) + gdat.numbsystplan
+            indxsystplantran = np.arange(gdat.numbsystplan)
+            indxsystplanntrn = np.setdiff1d(indxsystplan, indxsystplantran)
+            gdat.dictindxtarg['PlanetarySystem_SyntheticPopulation_Transiting'] = indxsystplantran
+            gdat.dictindxtarg['PlanetarySystem_SyntheticPopulation_Nontransiting'] = indxsystplanntrn
+            gdat.dictindxtarg['StellarBinary'] = indxsystplantran
             
         print('gdat.numbtargtype')
         for name in gdat.listnameclastype:
@@ -843,7 +853,8 @@ def init( \
                     raise Exception('len(gdat.dictindxtarg[rele]) != 2')
             
             # relevants are Planetary Systems
-            gdat.dictindxtarg['rele'][0] = gdat.dictindxtarg['PlanetarySystem']
+            gdat.dictindxtarg['rele'][0] = gdat.dictindxtarg['PlanetarySystem_SyntheticPopulation_Transiting']
+            gdat.dictindxtarg['irre'][0] = gdat.dictindxtarg['PlanetarySystem_SyntheticPopulation_Nontransiting']
         
         elif gdat.typesyst == 'StarFlaring':
             #indx = np.where(np.isfinite(gdat.dicttroy['true']['StarFlaring']['dictpopl']['flar'][gdat.namepoplcomptran]['duratrantotl'][gdat.indxssyscosc]))
@@ -987,8 +998,9 @@ def init( \
             # determine relevant population and irrelevant populations for classification of targets based on true properties
             if v == 0:
                 if gdat.typesyst == 'PlanetarySystem':
-                    namepoplclastruerele = ''
-                    listnamepoplclastrueirre = ['']
+                    dict_keys(['PlanetarySystem_SyntheticPopulation_All', 'PlanetarySystem_SyntheticPopulation_Transiting'])
+                    namepoplclastruerele = 'PlanetarySystem_SyntheticPopulation_Transiting'
+                    listnamepoplclastrueirre = ['PlanetarySystem_SyntheticPopulation_Nontransiting']
             
             for strgkeyy in gdat.dictindxtargtemp:
                 if len(gdat.dictindxtargtemp[strgkeyy]) > 0:
@@ -1002,10 +1014,23 @@ def init( \
                     ## of the negatives population
                     for namepopl in listnamepoplclasdispnega:
                         for namefeat in gdat.listnamefeatstat:
+                            if gdat.booldiag:
+                                if not namepopl in gdat.dictstat:
+                                    print('')
+                                    print('')
+                                    print('')
+                                    print('gdat.dictstat.keys()')
+                                    print(gdat.dictstat.keys())
+                                    print('namepopl')
+                                    print(namepopl)
+                                    raise Exception('not namepopl in gdat.dictstat')
+
                             tdpy.setp_dict(gdat.dicttarg[strgkeyy], namefeat, gdat.dictstat[namepopl][namefeat][0][gdat.dictindxtargtemp[strgkeyy]])
 
                     # true features
                     ## of the relevant population
+                    print('gdat.dictpopltrue')
+                    print(gdat.dictpopltrue.keys())
                     for namefeat in gdat.dictpopltrue[namepoplclastruerele].keys():
                         tdpy.setp_dict(gdat.dicttarg[strgkeyy], namefeat, gdat.dictpopltrue[namepoplclastruerele][namefeat][0][gdat.dictindxtargtemp[strgkeyy]])
                     ## of the irrelevant populations

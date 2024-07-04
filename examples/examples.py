@@ -304,6 +304,7 @@ def cnfg_LSST_PlanetarySystem():
     dictmileinptglob = dict()
     dictmileinptglob['typepriocomp'] = 'outlperi'
     #dictmileinptglob['dictboxsperiinpt']['factosam'] = 0.1
+    dictmileinptglob['boolfitt'] = False
     
     troia.init( \
                typesyst='PlanetarySystem', \
