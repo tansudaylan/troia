@@ -562,16 +562,16 @@ def init( \
         
         listcolrtypetrue = np.array(['g', 'b', 'orange', 'olive', 'yellow'])
         
-        gdat.dictprobtypetrue = dict()
+        gdat.dictprobclastruetype = dict()
         if gdat.typesyst == 'CompactObjectStellarCompanion':
-            gdat.dictprobtypetrue['CompactObjectStellarCompanion'] = [0.70, 'Compact object with Stellar Companion']
-            gdat.dictprobtypetrue['StellarBinary'] = [0.25, 'Stellar Binary']
-            gdat.dictprobtypetrue['Asteroid'] = [0.05, 'Asteroid']
+            gdat.dictprobclastruetype['CompactObjectStellarCompanion'] = [0.70, 'Compact object with Stellar Companion']
+            gdat.dictprobclastruetype['StellarBinary'] = [0.25, 'Stellar Binary']
+            gdat.dictprobclastruetype['Asteroid'] = [0.05, 'Asteroid']
         elif gdat.typesyst == 'PlanetarySystem':
-            gdat.dictprobtypetrue['PlanetarySystem'] = [0.75, 'Planetary System']
-            gdat.dictprobtypetrue['StellarBinary'] = [0.25, 'Stellar Binary']
+            gdat.dictprobclastruetype['PlanetarySystem'] = [0.75, 'Planetary System']
+            gdat.dictprobclastruetype['StellarBinary'] = [0.25, 'Stellar Binary']
         elif gdat.typesyst == 'StarFlaring':
-            gdat.dictprobtypetrue['StellarFlare'] = [1., 'Stellar binary']
+            gdat.dictprobclastruetype['StellarFlare'] = [1., 'Stellar binary']
         else:
             print('')
             print('')
@@ -580,22 +580,28 @@ def init( \
             print(gdat.typesyst)
             raise Exception('')
         
-        # names of simulated classes of systems
-        gdat.listnameclastype = list(gdat.dictprobtypetrue.keys())
+        # names of classes of systems to be simulated
+        gdat.listnameclastruetype = list(gdat.dictprobclastruetype.keys())
+        
+        gdat.probclastruetype = np.empty(gdat.numbtypetrue)
+        for k, name in enumerate(gdat.listnameclastruetype):
+            gdat.probclastruetype[k] = gdat.dictprobclastruetype[name][0]
+        
+        # names of classes of systems to be simulated that separately counts transiting vs not
         gdat.listnameclastype = []
-        for name in gdat.dictprobtypetrue.keys[]:
-            gdat.listnameclastype += ['%s_%s' % (name, gdat.typepopl, 'Transiting')]
-            gdat.listnameclastype += [name + 'Transiting']
+        for name in gdat.listnameclastruetype:
+            gdat.listnameclastype += ['%s' % name]
+            gdat.listnameclastype += ['%s_Transiting' % name]
+        
         # number of simulated classes
         gdat.numbtypetrue = len(gdat.listnameclastype)
         indxtypetrue = np.arange(gdat.numbtypetrue)
         
         # probabilities of simulated classes
-        gdat.probtypetrue = np.empty(gdat.numbtypetrue)
+        gdat.probclastrue = np.empty(gdat.numbtypetrue)
         gdat.listlabltypetrue = [[] for k in indxtypetrue]
-        for k, name in enumerate(gdat.listnameclastype):
-            gdat.probtypetrue[k] = gdat.dictprobtypetrue[name][0]
-            gdat.listlabltypetrue[k] = gdat.dictprobtypetrue[name][1]
+        for k, name in enumerate(gdat.listnametruetype):
+            gdat.listlabltypetrue[k] = gdat.dictprobclastruetype[name][1]
 
         listcolrtypetrue = listcolrtypetrue[indxtypetrue]
         
@@ -634,7 +640,7 @@ def init( \
         gdat.numbtypetrue = len(gdat.listnameclastype)
         gdat.indxtypetrue = np.arange(gdat.numbtypetrue)
         
-        gdat.typetruetarg = np.random.choice(gdat.indxtypetrue, size=gdat.numbtarg, p=gdat.probtypetrue)
+        gdat.typetruetarg = np.random.choice(gdat.indxtypetrue, size=gdat.numbtarg, p=gdat.probclastruetype)
             
         gdat.indxtypetruetarg = [[] for r in gdat.indxtypetrue]
         for r in gdat.indxtypetrue:
