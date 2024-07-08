@@ -45,7 +45,7 @@ def mile_work(gdat, i):
     for n in gdat.listindxtarg[i]:
         
         if gdat.boolsimusome:
-            for v in gdat.indxclastrue:
+            for v in gdat.indxtypeclastrue:
                 if n in gdat.dictindxtarg['rele'][v]:
                     gdat.boolreletarg[v][n] = True
                 else:
@@ -155,8 +155,8 @@ def mile_work(gdat, i):
                 gdat.listnameclasdisp[u] = ''.join(gdat.listlablclasdisp[u].split(' '))
             
             if gdat.boolsimusome:
-                gdat.boolreleposi = [[[] for v in gdat.indxclastrue] for u in gdat.indxtypeclasdisp]
-                gdat.boolposirele = [[[] for v in gdat.indxclastrue] for u in gdat.indxtypeclasdisp]
+                gdat.boolreleposi = [[[] for v in gdat.indxtypeclastrue] for u in gdat.indxtypeclasdisp]
+                gdat.boolposirele = [[[] for v in gdat.indxtypeclastrue] for u in gdat.indxtypeclasdisp]
         
             # output features of miletos
             gdat.dictstat = dict()
@@ -197,7 +197,7 @@ def mile_work(gdat, i):
         
         if gdat.boolsimusome:
             for u in gdat.indxtypeclasdisp:
-                for v in gdat.indxclastrue:
+                for v in gdat.indxtypeclastrue:
                     if gdat.boolreletarg[v][n]:
                         if gdat.boolpositarg[u][n]:
                             gdat.boolposirele[u][v].append(True)
@@ -552,8 +552,8 @@ def init( \
     
         # number of relevant types
         gdat.numbtyperele = len(gdat.listlablrele)
-        gdat.indxclastrue = np.arange(gdat.numbtyperele)
-        gdat.boolreletarg = [np.empty(gdat.numbtarg, dtype=bool) for v in gdat.indxclastrue]
+        gdat.indxtypeclastrue = np.arange(gdat.numbtyperele)
+        gdat.boolreletarg = [np.empty(gdat.numbtarg, dtype=bool) for v in gdat.indxtypeclastrue]
     
     gdat.dictindxtarg = dict()
     gdat.dicttroy = dict()
@@ -587,9 +587,6 @@ def init( \
         else:
             strglimb = 'comp'
         
-        # temp -- downstream required compstar -> star. To be fixed latwr
-        strglimb = ''
-
         gdat.namepoplcomptotl = '%sstar_%s_All' % (strglimb, gdat.typepopl)
         gdat.namepoplcomptran = '%sstar_%s_Transiting' % (strglimb, gdat.typepopl)
         
@@ -639,15 +636,8 @@ def init( \
         else:
             raise Exception('')
 
-        gdat.numbclastrue = len(gdat.listnameclastrue)
-        gdat.indxclastrue = np.arange(gdat.numbclastrue)
-        
         gdat.indxclastruetypetarg = np.random.choice(gdat.indxclastruetype, size=gdat.numbtarg, p=gdat.probclastruetype)
             
-        gdat.indxtargclastrue = [[] for r in gdat.indxclastrue]
-        for r in gdat.indxclastrue:
-            gdat.indxtargclastrue[r] = np.where(gdat.indxclastruetypetarg == r)[0]
-        
         #gdat.booltypetargtrue = dict()
         
         if gdat.dictpoplsystinpt is None:
@@ -673,12 +663,18 @@ def init( \
             
             gdat.dictindxtarg[nameclastruetype] = indxoffs + np.arange(gdat.dictnumbtarg[nameclastruetype])
             gdat.dictindxtarg[nameclastruetypetran] = indxoffs + \
-                                        np.where(gdat.dicttroy['true'][nameclastruetype]['dictpopl']['star'][gdat.namepoplcomptotl]['booltran'])[0]
+                                        np.where(gdat.dicttroy['true'][nameclastruetype]['dictpopl']['star'][gdat.namepoplstartotl]['booltran'])[0]
             gdat.dictindxtarg[nameclastruetypentrn] = np.setdiff1d(gdat.dictindxtarg[nameclastruetype], gdat.dictindxtarg[nameclastruetypetran])
             indxoffs += gdat.dictindxtarg[nameclastruetype].size
         
+            gdat.indxclastruetypetarg = np.where(gdat.dictindxtarg)
+            
             # to be deleted?
             #gdat.booltypetargtrue[nameclastruetype] = gdat.indxtarg == gdat.dictindxtarg[nameclastruetype]
+            
+            gdat.nameclastruetypetarg[nameclastruetype] = gdat.listnameclastruetype[gdat.indxclastruetypetarg]
+            
+            gdat.indxtarg == gdat.dictindxtarg[nameclastruetype]
 
         gdat.numbtargclastrue = dict()
         for name in gdat.listnameclastrue:
@@ -799,7 +795,8 @@ def init( \
                      )
         
         # relevant targets
-        gdat.dictindxtarg['rele'] = [[] for v in gdat.indxclastrue]
+        gdat.dictindxtarg['rele'] = [[] for v in gdat.indxtypeclastrue]
+        gdat.dictindxtarg['irre'] = [[] for v in gdat.indxtypeclastrue]
         if gdat.typesyst == 'CompactObjectStellarCompanion':
             indx = np.where(np.isfinite(gdat.dicttroy['true']['StellarBinary']['dictpopl']['comp'][gdat.namepoplcomptran]['duratrantotl'][gdat.indxssyscosc]))
             gdat.dictindxtarg['cosctran'] = gdat.dictindxtarg['CompactObjectStellarCompanion'][indx]
@@ -815,15 +812,15 @@ def init( \
                     print('')
                     print('')
                     print('')
-                    print('gdat.indxclastrue')
-                    print(gdat.indxclastrue)
+                    print('gdat.indxtypeclastrue')
+                    print(gdat.indxtypeclastrue)
                     print('gdat.dictindxtarg[rele]')
                     print(gdat.dictindxtarg['rele'])
                     raise Exception('len(gdat.dictindxtarg[rele]) != 2')
             
             # relevants are Planetary Systems
-            gdat.dictindxtarg['rele'][0] = gdat.dictindxtarg['PlanetarySystem_SyntheticPopulation_Transiting']
-            gdat.dictindxtarg['irre'][0] = gdat.dictindxtarg['PlanetarySystem_SyntheticPopulation_Nontransiting']
+            gdat.dictindxtarg['rele'][0] = gdat.dictindxtarg['PlanetarySystem_Transiting']
+            gdat.dictindxtarg['irre'][0] = gdat.dictindxtarg['PlanetarySystem_Nontransiting']
         
         elif gdat.typesyst == 'StarFlaring':
             #indx = np.where(np.isfinite(gdat.dicttroy['true']['StarFlaring']['dictpopl']['flar'][gdat.namepoplcomptran]['duratrantotl'][gdat.indxssyscosc]))
@@ -832,13 +829,23 @@ def init( \
             raise Exception('')
         gdat.numbtargrele = np.empty(gdat.numbtyperele, dtype=int)
         
-        gdat.dictindxtarg['irre'] = [[] for v in gdat.indxclastrue]
-        for v in gdat.indxclastrue:
+        gdat.dictindxtarg['irre'] = [[] for v in gdat.indxtypeclastrue]
+        for v in gdat.indxtypeclastrue:
             gdat.dictindxtarg['irre'][v] = np.setdiff1d(gdat.indxtarg, gdat.dictindxtarg['rele'][v])
+            
+            print('gdat.dictindxtarg[irre][v]')
+            print(gdat.dictindxtarg['irre'][v])
+
+            # in case it's empty
+            gdat.dictindxtarg['irre'][v] = np.array(gdat.dictindxtarg['irre'][v])
+
+            print('gdat.dictindxtarg[irre][v]')
+            print(gdat.dictindxtarg['irre'][v])
+
             gdat.numbtargrele[v] = gdat.dictindxtarg['rele'][v].size
         
-        gdat.indxssysrele = [[] for v in gdat.indxclastrue]
-        for v in gdat.indxclastrue:
+        gdat.indxssysrele = [[] for v in gdat.indxtypeclastrue]
+        for v in gdat.indxtypeclastrue:
             cntrssys = 0
             cntrrele = 0
             gdat.indxssysrele[v] = np.empty(gdat.numbtargrele[v], dtype=int)
@@ -912,7 +919,7 @@ def init( \
     
     if gdat.boolsimusome:
         for u in gdat.indxtypeclasdisp:
-            for v in gdat.indxclastrue:
+            for v in gdat.indxtypeclastrue:
                 gdat.boolposirele[u][v] = np.array(gdat.boolposirele[u][v], dtype=bool)
                 gdat.boolreleposi[u][v] = np.array(gdat.boolreleposi[u][v], dtype=bool)
     
@@ -925,15 +932,15 @@ def init( \
     # for each positive and relevant type, estimate the recall and precision
 
     for u in gdat.indxtypeclasdisp:
-        for v in gdat.indxclastrue:
+        for v in gdat.indxtypeclastrue:
             
             if gdat.booldiag:
                 if v >= len(gdat.listlablrele):
                     print('')
                     print('')
                     print('')
-                    print('gdat.indxclastrueiter')
-                    print(gdat.indxclastrueiter)
+                    print('gdat.indxtypeclastrueiter')
+                    print(gdat.indxtypeclastrueiter)
                     print('v')
                     print(v)
                     print('gdat.listlablrele')
@@ -1025,8 +1032,8 @@ def init( \
             print(gdat.listlablclasdisp)
             print('listdictlablcolrpopl')
             print(listdictlablcolrpopl)
-            print('gdat.indxclastrue')
-            print(gdat.indxclastrue)
+            print('gdat.indxtypeclastrue')
+            print(gdat.indxtypeclastrue)
             
             boolgood = False
             for namepoplcomm in listnamepoplcomm:
