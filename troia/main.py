@@ -118,6 +118,14 @@ def mile_work(gdat, i):
             for namepara in gdat.dicttroy['true']['PlanetarySystem']['listnamefeatbody']:
                 dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['star'][gdat.namepoplstartotl][namepara][0][n]
             for namepara in gdat.dicttroy['true']['PlanetarySystem']['listnamefeatlimbonly']:
+                
+                print('gdat.listindxtarg[i]')
+                summgene(gdat.listindxtarg[i])
+                print('n')
+                print(n)
+                print('gdat.indxcompsyst')
+                summgene(gdat.indxcompsyst)
+
                 dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['comp'][gdat.namepoplcomptotl][namepara][0][gdat.indxcompsyst[n]]
             
             gdat.dictmileinpttarg['dicttrue'] = dicttrue
@@ -560,8 +568,6 @@ def init( \
     
     if gdat.boolsimusome:
         
-        listcolrclastrue = np.array(['g', 'b', 'orange', 'olive', 'yellow'])
-        
         gdat.dictprobclastruetype = dict()
         if gdat.typesyst == 'CompactObjectStellarCompanion':
             gdat.dictprobclastruetype['CompactObjectStellarCompanion'] = [0.70, 'Compact object with Stellar Companion']
@@ -610,6 +616,11 @@ def init( \
             gdat.listnameclastrue += ['%s_Transiting' % name]
             gdat.listlablclastrue += [gdat.dictprobclastruetype[name][1] + ', Transiting']
         
+        gdat.listcolrclastrue = np.array(['g', 'b', 'r', 'orange', 'olive', 'yellow'])
+        
+        if len(gdat.listlablclastrue) > len(gdat.listcolrclastrue):
+            raise Exception('')
+
         # number of simulated classes
         gdat.numbclastrue = len(gdat.listnameclastrue)
         gdat.indxclastrue = np.arange(gdat.numbclastrue)
@@ -617,7 +628,7 @@ def init( \
         # probabilities of simulated classes
         gdat.probclastrue = np.empty(gdat.numbclastrue)
 
-        listcolrclastrue = listcolrclastrue[gdat.indxclastrue]
+        gdat.listcolrclastrue = gdat.listcolrclastrue[gdat.indxclastrue]
         
         listdictlablcolrpopl = []
         
@@ -663,19 +674,15 @@ def init( \
             
             gdat.dictindxtarg[nameclastruetype] = indxoffs + np.arange(gdat.dictnumbtarg[nameclastruetype])
             gdat.dictindxtarg[nameclastruetypetran] = indxoffs + \
-                                        np.where(gdat.dicttroy['true'][nameclastruetype]['dictpopl']['star'][gdat.namepoplstartotl]['booltran'])[0]
+                                        np.where(gdat.dicttroy['true'][nameclastruetype]['dictpopl']['star'][gdat.namepoplstartotl]['booltran'][0])[0]
             gdat.dictindxtarg[nameclastruetypentrn] = np.setdiff1d(gdat.dictindxtarg[nameclastruetype], gdat.dictindxtarg[nameclastruetypetran])
             indxoffs += gdat.dictindxtarg[nameclastruetype].size
         
-            gdat.indxclastruetypetarg = np.where(gdat.dictindxtarg)
             
             # to be deleted?
             #gdat.booltypetargtrue[nameclastruetype] = gdat.indxtarg == gdat.dictindxtarg[nameclastruetype]
+            #gdat.nameclastruetypetarg[nameclastruetype] = gdat.listnameclastruetype[gdat.indxclastruetypetarg]
             
-            gdat.nameclastruetypetarg[nameclastruetype] = gdat.listnameclastruetype[gdat.indxclastruetypetarg]
-            
-            gdat.indxtarg == gdat.dictindxtarg[nameclastruetype]
-
         gdat.numbtargclastrue = dict()
         for name in gdat.listnameclastrue:
             gdat.numbtargclastrue[name] = gdat.dictindxtarg[name].size
