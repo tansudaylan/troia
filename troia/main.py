@@ -89,7 +89,7 @@ def mile_work(gdat, i):
             
             # determine whether to make ephesos plots of the simulated data
             if gdat.boolsimusome:
-                gdat.dictmileinpttarg['boolplotefestrue'] = True
+                gdat.dictmileinpttarg['boolmakeplotefestrue'] = True
         else:
             gdat.dictmileinpttarg['boolplot'] = False
         
