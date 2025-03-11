@@ -137,9 +137,14 @@ def mile_work(gdat, i):
         
         # call miletos to analyze data
         print('Calling miletos...')
-        dictmileoutp = miletos.init( \
-                                    **gdat.dictmileinpttarg, \
-                                   )
+        print('temp')
+        #dictmileoutp = miletos.init( \
+        #                            **gdat.dictmileinpttarg, \
+        #                           )
+        dictmileoutp['boolcalclspe'] = False
+        dictmileoutp['boolsrchboxsperi'] = False
+        dictmileoutp['boolsrchoutlperi'] = True
+
         if n == 0:
             gdat.listlablclasdisp = []
             if dictmileoutp['boolcalclspe']:
