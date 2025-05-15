@@ -80,7 +80,14 @@ def mile_work(gdat, i):
                 toiitarg = gdat.listtoiitarg[n]
                 labltarg = None
                 strgtarg = None
-        
+            else:
+                print('')
+                print('')
+                print('')
+                print('gdat.typepopl')
+                print(gdat.typepopl)
+                raise Exception('gdat.typepopl is inappropriate.')
+
         gdat.dictmileinpttarg = copy.deepcopy(gdat.dictmileinptglob)
 
         if n < gdat.numbtargplot:
@@ -887,8 +894,10 @@ def init( \
     gdat.dictmileinptglob['listlablinst'] = gdat.listlablinst
     dictfitt = dict()
     dictfitt['typemodl'] = gdat.typesyst
+    
+    ## type of lens model evaluation for ephesos
     if gdat.typesyst == 'CompactObjectStellarCompanion':
-        dictfitt['typemodllens'] = gdat.typemodllens
+        dictfitt['typemodllens'] = 'Gaussian'
     else:
         dictfitt['typemodllens'] = None
         
