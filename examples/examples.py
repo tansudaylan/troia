@@ -1,4 +1,5 @@
 import sys, os
+import argparse
 
 import numpy as np
 
@@ -343,4 +344,22 @@ def cnfg_cycle3_G03254():
               )
 
 
-globals().get(sys.argv[1])(*sys.argv[2:])
+def main():
+    """Parse command-line arguments and execute the requested configuration."""
+
+    funcs = {
+        name: obj
+        for name, obj in globals().items()
+        if callable(obj) and name.startswith('cnfg_')
+    }
+
+    parser = argparse.ArgumentParser(description='Run troia example configuration')
+    parser.add_argument('config', choices=sorted(funcs), help='Configuration function to run')
+    parser.add_argument('func_args', nargs='*', help='Arguments for the configuration function')
+    args = parser.parse_args()
+
+    funcs[args.config](*args.func_args)
+
+
+if __name__ == '__main__':
+    main()

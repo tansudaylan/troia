@@ -1,8 +1,13 @@
 import os, sys, datetime, copy
 
+import logging
+
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
+
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import scipy.interpolate
@@ -15,19 +20,65 @@ import pergamon
 import nicomedia
 import chalcedon
 
+logger = logging.getLogger(__name__)
 
-def retr_dictderi_effe(para, gdat):
-    
-    radistar = para[0]
-    peri = para[1]
-    masscomp = para[2]
-    massstar = para[3]
+
+@dataclass
+class TroiaConfig:
+    """Configuration container for :func:`init`.
+
+    The previous implementation passed a very long list of keyword arguments to
+    :func:`init`.  This data class groups the configuration in a structured
+    object, improving readability and maintainability.  All fields mirror the
+    original keyword arguments and remain optional to preserve backwards
+    compatibility.
+    """
+
+    typesyst: str = ''
+    strgcnfg: Optional[str] = None
+    typepopl: Optional[str] = None
+    listticitarg: Optional[List[int]] = None
+    listtoiitarg: Optional[List[int]] = None
+    listlablinst: Optional[List[List[str]]] = None
+    liststrgtypedata: Optional[List[List[str]]] = None
+    listgaid: Optional[List[int]] = None
+    boolprocmult: bool = False
+    pathbase: Optional[str] = None
+    dictmileinptglob: Dict[str, Any] = field(default_factory=dict)
+    boolplot: bool = True
+    boolplotinit: Optional[bool] = None
+    boolplotmile: Optional[bool] = None
+    dictpoplsystinpt: Optional[Dict[str, Any]] = None
+    booldiag: bool = True
+    boolwritover: bool = True
+    typeverb: int = 1
+
+
+def init_from_config(config: TroiaConfig):
+    """Convenience wrapper around :func:`init` using a :class:`TroiaConfig`.
+
+    This helper reduces the need to pass dozens of keyword arguments by hand and
+    provides a structured entry point for future extensions.
+    """
+
+    return init(**vars(config))
+
+def retr_dictderi_effe(para, gdat, incl=np.pi / 2):
+    """Return derived parameters of self-lensing events.
+
+    The inclination value is required for transit duration calculations.  The
+    original implementation relied on an ``incl`` variable defined in the outer
+    scope, which could raise ``NameError`` at runtime.  The inclination is now
+    passed explicitly and defaults to an edge-on orbit (``pi/2`` radians).
+    """
+
+    radistar, peri, masscomp, massstar = para[:4]
     masstotl = massstar + masscomp
 
     amplslenmodl = chalcedon.retr_amplslen(peri, radistar, masscomp, massstar)
     duratrantotlmodl = ephesos.retr_duratrantotl(peri, radistar, masscomp, massstar, incl)
-    smax = ephesos.retr_smaxkepl(peri, masstotl) * 215. # [R_S]
-    radischw = 4.24e-6 * masscomp # [R_S]
+    smax = ephesos.retr_smaxkepl(peri, masstotl) * 215.  # [R_S]
+    radischw = 4.24e-6 * masscomp  # [R_S]
 
     dictvarbderi = None
 
@@ -81,11 +132,11 @@ def mile_work(gdat, i):
                 labltarg = None
                 strgtarg = None
             else:
-                print('')
-                print('')
-                print('')
-                print('gdat.typepopl')
-                print(gdat.typepopl)
+                logger.debug('')
+                logger.debug('')
+                logger.debug('')
+                logger.debug('gdat.typepopl')
+                logger.debug(gdat.typepopl)
                 raise Exception('gdat.typepopl is inappropriate.')
 
         gdat.dictmileinpttarg = copy.deepcopy(gdat.dictmileinptglob)
@@ -126,11 +177,11 @@ def mile_work(gdat, i):
                 dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['star'][gdat.namepoplstartotl][namepara][0][n]
             for namepara in gdat.dicttroy['true']['PlanetarySystem']['listnamefeatlimbonly']:
                 
-                print('gdat.listindxtarg[i]')
+                logger.debug('gdat.listindxtarg[i]')
                 summgene(gdat.listindxtarg[i])
-                print('n')
-                print(n)
-                print('gdat.indxcompsyst')
+                logger.debug('n')
+                logger.debug(n)
+                logger.debug('gdat.indxcompsyst')
                 summgene(gdat.indxcompsyst)
 
                 dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['comp'][gdat.namepoplcomptotl][namepara][0][gdat.indxcompsyst[n]]
@@ -143,8 +194,8 @@ def mile_work(gdat, i):
             gdat.dictmileinpttarg['dictmagtsyst'] = dictmagtsyst
         
         # call miletos to analyze data
-        print('Calling miletos...')
-        print('temp')
+        logger.debug('Calling miletos...')
+        logger.debug('temp')
         #dictmileoutp = miletos.init( \
         #                            **gdat.dictmileinpttarg, \
         #                           )
@@ -195,12 +246,12 @@ def mile_work(gdat, i):
                 for namefeat in gdat.listnamefeatstat:
                     gdat.dictstat[gdat.listnameclasdisp[u]][namefeat] = [np.empty(gdat.numbtarg), '']
         
-        print('gdat.indxtypeclasdisp')
-        print(gdat.indxtypeclasdisp)
-        print('gdat.listnameclasdisp')
-        print(gdat.listnameclasdisp)
-        print('gdat.dictstat')
-        print(gdat.dictstat)
+        logger.debug('gdat.indxtypeclasdisp')
+        logger.debug(gdat.indxtypeclasdisp)
+        logger.debug('gdat.listnameclasdisp')
+        logger.debug(gdat.listnameclasdisp)
+        logger.debug('gdat.dictstat')
+        logger.debug(gdat.dictstat)
         for u in gdat.indxtypeclasdisp:
             if dictmileoutp['boolcalclspe']:
                 gdat.dictstat[gdat.listnameclasdisp[u]]['perilspeprim'][0][n] = dictmileoutp['perilspempow']
@@ -317,7 +368,7 @@ def init( \
     # string for date and time
     gdat.strgtimestmp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
    
-    print('troia initialized at %s...' % gdat.strgtimestmp)
+    logger.info('troia initialized at %s...', gdat.strgtimestmp)
     
     if gdat.boolplotinit is None:
         gdat.boolplotinit = gdat.boolplot
@@ -344,9 +395,9 @@ def init( \
     gdat.boolsimutargpartfprt = None
 
     if gdat.listlablinst is None:
-        print('')
-        print('')
-        print('')
+        logger.debug('')
+        logger.debug('')
+        logger.debug('')
         raise Exception('gdat.listlablinst is None. gdat.listlablinst must be defined.')
 
     gdat.listlablinst = miletos.retr_strginst(gdat.listlablinst)
@@ -360,43 +411,43 @@ def init( \
     if gdat.booldiag:
         if gdat.booltargsynt:
             if gdat.liststrgtypedata[0][0] == 'simutargpartinje':
-                print('')
-                print('')
-                print('')
-                print('gdat.booltarguser')
-                print(gdat.booltarguser)
-                print('gdat.listtoiitarg')
-                print(gdat.listtoiitarg)
-                print('gdat.listticitarg')
-                print(gdat.listticitarg)
-                print('gdat.liststrgmast')
-                print(gdat.liststrgmast)
-                print('gdat.listgaid')
-                print(gdat.listgaid)
-                print('gdat.booltargsynt')
-                print(gdat.booltargsynt)
-                print('gdat.liststrgtypedata')
-                print(gdat.liststrgtypedata)
-                print('gdat.typepopl')
-                print(gdat.typepopl)
-                print('gdat.booltargsynt and (gdat.liststrgtypedata[0][0] == simutargpartinje or gdat.typepopl != SyntheticPopulation.')
+                logger.debug('')
+                logger.debug('')
+                logger.debug('')
+                logger.debug('gdat.booltarguser')
+                logger.debug(gdat.booltarguser)
+                logger.debug('gdat.listtoiitarg')
+                logger.debug(gdat.listtoiitarg)
+                logger.debug('gdat.listticitarg')
+                logger.debug(gdat.listticitarg)
+                logger.debug('gdat.liststrgmast')
+                logger.debug(gdat.liststrgmast)
+                logger.debug('gdat.listgaid')
+                logger.debug(gdat.listgaid)
+                logger.debug('gdat.booltargsynt')
+                logger.debug(gdat.booltargsynt)
+                logger.debug('gdat.liststrgtypedata')
+                logger.debug(gdat.liststrgtypedata)
+                logger.debug('gdat.typepopl')
+                logger.debug(gdat.typepopl)
+                logger.debug('gdat.booltargsynt and (gdat.liststrgtypedata[0][0] == simutargpartinje or gdat.typepopl != SyntheticPopulation.')
                 raise Exception('Either gdat.listtoiitarg, gdat.listticitarg, gdat.liststrgmast, or gdat.listgaid should be defined.')
 
             if gdat.booltarguser or not gdat.booltargsynt and not gdat.booltarguser:
-                print('')
-                print('')
-                print('')
-                print('gdat.booltargsynt')
-                print(gdat.booltargsynt)
-                print('gdat.booltarguser')
-                print(gdat.booltarguser)
-                print('gdat.booltarguser')
-                print(gdat.booltarguser)
-                print('gdat.typepopl')
-                print(gdat.typepopl)
+                logger.debug('')
+                logger.debug('')
+                logger.debug('')
+                logger.debug('gdat.booltargsynt')
+                logger.debug(gdat.booltargsynt)
+                logger.debug('gdat.booltarguser')
+                logger.debug(gdat.booltarguser)
+                logger.debug('gdat.booltarguser')
+                logger.debug(gdat.booltarguser)
+                logger.debug('gdat.typepopl')
+                logger.debug(gdat.typepopl)
                 raise Exception('gdat.booltargsynt and gdat.booltarguser or not gdat.booltargsynt and not gdat.booltarguser and gdat.typepopl is None')
 
-    if (gdat.liststrgmast is not None or listticitarg is not None) and gdat.typepopl is None:
+    if (gdat.liststrgmast is not None or gdat.listticitarg is not None) and gdat.typepopl is None:
         raise Exception('The type of population, typepopl, must be defined by the user when the target list is provided by the user')
     
     if gdat.typepopl is None:
@@ -417,8 +468,8 @@ def init( \
     #        gdat.typepopl = 'CTL_prms_2min'
     #        gdat.typepopl = 'CTL_prms_2min'
     
-    print('gdat.typepopl')
-    print(gdat.typepopl)
+    logger.debug('gdat.typepopl')
+    logger.debug(gdat.typepopl)
 
     # paths
     ## path of the troia data folder
@@ -503,7 +554,7 @@ def init( \
             
         gdat.numbtarg = 100
     
-    print('Number of targets: %s' % gdat.numbtarg)
+    logger.debug('Number of targets: %s' % gdat.numbtarg)
     gdat.indxtarg = np.arange(gdat.numbtarg)
     
     if not gdat.booltarguser and not gdat.booltargsynt:
@@ -513,7 +564,7 @@ def init( \
             dicttic8[name] = dicttic8[name][indx]
     
     gdat.timeexectarg = 120.
-    print('Expected execution time: %g seconds (%.3g days, %.3g weeks for 20M targets)' % (gdat.numbtarg * gdat.timeexectarg, gdat.numbtarg * gdat.timeexectarg / 3600. / 24., \
+    logger.debug('Expected execution time: %g seconds (%.3g days, %.3g weeks for 20M targets)' % (gdat.numbtarg * gdat.timeexectarg, gdat.numbtarg * gdat.timeexectarg / 3600. / 24., \
                                                                                                                         20e6 * gdat.timeexectarg / 3600. / 24. / 7.))
     
     if gdat.listticitarg is None:
@@ -522,10 +573,10 @@ def init( \
     if not gdat.booltarguser and not gdat.booltargsynt:
         gdat.listticitarg = dicttic8['TICID']
     
-    print('gdat.boolplot')
-    print(gdat.boolplot)
-    print('gdat.boolplotinit')
-    print(gdat.boolplotinit)
+    logger.debug('gdat.boolplot')
+    logger.debug(gdat.boolplot)
+    logger.debug('gdat.boolplotinit')
+    logger.debug(gdat.boolplotinit)
     
     # target labels and file name extensions
     gdat.strgtarg = [[] for n in gdat.indxtarg]
@@ -591,11 +642,11 @@ def init( \
         elif gdat.typesyst == 'StarFlaring':
             gdat.dictprobclastruetype['StellarFlare'] = [1., 'Stellar binary']
         else:
-            print('')
-            print('')
-            print('')
-            print('gdat.typesyst')
-            print(gdat.typesyst)
+            logger.debug('')
+            logger.debug('')
+            logger.debug('')
+            logger.debug('gdat.typesyst')
+            logger.debug(gdat.typesyst)
             raise Exception('')
         
         gdat.namepoplstartotl = 'star_%s_All' % gdat.typepopl
@@ -705,15 +756,15 @@ def init( \
                     for strginst in gdat.listlablinst[b]:
                         for strgpopl in gdat.dicttroy['true'][gdat.typesyst]['dictpopl']['star']:
                             if not 'magtsyst' + strginst in gdat.dicttroy['true'][gdat.typesyst]['dictpopl']['star'][strgpopl]:
-                                print('')
-                                print('')
-                                print('')
-                                print('strginst')
-                                print(strginst)
-                                print('gdat.listlablinst[b]')
-                                print(gdat.listlablinst[b])
-                                print('gdat.dicttroy[true][gdat.typesyst][dictpopl][star][strgpopl].keys()')
-                                print(gdat.dicttroy['true'][gdat.typesyst]['dictpopl']['star'][strgpopl].keys())
+                                logger.debug('')
+                                logger.debug('')
+                                logger.debug('')
+                                logger.debug('strginst')
+                                logger.debug(strginst)
+                                logger.debug('gdat.listlablinst[b]')
+                                logger.debug(gdat.listlablinst[b])
+                                logger.debug('gdat.dicttroy[true][gdat.typesyst][dictpopl][star][strgpopl].keys()')
+                                logger.debug(gdat.dicttroy['true'][gdat.typesyst]['dictpopl']['star'][strgpopl].keys())
                                 raise Exception('not magtsyst + strginst in gdat.dicttroy[true][gdat.typesyst][dictpopl][star][strgpopl]')
         
         if gdat.typesyst == 'CompactObjectStellarCompanion':
@@ -744,9 +795,9 @@ def init( \
             for namefeat in ['magtsystTESS']:
                 if gdat.booldiag:
                     if not gdat.namepoplcomptotl in gdat.dicttroy['true']['CompactObjectStellarCompanion']['dictpopl']['comp']:
-                        print('')
-                        print('')
-                        print('')
+                        logger.debug('')
+                        logger.debug('')
+                        logger.debug('')
                         raise Exception('not gdat.namepoplcomptotl in gdat.dicttroy[true][CompactObjectStellarCompanion][dictpopl][comp]')
 
                 gdat.dicttroy['true']['totl']['magtsystTESS'] = \
@@ -761,7 +812,7 @@ def init( \
         #        raise Exception('')
         
         
-        print('Visualizing the features of the simulated population...')
+        logger.debug('Visualizing the features of the simulated population...')
 
         listboolcompexcl = [False]
         listtitlcomp = ['']
@@ -787,11 +838,11 @@ def init( \
                 for namefeat in gdat.dictpopltrue[namepopl]:
                     if len(gdat.dictpopltrue[namepopl][namefeat]) != 2 or \
                                         len(gdat.dictpopltrue[namepopl][namefeat][1]) > 0 and not isinstance(gdat.dictpopltrue[namepopl][namefeat][1], str):
-                        print('')
-                        print('')
-                        print('')
-                        print('gdat.dictpopltrue[namepopl][namefeat]')
-                        print(gdat.dictpopltrue[namepopl][namefeat])
+                        logger.debug('')
+                        logger.debug('')
+                        logger.debug('')
+                        logger.debug('gdat.dictpopltrue[namepopl][namefeat]')
+                        logger.debug(gdat.dictpopltrue[namepopl][namefeat])
                         raise Exception('gdat.dictpopltrue is not properly defined.')
         
         typecnfg = '%s_%s_%s' % (gdat.typesyst, gdat.strginstconc, gdat.typepopl)
@@ -828,13 +879,13 @@ def init( \
             # this check is probably wrong
             if False and gdat.booldiag:
                 if len(gdat.dictindxtarg['rele']) != 2:
-                    print('')
-                    print('')
-                    print('')
-                    print('gdat.indxtypeclastrue')
-                    print(gdat.indxtypeclastrue)
-                    print('gdat.dictindxtarg[rele]')
-                    print(gdat.dictindxtarg['rele'])
+                    logger.debug('')
+                    logger.debug('')
+                    logger.debug('')
+                    logger.debug('gdat.indxtypeclastrue')
+                    logger.debug(gdat.indxtypeclastrue)
+                    logger.debug('gdat.dictindxtarg[rele]')
+                    logger.debug(gdat.dictindxtarg['rele'])
                     raise Exception('len(gdat.dictindxtarg[rele]) != 2')
             
             # relevants are Planetary Systems
@@ -852,14 +903,14 @@ def init( \
         for v in gdat.indxtypeclastrue:
             gdat.dictindxtarg['irre'][v] = np.setdiff1d(gdat.indxtarg, gdat.dictindxtarg['rele'][v])
             
-            print('gdat.dictindxtarg[irre][v]')
-            print(gdat.dictindxtarg['irre'][v])
+            logger.debug('gdat.dictindxtarg[irre][v]')
+            logger.debug(gdat.dictindxtarg['irre'][v])
 
             # in case it's empty
             gdat.dictindxtarg['irre'][v] = np.array(gdat.dictindxtarg['irre'][v])
 
-            print('gdat.dictindxtarg[irre][v]')
-            print(gdat.dictindxtarg['irre'][v])
+            logger.debug('gdat.dictindxtarg[irre][v]')
+            logger.debug(gdat.dictindxtarg['irre'][v])
 
             gdat.numbtargrele[v] = gdat.dictindxtarg['rele'][v].size
         
@@ -923,7 +974,7 @@ def init( \
 
         numbproc = min(multiprocessing.cpu_count() - 1, gdat.numbtarg)
         
-        print('Generating %d processes...' % numbproc)
+        logger.debug('Generating %d processes...' % numbproc)
         
         objtpool = multiprocessing.Pool(numbproc)
         numbproc = objtpool._processes
@@ -957,15 +1008,15 @@ def init( \
             
             if gdat.booldiag:
                 if v >= len(gdat.listlablrele):
-                    print('')
-                    print('')
-                    print('')
-                    print('gdat.indxtypeclastrueiter')
-                    print(gdat.indxtypeclastrueiter)
-                    print('v')
-                    print(v)
-                    print('gdat.listlablrele')
-                    print(gdat.listlablrele)
+                    logger.debug('')
+                    logger.debug('')
+                    logger.debug('')
+                    logger.debug('gdat.indxtypeclastrueiter')
+                    logger.debug(gdat.indxtypeclastrueiter)
+                    logger.debug('v')
+                    logger.debug(v)
+                    logger.debug('gdat.listlablrele')
+                    logger.debug(gdat.listlablrele)
                     raise Exception('v >= len(gdat.listlablrele)')
 
             # for positive type u and relevant type v
@@ -1013,21 +1064,21 @@ def init( \
                         for namefeat in gdat.listnamefeatstat:
                             if gdat.booldiag:
                                 if not namepopl in gdat.dictstat:
-                                    print('')
-                                    print('')
-                                    print('')
-                                    print('gdat.dictstat.keys()')
-                                    print(gdat.dictstat.keys())
-                                    print('namepopl')
-                                    print(namepopl)
+                                    logger.debug('')
+                                    logger.debug('')
+                                    logger.debug('')
+                                    logger.debug('gdat.dictstat.keys()')
+                                    logger.debug(gdat.dictstat.keys())
+                                    logger.debug('namepopl')
+                                    logger.debug(namepopl)
                                     raise Exception('not namepopl in gdat.dictstat')
 
                             tdpy.setp_dict(gdat.dicttarg[strgkeyy], namefeat, gdat.dictstat[namepopl][namefeat][0][gdat.dictindxtargtemp[strgkeyy]])
 
                     # true features
                     ## of the relevant population
-                    print('gdat.dictpopltrue')
-                    print(gdat.dictpopltrue.keys())
+                    logger.debug('gdat.dictpopltrue')
+                    logger.debug(gdat.dictpopltrue.keys())
                     for namefeat in gdat.dictpopltrue[namepoplclastruerele].keys():
                         tdpy.setp_dict(gdat.dicttarg[strgkeyy], namefeat, gdat.dictpopltrue[namepoplclastruerele][namefeat][0][gdat.dictindxtargtemp[strgkeyy]])
                     ## of the irrelevant populations
@@ -1041,20 +1092,20 @@ def init( \
             listnamepoplcomm = list(gdat.dicttarg.keys())
             strgtemp = 'stat' + strguuvv
             
-            print('u, v')
-            print(u, v)
-            print('strguuvv')
-            print(strguuvv)
-            print('listnamepoplcomm')
-            print(listnamepoplcomm)
-            print('gdat.listlablrele')
-            print(gdat.listlablrele)
-            print('gdat.listlablclasdisp')
-            print(gdat.listlablclasdisp)
-            print('listdictlablcolrpopl')
-            print(listdictlablcolrpopl)
-            print('gdat.indxtypeclastrue')
-            print(gdat.indxtypeclastrue)
+            logger.debug('u, v')
+            logger.debug(u, v)
+            logger.debug('strguuvv')
+            logger.debug(strguuvv)
+            logger.debug('listnamepoplcomm')
+            logger.debug(listnamepoplcomm)
+            logger.debug('gdat.listlablrele')
+            logger.debug(gdat.listlablrele)
+            logger.debug('gdat.listlablclasdisp')
+            logger.debug(gdat.listlablclasdisp)
+            logger.debug('listdictlablcolrpopl')
+            logger.debug(listdictlablcolrpopl)
+            logger.debug('gdat.indxtypeclastrue')
+            logger.debug(gdat.indxtypeclastrue)
             
             boolgood = False
             for namepoplcomm in listnamepoplcomm:
@@ -1114,12 +1165,12 @@ def init( \
             
             typecnfg = '%s' % (gdat.strgextn)
             
-            print('listdictlablcolrpopl')
-            print(listdictlablcolrpopl)
-            print('listboolcompexcl')
-            print(listboolcompexcl)
-            print('listtitlcomp')
-            print(listtitlcomp)
+            logger.debug('listdictlablcolrpopl')
+            logger.debug(listdictlablcolrpopl)
+            logger.debug('listboolcompexcl')
+            logger.debug(listboolcompexcl)
+            logger.debug('listtitlcomp')
+            logger.debug(listtitlcomp)
 
             for dictlablcolrpopl in listdictlablcolrpopl:
                 if len(dictlablcolrpopl) == 0:
@@ -1138,7 +1189,7 @@ def init( \
                           boolsortpoplsize=False, \
                          )
             
-            print('Will plot precision and recall...')
+            logger.debug('Will plot precision and recall...')
             if gdat.boolplot and gdat.boolsimusome and u != -1 and v != -1:
                 listvarbreca = []
                 
@@ -1161,18 +1212,18 @@ def init( \
                 #listvarbprec = np.vstack([gdat.lists2nr, gdat.listpowrlspe]).T
                 liststrgvarbprec = gdat.listnamefeatstat#['s2nr', 'powrlspe']
                 listlablvarbprec, listscalvarbprec, _, _, _ = tdpy.retr_listlablscalpara(liststrgvarbprec)
-                #print('listvarbreca')
-                #print(listvarbreca)
-                #print('listvarbprec')
-                #print(listvarbprec)
-                #print('gdat.boolreletarg[v]')
-                #print(gdat.boolreletarg[v])
-                #print('gdat.boolpositarg[u]')
-                #print(gdat.boolpositarg[u])
-                #print('gdat.boolposirele[u][v]')
-                #print(gdat.boolposirele[u][v])
-                #print('gdat.boolreleposi[u][v]')
-                #print(gdat.boolreleposi[u][v])
+                #logger.debug('listvarbreca')
+                #logger.debug(listvarbreca)
+                #logger.debug('listvarbprec')
+                #logger.debug(listvarbprec)
+                #logger.debug('gdat.boolreletarg[v]')
+                #logger.debug(gdat.boolreletarg[v])
+                #logger.debug('gdat.boolpositarg[u]')
+                #logger.debug(gdat.boolpositarg[u])
+                #logger.debug('gdat.boolposirele[u][v]')
+                #logger.debug(gdat.boolposirele[u][v])
+                #logger.debug('gdat.boolreleposi[u][v]')
+                #logger.debug(gdat.boolreleposi[u][v])
 
                 strgextn = '%s_%s' % (gdat.typepopl, strguuvv)
                 tdpy.plot_recaprec(gdat.pathvisucnfg, strgextn, listvarbreca, listvarbprec, liststrgvarbreca, liststrgvarbprec, \
