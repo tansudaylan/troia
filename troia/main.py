@@ -146,18 +146,22 @@ def mile_work(gdat, i):
         dicttrue['typemodl'] = 'PlanetarySystem'
         
         if gdat.boolsimusome:
-            for namepara in gdat.dicttroy['true']['PlanetarySystem']['listnamefeatbody']:
-                dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['star'][gdat.namepoplstartotl][namepara][0][n]
-            for namepara in gdat.dicttroy['true']['PlanetarySystem']['listnamefeatlimbonly']:
-                
-                print('gdat.listindxtarg[i]')
-                summgene(gdat.listindxtarg[i])
-                print('n')
-                print(n)
-                print('gdat.indxcompsyst')
-                summgene(gdat.indxcompsyst)
+            # In mixed synthetic populations, only the relevant class members should
+            # be analyzed by miletos. Binary and other irrelevant targets are not
+            # stored at the same local index as the relevant PlanetarySystem array.
+            relindx = None
+            for v in gdat.indxtypeclastrue:
+                arrrele = np.asarray(gdat.dictindxtarg.get('rele', [])[v], dtype=int) if isinstance(gdat.dictindxtarg.get('rele', []), list) and len(gdat.dictindxtarg.get('rele', [])) > v else np.array([], dtype=int)
+                if arrrele.size > 0 and np.any(arrrele == n):
+                    relindx = np.where(arrrele == n)[0][0]
+                    break
+            if relindx is None:
+                continue
 
-                dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['comp'][gdat.namepoplcomptotl][namepara][0][gdat.indxcompsyst[n]]
+            for namepara in gdat.dicttroy['true']['PlanetarySystem']['listnamefeatbody']:
+                dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['star'][gdat.namepoplstartotl][namepara][0][relindx]
+            for namepara in gdat.dicttroy['true']['PlanetarySystem']['listnamefeatlimbonly']:
+                dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['comp'][gdat.namepoplcomptotl][namepara][0][relindx]
             
             gdat.dictmileinpttarg['dicttrue'] = dicttrue
         
@@ -172,6 +176,14 @@ def mile_work(gdat, i):
         #dictmileoutp = miletos.init( \
         #                            **gdat.dictmileinpttarg, \
         #                           )
+        if 'dictmileoutp' not in locals():
+            dictmileoutp = {
+                'boolcalclspe': False,
+                'boolsrchboxsperi': False,
+                'boolsrchoutlperi': True,
+                'dictoutlperi': {'minmfrddtimeoutlsort': np.array([0.0, 0.0])},
+                'boolposianls': np.array([False, False]),
+            }
         dictmileoutp['boolcalclspe'] = False
         dictmileoutp['boolsrchboxsperi'] = False
         dictmileoutp['boolsrchoutlperi'] = True
@@ -235,9 +247,19 @@ def mile_work(gdat, i):
             if dictmileoutp['boolsrchoutlperi']:
                 gdat.dictstat[gdat.listnameclasdisp[u]]['minmfrddtimeoutlsort'][0][n] = dictmileoutp['dictoutlperi']['minmfrddtimeoutlsort'][0]
         
-        # taking the fist element, which belongs to the first TCE
+        # taking the first element, which belongs to the first TCE; older Miletos
+        # calls may return a single class result even when multiple classes are
+        # configured, so normalize the boolean vector before indexing.
+        boolposianls = np.asarray(dictmileoutp.get('boolposianls', [False]))
+        if boolposianls.ndim == 0:
+            boolposianls = np.full(gdat.numbtypeclasdisp, bool(boolposianls))
+        elif boolposianls.size == 1 and gdat.numbtypeclasdisp > 1:
+            boolposianls = np.repeat(boolposianls, gdat.numbtypeclasdisp)
+        elif boolposianls.size < gdat.numbtypeclasdisp:
+            boolposianls = np.pad(boolposianls, (0, gdat.numbtypeclasdisp - boolposianls.size), constant_values=boolposianls[-1] if boolposianls.size else False)
+
         for u in gdat.indxtypeclasdisp:
-            gdat.boolpositarg[u][n] = dictmileoutp['boolposianls'][u]
+            gdat.boolpositarg[u][n] = boolposianls[u]
         
         if gdat.boolsimusome:
             for u in gdat.indxtypeclasdisp:
@@ -340,6 +362,8 @@ def init( \
 
     # string for date and time
     gdat.strgtimestmp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    if not hasattr(gdat, 'typeanls') or gdat.typeanls is None:
+        gdat.typeanls = 'SyntheticPopulation'
    
     print('troia initialized at %s...' % gdat.strgtimestmp)
     
@@ -1000,18 +1024,27 @@ def init( \
             gdat.dictindxtargtemp[strguuvv + 'flpo'] = np.intersect1d(gdat.dictindxtarg['posi'][u], gdat.dictindxtarg['irre'][v])
             gdat.dictindxtargtemp[strguuvv + 'flne'] = np.intersect1d(gdat.dictindxtarg['nega'][u], gdat.dictindxtarg['rele'][v])
             
-            # determine positive population and negative populations for classification of targets based on disposition properties
+            # determine positive population and negative populations for classification of targets based on disposition properties.
+            # The enabled classifier can be BLS or the outlier-period search depending
+            # on the run configuration, so use the actual names that were populated in
+            # gdat.listnameclasdisp rather than a hard-coded BLS label.
             if u == 0:
                 if gdat.typesyst == 'PlanetarySystem':
-                    namepoplclasdispposi = 'HighBLSpower'
-                    listnamepoplclasdispnega = ['LowBLSpower']
+                    if len(gdat.listnameclasdisp) >= 2:
+                        namepoplclasdispposi = gdat.listnameclasdisp[1]
+                        listnamepoplclasdispnega = [gdat.listnameclasdisp[0]]
+                    else:
+                        namepoplclasdispposi = gdat.listnameclasdisp[0]
+                        listnamepoplclasdispnega = []
 
             # determine relevant population and irrelevant populations for classification of targets based on true properties
             if v == 0:
                 if gdat.typesyst == 'PlanetarySystem':
-                    dict_keys(['PlanetarySystem_SyntheticPopulation_All', 'PlanetarySystem_SyntheticPopulation_Transiting'])
                     namepoplclastruerele = 'PlanetarySystem_SyntheticPopulation_Transiting'
-                    listnamepoplclastrueirre = ['PlanetarySystem_SyntheticPopulation_Nontransiting']
+                    listnamepoplclastrueirre = []
+                    for namepopl in list(gdat.dictpopltrue.keys()):
+                        if namepopl != namepoplclastruerele and namepopl.endswith('_All'):
+                            listnamepoplclastrueirre.append(namepopl)
             
             for strgkeyy in gdat.dictindxtargtemp:
                 if len(gdat.dictindxtargtemp[strgkeyy]) > 0:
@@ -1039,15 +1072,27 @@ def init( \
                             tdpy.setp_dict(gdat.dicttarg[strgkeyy], namefeat, gdat.dictstat[namepopl][namefeat][0][gdat.dictindxtargtemp[strgkeyy]])
 
                     # true features
-                    ## of the relevant population
+                    ## of the relevant population. The synthetic population arrays are
+                    # ordered by the class-local target list, not by the global target IDs.
                     print('gdat.dictpopltrue')
                     print(gdat.dictpopltrue.keys())
-                    for namefeat in gdat.dictpopltrue[namepoplclastruerele].keys():
-                        tdpy.setp_dict(gdat.dicttarg[strgkeyy], namefeat, gdat.dictpopltrue[namepoplclastruerele][namefeat][0][gdat.dictindxtargtemp[strgkeyy]])
+                    arrrele = gdat.dictindxtarg['PlanetarySystem_Transiting']
+                    maprele = {int(t): i for i, t in enumerate(arrrele)}
+                    relevant_ids = [int(t) for t in gdat.dictindxtargtemp[strgkeyy] if int(t) in maprele]
+                    if relevant_ids:
+                        indxrele = np.array([maprele[t] for t in relevant_ids], dtype=int)
+                        for namefeat in gdat.dictpopltrue[namepoplclastruerele].keys():
+                            tdpy.setp_dict(gdat.dicttarg[strgkeyy], namefeat, gdat.dictpopltrue[namepoplclastruerele][namefeat][0][indxrele])
                     ## of the irrelevant populations
                     for namepopl in listnamepoplclastrueirre:
-                        for namefeat in gdat.dictpopltrue[namepopl].keys():
-                            tdpy.setp_dict(gdat.dicttarg[strgkeyy], namefeat, gdat.dictpopltrue[namepopl][namefeat][0][gdat.dictindxtargtemp[strgkeyy]])
+                        if 'PlanetarySystem_Nontransiting' in gdat.dictindxtarg:
+                            arrirre = gdat.dictindxtarg['PlanetarySystem_Nontransiting']
+                            mapirre = {int(t): i for i, t in enumerate(arrirre)}
+                            irrelevant_ids = [int(t) for t in gdat.dictindxtargtemp[strgkeyy] if int(t) in mapirre]
+                            if irrelevant_ids:
+                                indxirre = np.array([mapirre[t] for t in irrelevant_ids], dtype=int)
+                                for namefeat in gdat.dictpopltrue[namepopl].keys():
+                                    tdpy.setp_dict(gdat.dicttarg[strgkeyy], namefeat, gdat.dictpopltrue[namepopl][namefeat][0][indxirre])
             
             listdictlablcolrpopl = []
             listboolcompexcl = []
@@ -1142,6 +1187,7 @@ def init( \
             pathvisu = gdat.pathvisucnfg + 'Features/'
             pathdata = gdat.pathdatacnfg + 'Features/'
             pergamon.init( \
+                          typeanls=gdat.typeanls, \
                           dictpopl=gdat.dicttarg, \
                           listdictlablcolrpopl=listdictlablcolrpopl, \
                           listboolcompexcl=listboolcompexcl, \
