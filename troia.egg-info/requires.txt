@@ -1,0 +1,9 @@
+chalcedon
+ephesos
+matplotlib
+miletos
+nicomedia
+numpy
+pergamon
+scipy
+tdpy

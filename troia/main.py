@@ -16,6 +16,30 @@ import nicomedia
 import chalcedon
 
 
+def retr_pathtroy(pathbase=None, strgextn=None):
+    """Return normalized Troia base and workflow paths."""
+
+    pathbasetroy = tdpy.retr_pathbase('troia')
+    if pathbase is None:
+        pathbase = pathbasetroy
+    else:
+        pathbase = tdpy.ensr_path(pathbase)
+
+    dictpath = {
+        'pathbasetroy': pathbasetroy,
+        'pathbase': pathbase,
+        'pathdatapipe': tdpy.ensr_path(os.path.join(pathbase, 'data')),
+        'pathvisupipe': tdpy.ensr_path(os.path.join(pathbase, 'visuals')),
+    }
+    if strgextn is not None:
+        pathpopl = tdpy.ensr_path(os.path.join(pathbase, strgextn))
+        dictpath['pathpopl'] = pathpopl
+        dictpath['pathvisucnfg'] = tdpy.ensr_path(os.path.join(pathpopl, 'visuals'))
+        dictpath['pathdatacnfg'] = tdpy.ensr_path(os.path.join(pathpopl, 'data'))
+
+    return dictpath
+
+
 def retr_dictderi_effe(para, gdat):
     
     radistar = para[0]
@@ -421,14 +445,9 @@ def init( \
     print(gdat.typepopl)
 
     # paths
-    ## path of the troia data folder
-    gdat.pathbasetroy = os.environ['TROIA_DATA_PATH'] + '/'
-    ## base path of the run
-    if gdat.pathbase is None:
-        gdat.pathbase = gdat.pathbasetroy
-    
-    gdat.pathdatapipe = gdat.pathbase + 'data/'
-    gdat.pathvisupipe = gdat.pathbase + 'visuals/'
+    dictpath = retr_pathtroy(pathbase=gdat.pathbase)
+    for attr, valu in dictpath.items():
+        setattr(gdat, attr, valu)
     
     gdat.strginstconc = ''
     k = 0
@@ -445,14 +464,9 @@ def init( \
         gdat.strgextncnfg = '%s_' % gdat.strgcnfg
     gdat.strgextn = '%s%s_%s' % (gdat.strgextncnfg, gdat.typepopl, gdat.strginstconc)
     
-    gdat.pathpopl = gdat.pathbase + gdat.strgextn + '/'
-    gdat.pathvisucnfg = gdat.pathpopl + 'visuals/'
-    gdat.pathdatacnfg = gdat.pathpopl + 'data/'
-
-    # make folders
-    for attr, valu in gdat.__dict__.items():
-        if attr.startswith('path'):
-            os.system('mkdir -p %s' % valu)
+    dictpath = retr_pathtroy(pathbase=gdat.pathbase, strgextn=gdat.strgextn)
+    for attr, valu in dictpath.items():
+        setattr(gdat, attr, valu)
 
     # settings
     ## seed
