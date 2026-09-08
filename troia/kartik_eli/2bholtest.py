@@ -2,7 +2,20 @@
 
 This file is retained for provenance only; it is not part of the active
 scientific pipeline and should not be imported as part of the supported troia API.
+It is intentionally archived and should only be executed explicitly by a user
+who is working with the historical prototype material.
 """
+
+import importlib.util
+import sys
+
+
+if __name__ != '__main__':
+    raise ImportError(
+        'troia.kartik_eli is archived legacy prototype code and is not part of the '
+        'supported troia API. Import it only via an explicit legacy path if you are '
+        'actively reproducing historical analyses.'
+    )
 
 import os
 
