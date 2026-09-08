@@ -4,6 +4,7 @@ import numpy as np
 
 import troia
 from tdpy import summgene
+from troia.paths import retr_pathgaia
 
 
 def cnfg_Keck():
@@ -11,7 +12,7 @@ def cnfg_Keck():
     Keck survey
     '''    
 
-    path = os.environ['TROIA_DATA_PATH'] + '/data/Keck_20240311.txt'
+    path = retr_pathgaia()['pathdata'] + 'Keck_20240311.txt'
     
     listtoiitarg = np.loadtxt(path)
 
@@ -321,7 +322,7 @@ def cnfg_cycle3_G03254():
     Targets in TESS GI Cycle 3 proposal (PI: Tansu Daylan, G03254)
     '''
     
-    path = os.environ['TROIA_DATA_PATH'] + '/data/G03254_Cycle3_GI.csv'
+    path = retr_pathgaia()['pathdata'] + 'G03254_Cycle3_GI.csv'
     objtfile = open(path, 'r')
     listticitarg = []
     k = 0

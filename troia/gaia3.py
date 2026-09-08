@@ -15,9 +15,12 @@ import astropy
 
 from astropy.io import fits
 
-pathbase = os.environ['BHOL_DATA_PATH'] + '/'
-pathdata = pathbase + 'data/'
-pathimag = pathbase + 'imag/'
+from .paths import retr_pathgaia
+
+dictpath = retr_pathgaia()
+pathbase = dictpath['pathbase']
+pathdata = dictpath['pathdata']
+pathimag = dictpath['pathimag']
 
 # read WTV output
 path = pathdata + 'wtv-WTVT.csv'

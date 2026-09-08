@@ -19,10 +19,12 @@ import astropy
 
 from astropy.io import fits
 
-## read PCAT path environment variable
-pathbase = os.environ['TROIA_DATA_PATH'] + '/'
-pathdata = pathbase + 'data/'
-pathimag = pathbase + 'imag/'
+from .paths import retr_pathgaia
+
+dictpath = retr_pathgaia()
+pathbase = dictpath['pathbase']
+pathdata = dictpath['pathdata']
+pathimag = dictpath['pathimag']
 
 # read Gaia IDs with high radial velocity errors from Saul
 dictcatl = retr_dictcatlrvel()
