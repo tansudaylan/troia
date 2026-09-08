@@ -1274,6 +1274,6 @@ def init( \
         #        indx = (gdat.dictpopl[namepoplcomptran]['sdee'] < 5)
         #        retr_subp(gdat.dictpopl, gdat.dictnumbsamp, gdat.dictindxsamp, namepoplcomptran, 'compstar' + typepoplsyst + 'trannega', indx)
 
-
+    return gdat
 
 
