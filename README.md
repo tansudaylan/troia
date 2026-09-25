@@ -36,6 +36,8 @@ python examples/compact_object_signatures.py --typefileplot png
 
 The deterministic calculation compares Doppler beaming, ellipsoidal variation, and self-lensing for 5, 30, and 180 solar-mass companions. It assumes a 1-solar-mass, 1-solar-radius source with a mean density of 1.41 grams per cubic centimeter. These are model predictions rather than observed light curves.
 
+The full synthetic `CompactObjectStellarCompanion` population workflow currently stops in `nicomedia.retr_dictpoplstarcomp()` because its point-lens population omits `radicomp` while a downstream diagnostic still requires that field. The signature calculation above does not use that blocked population path.
+
 ## Archive note
 
 Files such as `2bholtest.py` and `tic_oneline.py` are retained as historical scripts; they are not part of the supported troia scientific workflow and should not be imported by downstream code unless the user is explicitly working on the legacy prototype.
