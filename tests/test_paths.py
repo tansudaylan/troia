@@ -5,7 +5,7 @@ from troia.paths import retr_pathgaia
 
 
 def test_retr_pathtroy_creates_expected_directories(monkeypatch, tmp_path):
-    monkeypatch.setenv('TROIA_DATA_PATH', str(tmp_path / 'troia'))
+    monkeypatch.setenv('TROIA_PATH', str(tmp_path / 'troia'))
 
     dictpath = retr_pathtroy(strgextn='SyntheticPopulation_TESS')
 
@@ -21,7 +21,7 @@ def test_retr_pathtroy_creates_expected_directories(monkeypatch, tmp_path):
 
 
 def test_retr_pathgaia_creates_expected_directories(monkeypatch, tmp_path):
-    monkeypatch.setenv('TROIA_DATA_PATH', str(tmp_path / 'troia'))
+    monkeypatch.setenv('TROIA_PATH', str(tmp_path / 'troia'))
 
     dictpath = retr_pathgaia()
 

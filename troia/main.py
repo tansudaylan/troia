@@ -15,11 +15,14 @@ import pergamon
 import nicomedia
 import chalcedon
 
+from .paths import get_repository_path
+from .signatures import compute_photometric_signatures
+
 
 def retr_pathtroy(pathbase=None, strgextn=None):
     """Return normalized Troia base and workflow paths."""
 
-    pathbasetroy = tdpy.retr_pathbase('troia')
+    pathbasetroy = tdpy.ensr_path(get_repository_path())
     if pathbase is None:
         pathbase = pathbasetroy
     else:
@@ -41,27 +44,30 @@ def retr_pathtroy(pathbase=None, strgextn=None):
 
 
 def retr_dictderi_effe(para, gdat):
-    
-    radistar = para[0]
-    peri = para[1]
-    masscomp = para[2]
-    massstar = para[3]
-    masstotl = massstar + masscomp
+    """Return edge-on derived effects for a compact-object binary model."""
 
-    amplslenmodl = chalcedon.retr_amplslen(peri, radistar, masscomp, massstar)
-    duratrantotlmodl = ephesos.retr_duratrantotl(peri, radistar, masscomp, massstar, incl)
-    smax = ephesos.retr_smaxkepl(peri, masstotl) * 215. # [R_S]
-    radischw = 4.24e-6 * masscomp # [R_S]
+    radistar, peri, masscomp, massstar = np.asarray(para, dtype=float)
+    signatures = compute_photometric_signatures(
+        peri,
+        masscomp,
+        stellar_radius_solar=radistar,
+        stellar_mass_solar=massstar,
+    )
+    smax_solar = nicomedia.retr_smaxkepl(peri, massstar + masscomp) * 215.0  # [R_Sun]
+    duration_hours = nicomedia.retr_duratrantotl(
+        np.atleast_1d(peri),
+        np.atleast_1d(radistar / smax_solar),
+        np.zeros(1),
+    )  # [hour]
+    schwarzschild_radius_solar = 4.24e-6 * masscomp  # [R_Sun]
 
-    dictvarbderi = None
-
-    dictparaderi = dict()
-    dictparaderi['amplslenmodl'] = np.array([amplslenmodl])
-    dictparaderi['duratrantotlmodl'] = np.array([duratrantotlmodl])
-    dictparaderi['smaxmodl'] = np.array([smax])
-    dictparaderi['radischw'] = np.array([radischw])
-
-    return dictparaderi, dictvarbderi
+    dictparaderi = {
+        'amplslenmodl': np.atleast_1d(signatures['self_lensing']),
+        'duratrantotlmodl': duration_hours,
+        'smaxmodl': np.atleast_1d(smax_solar),
+        'radischw': np.atleast_1d(schwarzschild_radius_solar),
+    }
+    return dictparaderi, None
     
 
 def mile_work(gdat, i):

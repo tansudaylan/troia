@@ -26,7 +26,7 @@ def retr_pathgaia(pathbase=None):
     """Return normalized base/data/image paths for Troia Gaia side scripts."""
 
     if pathbase is None:
-        pathbase = tdpy.retr_pathbase('troia')
+        pathbase = tdpy.ensr_path(get_repository_path())
     else:
         pathbase = tdpy.ensr_path(pathbase)
 
