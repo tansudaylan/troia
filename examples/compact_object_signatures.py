@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Compare predicted photometric signatures of compact-object companions."""
 
-import argparse
 from pathlib import Path
 
 import matplotlib
@@ -12,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import troia
+from tdpy.cli import parse_plot_arguments
 
 
 def run_example(output_path: Path) -> dict[str, np.ndarray]:
@@ -85,18 +85,8 @@ def run_example(output_path: Path) -> dict[str, np.ndarray]:
     return signatures
 
 
-def parse_arguments() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--typefileplot",
-        choices=("png", "pdf"),
-        default="png",
-    )
-    return parser.parse_args()
-
-
 def main() -> int:
-    arguments = parse_arguments()
+    arguments = parse_plot_arguments(description=__doc__)
     output_path = Path(__file__).with_name(
         f"compact_object_signatures.{arguments.typefileplot}"
     )
