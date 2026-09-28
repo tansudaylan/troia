@@ -16,7 +16,7 @@ export TROIA_PATH=/path/to/troia
 
 ## Example
 
-The runnable example evaluates Troia's maintained photometric-signature calculation over orbital periods from 0.3 to 30 days:
+The example evaluates Troia's photometric-signature calculation over orbital periods from 0.3 to 30 days:
 
 ```bash
 python examples/compact_object_signatures.py --typefileplot png
