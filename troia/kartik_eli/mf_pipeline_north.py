@@ -1,5 +1,7 @@
 """Run the shared matched-filter pipeline for northern TESS sectors."""
 
+from tdpy.verbosity import print
+
 import runpy
 from pathlib import Path
 

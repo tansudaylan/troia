@@ -1,3 +1,4 @@
+from tdpy.verbosity import print
 from astropy.io import fits
 import matplotlib.pyplot as plt
 import numpy as np

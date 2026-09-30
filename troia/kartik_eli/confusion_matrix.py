@@ -1,3 +1,4 @@
+from tdpy.verbosity import print
 import numpy as np
 
 def confusion_matrix(actual, predicted, positive=1, negative=0, prt=False):

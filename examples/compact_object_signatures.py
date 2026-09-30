@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Compare predicted photometric signatures of compact-object companions."""
 
+from tdpy.verbosity import print
+
 from pathlib import Path
 
 import matplotlib

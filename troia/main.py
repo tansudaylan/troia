@@ -1,3 +1,4 @@
+from tdpy.verbosity import print
 import os, sys, datetime, copy
 
 import matplotlib
