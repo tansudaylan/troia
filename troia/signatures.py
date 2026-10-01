@@ -1,3 +1,3 @@
-"""Compatibility import for compact-object features owned by Pergamon."""
+"""Compatibility import for compact-object signatures owned by Miletos."""
 
-from pergamon.signatures import compute_photometric_signatures
+from miletos.signatures import compute_photometric_signatures

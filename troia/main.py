@@ -16,8 +16,51 @@ import pergamon
 import nicomedia
 
 from .paths import get_repository_path
-from pergamon.signatures import derive_compact_object_features
+from miletos.signatures import derive_compact_object_features
 from .signatures import compute_photometric_signatures
+
+
+def synthetic_target_truth(gdat, target_index):
+    """Return the simulated parameters for a target's own true system class."""
+
+    for system_type in gdat.listnameclastruetype:
+        indices = np.asarray(gdat.dictindxtarg[system_type])
+        matches = np.flatnonzero(indices == target_index)
+        if not matches.size:
+            continue
+        local_index = int(matches[0])
+        population = gdat.dicttroy['true'][system_type]
+        truth = {'numbyearlsst': 1, 'typemodl': system_type}
+        for name in population['listnamefeatbody']:
+            truth[name] = population['dictpopl']['star'][gdat.namepoplstartotl][name][0][local_index]
+        for name in population['listnamefeatlimbonly']:
+            truth[name] = np.atleast_1d(population['dictpopl']['comp'][gdat.namepoplcomptotl][name][0][local_index])
+        return truth
+    raise ValueError('Synthetic target %d has no corresponding system class' % target_index)
+
+
+def validated_classification(result, expected_count):
+    """Reject missing analyses rather than fill classifier arrays with guesses."""
+
+    modes = [result.get('boolcalclspe'), result.get('boolsrchboxsperi'), result.get('boolsrchoutlperi')]
+    if expected_count != 2 * sum(bool(mode) for mode in modes) or not any(modes):
+        raise ValueError('Miletos classification modes do not match displayed classes')
+    if result.get('boolsrchoutlperi'):
+        outcome = result.get('dictoutlperi', {}).get('boolposi')
+        if not isinstance(outcome, (bool, np.bool_)):
+            raise ValueError('Outlier classification must contain a measured boolean decision')
+        decisions = [outcome]
+    else:
+        decisions = []
+    if result.get('boolcalclspe') or result.get('boolsrchboxsperi'):
+        classifications = np.asarray(result.get('boolposianls', []))
+        if classifications.shape != (4,) or classifications.dtype.kind != 'b':
+            raise ValueError('Miletos classification must contain boolean detector results')
+        if result.get('boolcalclspe'):
+            decisions.insert(0, classifications[1])
+        if result.get('boolsrchboxsperi'):
+            decisions.insert(int(bool(result.get('boolcalclspe'))), classifications[0])
+    return np.array([value for decision in decisions for value in (decision, not decision)], dtype=bool)
 
 
 def retr_pathtroy(pathbase=None, strgextn=None):
@@ -128,28 +171,8 @@ def mile_work(gdat, i):
         
         dictmagtsyst = dict()
         
-        dicttrue = dict()
-        dicttrue['numbyearlsst'] = 1
-        dicttrue['typemodl'] = 'PlanetarySystem'
-        
         if gdat.boolsimusome:
-            # In mixed synthetic populations, only the relevant class members should
-            # be analyzed by miletos. Binary and other irrelevant targets are not
-            # stored at the same local index as the relevant PlanetarySystem array.
-            relindx = None
-            for v in gdat.indxtypeclastrue:
-                arrrele = np.asarray(gdat.dictindxtarg.get('rele', [])[v], dtype=int) if isinstance(gdat.dictindxtarg.get('rele', []), list) and len(gdat.dictindxtarg.get('rele', [])) > v else np.array([], dtype=int)
-                if arrrele.size > 0 and np.any(arrrele == n):
-                    relindx = np.where(arrrele == n)[0][0]
-                    break
-            if relindx is None:
-                continue
-
-            for namepara in gdat.dicttroy['true']['PlanetarySystem']['listnamefeatbody']:
-                dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['star'][gdat.namepoplstartotl][namepara][0][relindx]
-            for namepara in gdat.dicttroy['true']['PlanetarySystem']['listnamefeatlimbonly']:
-                dicttrue[namepara] = gdat.dicttroy['true']['PlanetarySystem']['dictpopl']['comp'][gdat.namepoplcomptotl][namepara][0][relindx]
-            
+            dicttrue = synthetic_target_truth(gdat, n)
             gdat.dictmileinpttarg['dicttrue'] = dicttrue
         
             for b in gdat.indxdatatser:
@@ -158,24 +181,11 @@ def mile_work(gdat, i):
             gdat.dictmileinpttarg['dictmagtsyst'] = dictmagtsyst
         
         # call miletos to analyze data
-        print('Calling miletos...')
-        print('temp')
-        #dictmileoutp = miletos.init( \
-        #                            **gdat.dictmileinpttarg, \
-        #                           )
-        if 'dictmileoutp' not in locals():
-            dictmileoutp = {
-                'boolcalclspe': False,
-                'boolsrchboxsperi': False,
-                'boolsrchoutlperi': True,
-                'dictoutlperi': {'minmfrddtimeoutlsort': np.array([0.0, 0.0])},
-                'boolposianls': np.array([False, False]),
-            }
-        dictmileoutp['boolcalclspe'] = False
-        dictmileoutp['boolsrchboxsperi'] = False
-        dictmileoutp['boolsrchoutlperi'] = True
+        dictmileoutp = miletos.init(**gdat.dictmileinpttarg)
+        if not isinstance(dictmileoutp, dict):
+            raise ValueError('Miletos did not return classification results for target %d' % n)
 
-        if n == 0:
+        if not hasattr(gdat, 'listlablclasdisp'):
             gdat.listlablclasdisp = []
             if dictmileoutp['boolcalclspe']:
                 gdat.listlablclasdisp.append('High LS power')
@@ -189,7 +199,8 @@ def mile_work(gdat, i):
             
             gdat.numbtypeclasdisp = len(gdat.listlablclasdisp)
             gdat.indxtypeclasdisp = np.arange(gdat.numbtypeclasdisp)
-            gdat.boolpositarg = [np.empty(gdat.numbtarg, dtype=bool) for u in gdat.indxtypeclasdisp]
+            gdat.boolpositarg = [np.zeros(gdat.numbtarg, dtype=bool) for u in gdat.indxtypeclasdisp]
+            gdat.booltargproc = np.zeros(gdat.numbtarg, dtype=bool)
             
             gdat.listnameclasdispposi = ''
             
@@ -216,7 +227,7 @@ def mile_work(gdat, i):
             for u in gdat.indxtypeclasdisp:
                 gdat.dictstat[gdat.listnameclasdisp[u]] = dict()
                 for namefeat in gdat.listnamefeatstat:
-                    gdat.dictstat[gdat.listnameclasdisp[u]][namefeat] = [np.empty(gdat.numbtarg), '']
+                    gdat.dictstat[gdat.listnameclasdisp[u]][namefeat] = [np.full(gdat.numbtarg, np.nan), '']
         
         print('gdat.indxtypeclasdisp')
         print(gdat.indxtypeclasdisp)
@@ -234,19 +245,11 @@ def mile_work(gdat, i):
             if dictmileoutp['boolsrchoutlperi']:
                 gdat.dictstat[gdat.listnameclasdisp[u]]['minmfrddtimeoutlsort'][0][n] = dictmileoutp['dictoutlperi']['minmfrddtimeoutlsort'][0]
         
-        # taking the first element, which belongs to the first TCE; older Miletos
-        # calls may return a single class result even when multiple classes are
-        # configured, so normalize the boolean vector before indexing.
-        boolposianls = np.asarray(dictmileoutp.get('boolposianls', [False]))
-        if boolposianls.ndim == 0:
-            boolposianls = np.full(gdat.numbtypeclasdisp, bool(boolposianls))
-        elif boolposianls.size == 1 and gdat.numbtypeclasdisp > 1:
-            boolposianls = np.repeat(boolposianls, gdat.numbtypeclasdisp)
-        elif boolposianls.size < gdat.numbtypeclasdisp:
-            boolposianls = np.pad(boolposianls, (0, gdat.numbtypeclasdisp - boolposianls.size), constant_values=boolposianls[-1] if boolposianls.size else False)
+        boolposianls = validated_classification(dictmileoutp, gdat.numbtypeclasdisp)
 
         for u in gdat.indxtypeclasdisp:
             gdat.boolpositarg[u][n] = boolposianls[u]
+        gdat.booltargproc[n] = True
         
         if gdat.boolsimusome:
             for u in gdat.indxtypeclasdisp:
@@ -938,30 +941,12 @@ def init( \
     gdat.dictmileinptglob['dictboxsperiinpt']['boolprocmult'] = False
     
     if boolprocmult:
-        import multiprocessing
-        from functools import partial
-        multiprocessing.set_start_method('spawn')
+        raise ValueError('Parallel Troia analysis does not merge classifications; use boolprocmult=False')
 
-        if __name__ == '__main__':
-            if platform.system() == "Darwin":
-                multiprocessing.set_start_method('spawn')
-
-        numbproc = min(multiprocessing.cpu_count() - 1, gdat.numbtarg)
-        
-        print('Generating %d processes...' % numbproc)
-        
-        objtpool = multiprocessing.Pool(numbproc)
-        numbproc = objtpool._processes
-        indxproc = np.arange(numbproc)
-
-        gdat.listindxtarg = [[] for p in indxproc]
-        indxproctarg = np.linspace(0, numbproc - 1, gdat.numbtarg).astype(int)
-        for p in indxproc:
-            gdat.listindxtarg[p] = np.where(indxproctarg == p)[0]
-        listgdat = objtpool.map(partial(mile_work, gdat), indxproc)
-    else:
-        gdat.listindxtarg = [gdat.indxtarg]
-        temp = mile_work(gdat, 0)
+    gdat.listindxtarg = [gdat.indxtarg]
+    mile_work(gdat, 0)
+    if not np.all(gdat.booltargproc):
+        raise ValueError('Cannot compute population metrics with unprocessed targets')
     
     if gdat.boolsimusome:
         for u in gdat.indxtypeclasdisp:
