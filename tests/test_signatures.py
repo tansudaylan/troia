@@ -6,6 +6,11 @@ from troia.main import retr_dictderi_effe
 
 
 def test_compute_photometric_signatures_matches_reference_values():
+    import troia.main
+    from pergamon.signatures import compute_photometric_signatures as pergamon_signatures
+
+    assert compute_photometric_signatures is pergamon_signatures
+    assert troia.main.compute_photometric_signatures is pergamon_signatures
     period_days = np.array([0.3, 30.0])[:, None]  # [day]
     companion_mass_solar = np.array([5.0, 180.0])[None, :]  # [M_Sun]
 

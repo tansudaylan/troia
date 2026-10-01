@@ -14,9 +14,9 @@ import ephesos
 import miletos
 import pergamon
 import nicomedia
-import chalcedon
 
 from .paths import get_repository_path
+from pergamon.signatures import derive_compact_object_features
 from .signatures import compute_photometric_signatures
 
 
@@ -48,27 +48,7 @@ def retr_dictderi_effe(para, gdat):
     """Return edge-on derived effects for a compact-object binary model."""
 
     radistar, peri, masscomp, massstar = np.asarray(para, dtype=float)
-    signatures = compute_photometric_signatures(
-        peri,
-        masscomp,
-        stellar_radius_solar=radistar,
-        stellar_mass_solar=massstar,
-    )
-    smax_solar = nicomedia.retr_smaxkepl(peri, massstar + masscomp) * 215.0  # [R_Sun]
-    duration_hours = nicomedia.retr_duratrantotl(
-        np.atleast_1d(peri),
-        np.atleast_1d(radistar / smax_solar),
-        np.zeros(1),
-    )  # [hour]
-    schwarzschild_radius_solar = 4.24e-6 * masscomp  # [R_Sun]
-
-    dictparaderi = {
-        'amplslenmodl': np.atleast_1d(signatures['self_lensing']),
-        'duratrantotlmodl': duration_hours,
-        'smaxmodl': np.atleast_1d(smax_solar),
-        'radischw': np.atleast_1d(schwarzschild_radius_solar),
-    }
-    return dictparaderi, None
+    return derive_compact_object_features(radistar, peri, masscomp, massstar), None
     
 
 def mile_work(gdat, i):
@@ -1020,16 +1000,13 @@ def init( \
             gdat.dictindxtargtemp = dict()
             gdat.dicttarg = dict()
 
-            gdat.dictindxtargtemp[strguuvv + 're'] = gdat.dictindxtarg['rele'][v]
-            gdat.dictindxtargtemp[strguuvv + 'ir'] = gdat.dictindxtarg['irre'][v]
-            
-            gdat.dictindxtargtemp[strguuvv + 'ne'] = gdat.dictindxtarg['nega'][u]
-            gdat.dictindxtargtemp[strguuvv + 'po'] = gdat.dictindxtarg['posi'][u]
-            
-            gdat.dictindxtargtemp[strguuvv + 'trpo'] = np.intersect1d(gdat.dictindxtarg['posi'][u], gdat.dictindxtarg['rele'][v])
-            gdat.dictindxtargtemp[strguuvv + 'trne'] = np.intersect1d(gdat.dictindxtarg['nega'][u], gdat.dictindxtarg['irre'][v])
-            gdat.dictindxtargtemp[strguuvv + 'flpo'] = np.intersect1d(gdat.dictindxtarg['posi'][u], gdat.dictindxtarg['irre'][v])
-            gdat.dictindxtargtemp[strguuvv + 'flne'] = np.intersect1d(gdat.dictindxtarg['nega'][u], gdat.dictindxtarg['rele'][v])
+            gdat.dictindxtargtemp = {
+                strguuvv + name: indices
+                for name, indices in pergamon.partition_classified_population(
+                    gdat.dictindxtarg['rele'][v], gdat.dictindxtarg['irre'][v],
+                    gdat.dictindxtarg['posi'][u], gdat.dictindxtarg['nega'][u],
+                ).items()
+            }
             
             # determine positive population and negative populations for classification of targets based on disposition properties.
             # The enabled classifier can be BLS or the outlier-period search depending
