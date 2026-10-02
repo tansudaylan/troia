@@ -23,11 +23,12 @@ import numpy as np
 import pandas as pd
 from astropy.io import ascii
 from astroquery.mast import Catalogs
+from tdpy.paths import RepositoryPaths
 
 
 def main():
     """Run the legacy workflow only when invoked as a script."""
-    base_dir = os.environ.get('BHOL_DATA_PATH', os.path.join(os.getcwd(), 'data'))
+    base_dir = str(RepositoryPaths('TROIA_PATH').get_data_path() / 'bhol')
     os.makedirs(base_dir, exist_ok=True)
 
     path1 = os.path.join(base_dir, 'GaiaSource_6714230465835878784_6917528443525529728.csv')
@@ -42,7 +43,7 @@ def main():
     data11through18 = [path1, path2, path3, path4, path5, path6, path7, path8]
     if not all(os.path.exists(path) for path in data11through18):
         raise FileNotFoundError(
-            'Legacy BHOL data files are not present in the configured BHOL_DATA_PATH directory.'
+            'Legacy BHOL data files are not present in TROIA_PATH/data/bhol.'
         )
 
     gaia_data1 = pd.read_csv(path8, index_col=None, header=0)

@@ -8,9 +8,10 @@ import os
 
 import matplotlib.pyplot as plt
 from astroquery.mast import Catalogs
+from tdpy.paths import RepositoryPaths
 
 
-OUTDIR = os.environ.get('BHOL_DATA_PATH', os.path.join(os.getcwd(), 'data'))
+OUTDIR = str(RepositoryPaths('TROIA_PATH').get_visuals_path() / 'bhol')
 os.makedirs(OUTDIR, exist_ok=True)
 
 

@@ -13,7 +13,7 @@ get_visuals_path = _REPOSITORY_PATHS.get_visuals_path
 
 
 def retr_pathgaia(pathbase=None):
-    """Return normalized base/data/image paths for Troia Gaia side scripts."""
+    """Return normalized base/data/visuals paths for Troia Gaia side scripts."""
 
     if pathbase is None:
         pathbase = tdpy.ensr_path(get_repository_path())
@@ -23,5 +23,5 @@ def retr_pathgaia(pathbase=None):
     return {
         'pathbase': pathbase,
         'pathdata': tdpy.ensr_path(os.path.join(pathbase, 'data')),
-        'pathimag': tdpy.ensr_path(os.path.join(pathbase, 'imag')),
+        'pathimag': tdpy.ensr_path(os.path.join(pathbase, 'visuals')),
     }
