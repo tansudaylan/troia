@@ -46,12 +46,17 @@ def test_retr_dictderi_effe_returns_finite_edge_on_quantities():
 
     assert variable_derived is None
     assert set(derived) == {
+        "amplbeammodl",
+        "ampellimodl",
         "amplslenmodl",
         "duratrantotlmodl",
         "smaxmodl",
         "radischw",
     }
     assert all(np.all(np.isfinite(values)) for values in derived.values())
+    signatures = compute_photometric_signatures(10.0, 5.0)
+    np.testing.assert_allclose(derived["amplbeammodl"], [signatures["beaming"]])
+    np.testing.assert_allclose(derived["ampellimodl"], [signatures["ellipsoidal"]])
     np.testing.assert_allclose(derived["amplslenmodl"], np.array([3.015272]), rtol=1e-6)
     assert derived["duratrantotlmodl"][0] > 0.0
 
