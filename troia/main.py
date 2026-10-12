@@ -717,12 +717,7 @@ def init( \
                                         np.where(gdat.dicttroy['true'][nameclastruetype]['dictpopl']['star'][gdat.namepoplstartotl]['booltran'][0])[0]
             gdat.dictindxtarg[nameclastruetypentrn] = np.setdiff1d(gdat.dictindxtarg[nameclastruetype], gdat.dictindxtarg[nameclastruetypetran])
             indxoffs += gdat.dictindxtarg[nameclastruetype].size
-        
-            
-            # to be deleted?
-            #gdat.booltypetargtrue[nameclastruetype] = gdat.indxtarg == gdat.dictindxtarg[nameclastruetype]
-            #gdat.nameclastruetypetarg[nameclastruetype] = gdat.listnameclastruetype[gdat.indxclastruetypetarg]
-            
+
         gdat.numbtargclastrue = dict()
         for name in gdat.listnameclastrue:
             gdat.numbtargclastrue[name] = gdat.dictindxtarg[name].size
