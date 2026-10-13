@@ -1,7 +1,7 @@
 # troia
 
 ## Introduction
-Troia searches time-series data for compact-object signatures in binaries and organizes targets for population comparisons.
+I use Troia to search time-series data for compact-object signatures in binaries and organize targets for population comparisons. Beaming, ellipsoidal variation, and self-lensing give me different ways to ask what might be orbiting a visible star.
 
 Troia classifies time-series targets and passes the resulting target groups to Pergamon for population comparisons. Given independently determined per-target detection efficiencies, Pergamon can also estimate an occurrence fraction from Troia's detection flags. The current Troia workflow does not measure those efficiencies, so its classification counts alone should not be treated as occurrence rates.
 

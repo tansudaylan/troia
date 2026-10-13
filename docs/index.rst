@@ -1,10 +1,11 @@
 Troia
 =====
 
-Troia organizes time-series target classifications and compact-object signature
-workflows. Compact-object photometric amplitudes are calculated by Pergamon;
-target populations can then be summarized there. Classification counts alone do
-not determine an occurrence fraction without per-target detection efficiencies.
+I use Troia to organize time-series target classifications and searches for
+compact-object signatures. Pergamon calculates the photometric amplitudes and
+summarizes target populations. Classification counts alone do not give an
+occurrence fraction; that calculation also needs per-target detection
+efficiencies.
 
 .. toctree::
    :maxdepth: 2
