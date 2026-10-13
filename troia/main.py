@@ -13,7 +13,8 @@ import tdpy
 import ephesos
 import miletos
 import pergamon
-import nicomedia
+from pergamon import catalogs as population_catalogs
+from pergamon import population_synthesis
 
 from .paths import get_repository_path
 from miletos.signatures import derive_compact_object_features
@@ -492,7 +493,7 @@ def init( \
     gdat.boolanimtmpt = False
     
     if not gdat.booltarguser and not gdat.booltargsynt:
-        dicttic8 = nicomedia.retr_dictpopltic8(typepopl=gdat.typepopl)
+        dicttic8 = population_catalogs.retr_dictpopltic8(typepopl=gdat.typepopl)
         
     # number of time-series data sets
     gdat.numbdatatser = 2
@@ -704,7 +705,7 @@ def init( \
         for nameclastruetype in gdat.listnameclastruetype:
             gdat.dictnumbtarg[nameclastruetype] = int(gdat.numbtarg * gdat.dictprobclastruetype[nameclastruetype][0])
         
-            gdat.dicttroy['true'][nameclastruetype] = nicomedia.retr_dictpoplstarcomp(nameclastruetype, \
+            gdat.dicttroy['true'][nameclastruetype] = population_synthesis.retr_dictpoplstarcomp(nameclastruetype, \
                                                             numbsyst=gdat.dictnumbtarg[nameclastruetype], **gdat.dictpoplsystinpt)
             
             gdat.indxcompsyst = gdat.dicttroy['true'][nameclastruetype]['dictindx']['comp']['star']

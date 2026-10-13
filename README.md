@@ -24,7 +24,10 @@ The example evaluates Troia's photometric-signature calculation over orbital per
 
 ```bash
 python examples/compact_object_signatures.py --typefileplot png
+python examples/compact_object_signatures.py --typefileplot png --bokeh
 ```
+
+Install `python -m pip install -e '.[bokeh]'` to also write the interactive period-amplitude comparison as `examples/compact_object_signatures.html`.
 
 ![Predicted compact-object photometric signatures](examples/compact_object_signatures.png)
 

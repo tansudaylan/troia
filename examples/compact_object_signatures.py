@@ -3,6 +3,7 @@
 
 from tdpy.verbosity import print
 
+import argparse
 from pathlib import Path
 
 import matplotlib
@@ -13,10 +14,58 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import troia
-from tdpy.cli import parse_plot_arguments
+from tdpy.cli import add_plot_arguments
 
 
-def run_example(output_path: Path) -> dict[str, np.ndarray]:
+def run_bokeh_example(period_days: np.ndarray, companion_mass_solar: np.ndarray,
+                     signatures: dict[str, np.ndarray], output_path: Path) -> Path:
+    """Write interactive period-amplitude panels for the three signal models."""
+    from bokeh.layouts import row
+    from bokeh.models import HoverTool
+    from bokeh.plotting import figure
+    from tdpy.plotting import save_bokeh_html
+
+    panel_titles = {
+        "beaming": "Doppler beaming",
+        "ellipsoidal": "Ellipsoidal variation",
+        "self_lensing": "Self-lensing",
+    }
+    colors = ["#1B6CA8", "#D18B00", "#2E7D32"]
+    plots = []
+    for name, title in panel_titles.items():
+        plot = figure(
+            title=title,
+            x_axis_type="log",
+            y_axis_type="log",
+            x_range=(float(period_days.min()), float(period_days.max())),
+            y_range=(5e-3, 1e3),
+            width=420,
+            height=360,
+            sizing_mode="stretch_width",
+            tools="pan,wheel_zoom,box_zoom,reset,save",
+        )
+        for mass_index, mass_solar in enumerate(companion_mass_solar.ravel()):
+            plot.line(
+                period_days.ravel(),
+                signatures[name][:, mass_index],
+                color=colors[mass_index],
+                line_width=2.2,
+                legend_label=f"{mass_solar:g} solar masses",
+            )
+        plot.xaxis.axis_label = "Orbital period [day]"
+        plot.yaxis.axis_label = "Predicted amplitude [ppt]"
+        plot.grid.visible = False
+        plot.legend.location = "top_right"
+        plot.add_tools(HoverTool(tooltips=[("Period [day]", "$x"), ("Amplitude [ppt]", "$y")]))
+        plots.append(plot)
+    return Path(save_bokeh_html(
+        row(*plots, sizing_mode="stretch_width"),
+        output_path,
+        title="Compact-object photometric signatures",
+    ))
+
+
+def run_example(output_path: Path, bokeh_output_path: Path | None = None) -> dict[str, np.ndarray]:
     """Calculate and plot signatures for a solar-type source star."""
 
     period_days = np.geomspace(0.3, 30.0, 200)[:, None]  # [day]
@@ -84,15 +133,21 @@ def run_example(output_path: Path) -> dict[str, np.ndarray]:
         facecolor="white",
     )
     plt.close(figure)
+    if bokeh_output_path is not None:
+        run_bokeh_example(period_days, companion_mass_solar, signatures, bokeh_output_path)
     return signatures
 
 
 def main() -> int:
-    arguments = parse_plot_arguments(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__)
+    add_plot_arguments(parser)
+    parser.add_argument("--bokeh", action="store_true", help="also write interactive HTML")
+    arguments = parser.parse_args()
     output_path = Path(__file__).with_name(
         f"compact_object_signatures.{arguments.typefileplot}"
     )
-    run_example(output_path)
+    html_path = Path(__file__).with_name("compact_object_signatures.html") if arguments.bokeh else None
+    run_example(output_path, bokeh_output_path=html_path)
     return 0
 
 

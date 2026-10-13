@@ -24,12 +24,14 @@ dependencies = [
   "ephesos",
   "matplotlib",
   "miletos",
-  "nicomedia",
   "numpy",
   "pergamon",
   "scipy",
   "tdpy"
 ]
+
+[project.optional-dependencies]
+bokeh = ["bokeh>=3.4"]
 
 [tool.setuptools.packages.find]
 include = ["troia*"]
